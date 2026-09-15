@@ -71,7 +71,15 @@ class EnsurePermission
 
         // toArray() company'yi aktif organizasyona karşı doğrular;
         // başka tenant'ın şirketi buradan 404 ile döner.
-        $context = $this->context->toArray($user, $companyId, $locationId);
+        //
+        // Kapsam parametresi YOK ve aktif organizasyon YOK ise context boştur:
+        // global izinler (user.manage gibi) context'ten bağımsızdır ve
+        // organizasyon henüz seçilmeden/yokken de çalışmalıdır (müşteri
+        // açılışı). Organization/company kapsamlı bir izin boş context'te
+        // AuthorizationService tarafından zaten fail-closed reddedilir.
+        $context = ($scopeParam === null && $this->context->activeOrganizationId() === null)
+            ? []
+            : $this->context->toArray($user, $companyId, $locationId);
 
         $resourceId = $resourceParam !== null ? $this->routeId($request, $resourceParam) : null;
 

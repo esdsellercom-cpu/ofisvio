@@ -126,6 +126,7 @@ class ArchitectureTest extends TestCase
             'TenantContext.php',            // resolveCompany: tenant kontrolünü kendisi yapar
             'AuthorizationService.php',     // şirketten organizasyon çözümlemesi
             'BelongsToTenant.php',          // trait'in kendi tanımı
+            'KycQueueService.php',          // pendingCounts: yalnızca personel, yalnızca org başına ADET (bkz. sınıf başlığı)
         ];
 
         $violations = [];

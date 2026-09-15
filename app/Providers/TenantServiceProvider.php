@@ -4,12 +4,17 @@ namespace App\Providers;
 
 use App\Services\AuthorizationService;
 use App\Services\CompanyActivationService;
+use App\Services\CompanyService;
 use App\Services\ContextSwitchService;
 use App\Services\JitAccessService;
+use App\Services\KycQueueService;
 use App\Services\KycService;
 use App\Services\LeadService;
+use App\Services\OrganizationOnboardingService;
 use App\Services\TenantContext;
+use App\View\Composers\PanelLayoutComposer;
 use Illuminate\Contracts\Session\Session;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -41,5 +46,16 @@ class TenantServiceProvider extends ServiceProvider
         $this->app->singleton(ContextSwitchService::class);
         $this->app->singleton(KycService::class);
         $this->app->singleton(LeadService::class);
+        $this->app->singleton(CompanyService::class);
+        $this->app->singleton(OrganizationOnboardingService::class);
+        $this->app->singleton(KycQueueService::class);
+    }
+
+    public function boot(): void
+    {
+        // Panel layout'u VE panel sayfaları aktif organizasyon/personel bilgisini
+        // tek noktadan alır. Sayfalar da listede: @extends eden görünüm layout'tan
+        // ÖNCE derlenir, yalnızca layout'a bağlı composer sayfaya değişken vermez.
+        View::composer(['layouts.panel', 'panel.*'], PanelLayoutComposer::class);
     }
 }

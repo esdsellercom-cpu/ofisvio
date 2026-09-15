@@ -44,7 +44,7 @@ KYC belgeleri **public erişilebilir olmamalıdır**. `disks` dizisine:
     'driver' => 'local',
     'root'   => storage_path('app/private'),
     // 'url' ve 'visibility' KASITLI OLARAK YOK: bu disk için public URL
-    // üretilememeli. Belgeye erişim yalnızca KycController::show()
+    // üretilememeli. Belgeye erişim yalnızca Panel\KycController::download()
     // üzerinden, JIT kapısından geçerek olur.
     'throw'  => false,
 ],

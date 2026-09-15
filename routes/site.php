@@ -8,7 +8,7 @@
  *
  * Buradaki route'lar KİMLİK DOĞRULAMASI İSTEMEZ ve tenant middleware'i
  * taşımaz — vitrin herkese açıktır. Panel route'ları (auth + tenant +
- * permission zinciri) ayrı grupta kalır; bkz. routes/rbac-example.php.
+ * permission zinciri) ayrı grupta kalır; bkz. routes/panel.php.
  */
 
 use App\Http\Controllers\Site\HomeController;
@@ -24,8 +24,8 @@ Route::post('/talep', [LeadController::class, 'store'])
     ->name('site.leads.store');
 
 /*
- * Giriş: henüz auth scaffolding kurulmadı. Route'u ŞİMDİDEN tanımlıyoruz ki
- * header'daki bağlantı kırık olmasın ve auth eklendiğinde tek yerden
- * bağlansın. Laravel Breeze/Fortify kurulduğunda bu tanım kaldırılır.
+ * Giriş Fortify'dadır (/login, /logout, /forgot-password, /reset-password).
+ * /giris yalnızca eski bağlantılar ve Türkçe URL alışkanlığı için kalıcı
+ * yönlendirmedir; header route('login')'i kullanır.
  */
-Route::get('/giris', fn () => view('site.login-placeholder'))->name('site.login');
+Route::redirect('/giris', '/login', 301);

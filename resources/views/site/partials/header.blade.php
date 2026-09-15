@@ -26,7 +26,11 @@
             </button>
             {{-- Giriş, panelin tenant akışına gider: oturum açan kullanıcı
                  EnsureTenantContext ile organizasyon seçimine yönlendirilir. --}}
-            <a href="{{ route('site.login') }}" style="font-size:15px;font-weight:500">Giriş Yap</a>
+            @auth
+                <a href="{{ route('panel.dashboard') }}" style="font-size:15px;font-weight:500">Panel</a>
+            @else
+                <a href="{{ route('login') }}" style="font-size:15px;font-weight:500">Giriş Yap</a>
+            @endauth
             <a href="#teklif" class="btn btn--brand btn--pill">Teklif Al</a>
         </div>
     </div>

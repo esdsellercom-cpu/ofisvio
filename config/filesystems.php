@@ -32,7 +32,7 @@ return [
 
         /*
          * KYC belgeleri. 'url' ve 'visibility' KASITLI OLARAK YOK: bu disk için
-         * public URL üretilememeli. Belgeye erişim yalnızca KycController::show()
+         * public URL üretilememeli. Belgeye erişim yalnızca Panel\KycController::download()
          * üzerinden, JIT kapısından geçerek olur.
          */
         'private' => [
