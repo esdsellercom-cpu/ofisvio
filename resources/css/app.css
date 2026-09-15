@@ -1,0 +1,8 @@
+/* Panel ekranlarının derlenmiş giriş noktası.
+
+   Vitrinin tasarım sistemi public/css/ofisvio.css içinde ve derlenmiyor;
+   layout'lar onu doğrudan <link href="{{ asset('css/ofisvio.css') }}"> ile
+   alır. Buraya @import url('/css/...') YAZILMAZ: Vite bunu derleme anında
+   dosya sisteminden çözmeye çalışır ve build kırılır (ilk koşuda yakalandı).
+
+   Panel ekranlarına özgü, derlenmesi gereken stiller buraya gelecek. */

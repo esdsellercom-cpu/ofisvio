@@ -1,0 +1,38 @@
+# Statik analiz — §76 kalite kapisinin ikinci komutu.
+#
+# level 6 ile basliyoruz: mevcut kod hic calistirilmadigi icin once tip
+# hatalarini yakalamak istiyoruz. Kod yesile dondukten sonra level
+# kademeli yukseltilir; dusurmek YASAK (§76: "testi gecirmek icin test
+# degistirilemez veya gevsetilemez" — ayni ilke analiz seviyesi icin de gecerli).
+
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+
+    paths:
+        - app
+        - database
+        - config
+        - routes
+
+    # Laravel iskeletinin kendi dosyalari — paketin degil. UserFactory'nin
+    # `array<string, mixed>` donus tipi checkModelProperties ile catisir.
+    excludePaths:
+        - app/Http/Controllers/Controller.php
+        - database/factories/UserFactory.php
+
+    # Laravel'in magic'i nedeniyle kacinilmaz olanlar. Liste BUYUMEMELI;
+    # her yeni ignore bir code review konusudur.
+    ignoreErrors:
+        - identifier: missingType.iterableValue
+
+    checkModelProperties: true
+    checkOctaneCompatibility: false
+
+# NOT: Mimari kurallar (controller'dan DB erisimi, status tek yazar,
+# withoutTenantScope kullanimi) custom PHPStan kurali yerine
+# tests/Architecture/ArchitectureTest.php icinde uygulanir — boylece
+# `php artisan test` ile birlikte calisir ve PHPStan surum farklarina
+# bagimli olmaz.

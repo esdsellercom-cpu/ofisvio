@@ -1,0 +1,128 @@
+# §76 — ZORUNLU KALİTE KAPISI
+#
+# Bu pipeline dört komutu çalıştırır: pint, phpstan, php artisan test, npm run build.
+# Herhangi biri FAIL ise modül tamamlanmış sayılmaz (§76) ve merge edilmez.
+#
+# Testi geçirmek için test değiştirilemez veya gevşetilemez (§76). Bu yüzden
+# iş akışı `continue-on-error` KULLANMAZ ve hiçbir adımda `|| true` yoktur.
+
+name: Kalite Kapısı
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: pint · phpstan · test · build
+    runs-on: ubuntu-latest
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP kurulumu
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, intl, pdo_sqlite, redis, zip, gd
+          coverage: none
+
+      - name: Composer bağımlılıkları
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Ortam
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+
+      # --- 1/4 ---
+      - name: Pint (kod stili)
+        run: ./vendor/bin/pint --test
+
+      # --- 2/4 ---
+      - name: PHPStan (statik analiz)
+        run: ./vendor/bin/phpstan analyse --no-progress
+
+      # --- 3/4 ---
+      - name: Migration + seed
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --class=RolePermissionSeeder --force
+          php artisan db:seed --class=LocationSeeder --force
+
+      - name: Testler
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: redis
+          REDIS_HOST: 127.0.0.1
+        run: php artisan test
+
+      # --- 4/4 ---
+      - name: Node kurulumu
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Frontend derleme
+        run: |
+          npm ci
+          npm run build
+
+  security:
+    name: Güvenlik testleri (P0)
+    runs-on: ubuntu-latest
+    needs: gate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, intl, pdo_sqlite
+          coverage: none
+
+      - run: composer install --no-interaction --prefer-dist --no-progress
+      - run: cp .env.example .env && php artisan key:generate && touch database/database.sqlite
+
+      # P0 kapsamındaki testler ayrı bir job'da: gate yeşilse bile bunlar
+      # kırmızıysa merge edilmez. Ayrılmalarının sebebi görünürlük —
+      # "hangi test kırıldı" sorusunun cevabı iş akışı adından okunabilsin.
+      - name: Tenant izolasyonu + RBAC + mimari
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --class=RolePermissionSeeder --force
+          php artisan test --testsuite=Architecture
+          php artisan test --filter='TenantScopeTest|TenantContextTest|AuthorizationScopeTest|KycAccessTest|PermissionMatrixTest'
+
+      - name: Sahte veri taraması
+        run: |
+          # §3 / §74: fake data üretimi yasak. Seeder'lar dışında
+          # 'faker' ve 'dummy' kullanımı gözden geçirilmeli.
+          ! grep -rn --include='*.php' -E '\b(fake\(\)|Faker\\)' app/ || \
+            (echo "app/ içinde fake data üretimi bulundu — §3 ihlali" && exit 1)

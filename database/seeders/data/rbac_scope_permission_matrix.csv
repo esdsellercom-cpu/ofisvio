@@ -1,0 +1,253 @@
+module,permission,role,scope,requires_jit,requires_dual_control,notes
+kyc,kyc.view,owner,company,no,no,
+kyc,kyc.view,legal_representative,company,no,no,
+kyc,kyc.view,company_admin,company,no,no,
+kyc,kyc.upload,owner,company,no,no,
+kyc,kyc.upload,legal_representative,company,no,no,
+kyc,kyc.upload,company_admin,company,no,no,
+kyc,kyc.view_status,system_admin,global,no,no,durum gorulur (APPROVED/PENDING vb.) belge icerigi degil
+kyc,kyc.view_status,super_admin,global,no,no,
+kyc,kyc.view_document,system_admin,global,yes,no,belge icerigini acmak JIT gerektirir
+kyc,kyc.view_document,super_admin,global,yes,no,
+kyc,kyc.download,system_admin,global,yes,no,
+kyc,kyc.download,super_admin,global,yes,no,
+kyc,kyc.approve,system_admin,global,no,no,
+kyc,kyc.approve,super_admin,global,no,no,
+kyc,kyc.reject,system_admin,global,no,no,
+kyc,kyc.reject,super_admin,global,no,no,
+kyc,kyc.request_more_info,system_admin,global,no,no,
+kyc,kyc.request_more_info,super_admin,global,no,no,
+kyc,kyc.physical_document.log,reception,location,no,no,fiziksel belge teslim alma kaydi
+kyc,kyc.physical_document.destroy,system_admin,global,yes,yes,dual-control gerektirir
+kyc,kyc.physical_document.destroy,super_admin,global,yes,yes,dual-control gerektirir
+contract,contract.view,owner,company,no,no,
+contract,contract.view,legal_representative,company,no,no,
+contract,contract.view,company_admin,company,no,no,
+contract,contract.view,accountant,company,no,no,
+contract,contract.download,owner,company,no,no,
+contract,contract.download,legal_representative,company,no,no,
+contract,contract.create,system_admin,global,no,no,
+contract,contract.create,operations_admin,global,no,no,
+contract,contract.send_for_signature,system_admin,global,no,no,
+contract,contract.send_for_signature,operations_admin,global,no,no,
+contract,contract.sign,legal_representative,company,no,no,imza yetkisi bu role
+contract,contract.cancel,system_admin,global,yes,no,
+contract,contract.cancel,super_admin,global,yes,no,
+subscription,subscription.view,owner,company,no,no,
+subscription,subscription.view,company_admin,company,no,no,
+subscription,subscription.view,accountant,company,no,no,
+subscription,subscription.create,owner,company,no,no,
+subscription,subscription.create,company_admin,company,no,no,
+subscription,subscription.upgrade,owner,company,no,no,
+subscription,subscription.upgrade,company_admin,company,no,no,
+subscription,subscription.downgrade,owner,company,no,no,
+subscription,subscription.cancel,owner,company,no,no,
+subscription,subscription.cancel,legal_representative,company,no,no,
+subscription,subscription.view,finance_admin,global,no,no,
+subscription,subscription.view,system_admin,global,no,no,
+subscription,subscription.override,finance_admin,global,yes,no,manuel istisna/kampanya uygulama
+subscription,subscription.override,super_admin,global,yes,no,
+payment,payment.view,owner,company,no,no,
+payment,payment.view,company_admin,company,no,no,
+payment,payment.view,accountant,company,no,no,
+payment,payment.initiate,owner,company,no,no,
+payment,payment.initiate,company_admin,company,no,no,
+payment,payment.view,finance_admin,global,no,no,
+payment,payment.view,system_admin,global,no,no,
+payment,payment.refund,finance_admin,global,yes,no,esik ustu ikinci onay gerekir
+payment,payment.refund,super_admin,global,yes,no,
+payment,payment.view_provider_response,finance_admin,global,no,no,
+payment,payment.view_provider_response,system_admin,global,no,no,
+invoice,invoice.view,owner,company,no,no,
+invoice,invoice.view,company_admin,company,no,no,
+invoice,invoice.view,accountant,company,no,no,
+invoice,invoice.view,finance_admin,global,no,no,
+invoice,invoice.view,system_admin,global,no,no,
+invoice,invoice.view,super_admin,global,no,no,
+invoice,invoice.issue,finance_admin,global,no,no,
+invoice,invoice.issue,system_admin,global,no,no,
+invoice,invoice.cancel,finance_admin,global,yes,no,
+invoice,invoice.cancel,super_admin,global,yes,no,
+invoice,invoice.refund,finance_admin,global,yes,no,
+invoice,invoice.refund,super_admin,global,yes,no,
+invoice,invoice.export,finance_admin,global,yes,no,toplu export JIT+approval gerektirir
+invoice,invoice.export,super_admin,global,yes,no,
+ledger,ledger.view,owner,company,no,no,
+ledger,ledger.view,accountant,company,no,no,
+ledger,ledger.view,finance_admin,global,no,no,
+ledger,ledger.view,system_admin,global,no,no,
+ledger,ledger.correction_entry,finance_admin,global,yes,no,orijinal kayit silinmez sadece duzeltme girisi
+ledger,ledger.correction_entry,super_admin,global,yes,no,
+ledger,payment_allocation.manage,finance_admin,global,no,no,odemenin hangi faturaya tahsis edildigi
+ledger,payment_allocation.manage,system_admin,global,no,no,
+crm,lead.view,system_admin,global,no,no,
+crm,lead.view,operations_admin,global,no,no,
+crm,lead.create,system_admin,global,no,no,
+crm,lead.create,operations_admin,global,no,no,
+crm,lead.assign,system_admin,global,no,no,
+crm,lead.assign,operations_admin,global,no,no,
+crm,deal.view,system_admin,global,no,no,
+crm,deal.view,operations_admin,global,no,no,
+crm,deal.update,system_admin,global,no,no,
+crm,deal.update,operations_admin,global,no,no,
+booking,booking.view,owner,company,no,no,
+booking,booking.view,company_admin,company,no,no,
+booking,booking.view,employee,company,no,no,
+booking,booking.create,owner,company,no,no,
+booking,booking.create,company_admin,company,no,no,
+booking,booking.create,employee,company,no,no,
+booking,booking.cancel,owner,company,no,no,
+booking,booking.cancel,company_admin,company,no,no,
+booking,booking.view,reception,location,no,no,
+booking,booking.create,reception,location,no,no,
+booking,booking.view,operations_admin,global,no,no,
+booking,booking.admin_override,operations_admin,global,yes,no,resource availability engine'i manuel gecersiz kilma
+booking,booking.admin_override,super_admin,global,yes,no,
+cargo,cargo.view,owner,company,no,no,
+cargo,cargo.view,company_admin,company,no,no,
+cargo,cargo.view,employee,company,no,no,
+cargo,cargo.view,reception,location,no,no,
+cargo,cargo.create,reception,location,no,no,kargo teslim alindi kaydi
+cargo,cargo.notify,reception,location,no,no,
+cargo,cargo.view,operations_admin,global,no,no,
+mail,mail.view,owner,company,no,no,
+mail,mail.view,reception,location,no,no,
+visitor,visitor.view,reception,location,no,no,
+visitor,visitor.checkin,reception,location,no,no,
+visitor,visitor.view,operations_admin,global,no,no,
+address,address.view,owner,company,no,no,
+address,address.view,legal_representative,company,no,no,
+address,address.assign,system_admin,global,no,no,address_assignments tablosu uzerinden
+address,address.assign,operations_admin,global,no,no,
+address,address.terminate,system_admin,global,yes,no,
+address,address.terminate,super_admin,global,yes,no,
+company,company.view,owner,company,no,no,
+company,company.view,legal_representative,company,no,no,
+company,company.view,company_admin,company,no,no,
+company,company.view,accountant,company,no,no,
+company,company.view,employee,company,no,no,
+company,company.view,viewer,company,no,no,
+company,company.update,owner,company,no,no,
+company,company.update,legal_representative,company,no,no,
+company,company.close,owner,company,yes,no,state machine + borc/kyc/sozlesme kontrolu
+company,company.close,super_admin,global,yes,no,
+company,membership.manage,owner,company,no,no,uye ekleme/cikarma/rol atama
+company,membership.manage,legal_representative,company,no,no,
+organization,organization.view,owner,organization,no,no,
+organization,organization.manage,owner,organization,no,no,
+admin,user.manage,system_admin,global,no,no,
+admin,user.manage,super_admin,global,no,no,
+admin,role.manage,super_admin,global,yes,no,rol/izin matrisinin kendisini degistirme
+admin,audit.view,system_admin,global,no,no,
+admin,audit.view,super_admin,global,no,no,
+admin,secret.manage,super_admin,global,yes,no,encryption key/api key rotasyonu
+admin,break_glass.activate,super_admin,global,yes,no,zaman sinirli+ikinci onay+tam audit
+admin,phpmyadmin.access,super_admin,global,yes,no,break-glass disinda kapali
+admin,offboarding.execute,system_admin,global,no,no,T+0 erisim iptali
+admin,offboarding.execute,super_admin,global,no,no,
+cms,content.view,system_admin,global,no,no,
+cms,content.create,system_admin,global,no,no,
+cms,content.publish,system_admin,global,no,no,draft-review-approved-published akisi
+cms,content.publish,super_admin,global,no,no,
+notifications,notification_template.manage,system_admin,global,no,no,
+analytics,analytics.view,finance_admin,global,no,no,
+analytics,analytics.view,operations_admin,global,no,no,
+analytics,analytics.view,system_admin,global,no,no,
+analytics,analytics.view,location_manager,location,no,no,
+analytics,analytics.view,super_admin,global,no,no,
+compliance,legal_document.publish,system_admin,global,yes,no,hukuk danismani onayi + admin review sonrasi
+compliance,legal_document.publish,super_admin,global,yes,no,
+compliance,data_export.request,system_admin,global,yes,no,
+compliance,data_export.approve,super_admin,global,yes,no,
+compliance,retention.manage,system_admin,global,no,no,retention_policies tablosu
+compliance,masak.assessment_view,super_admin,global,no,no,
+seo,seo.view,system_admin,global,no,no,
+seo,seo.view,operations_admin,global,no,no,
+seo,seo.view,super_admin,global,no,no,
+seo,seo.view,owner,company,no,no,
+seo,seo.view,company_admin,company,no,no,
+seo,seo.audit,system_admin,global,no,no,SEO analiz pipeline calistirma
+seo,seo.audit,operations_admin,global,no,no,SEO analiz pipeline calistirma
+seo,seo.audit,super_admin,global,no,no,SEO analiz pipeline calistirma
+seo,seo.edit,system_admin,global,no,no,
+seo,seo.edit,operations_admin,global,no,no,
+seo,seo.edit,super_admin,global,no,no,
+seo,seo.edit,owner,company,no,no,
+seo,seo.edit,company_admin,company,no,no,
+seo,seo.publish,system_admin,global,no,no,
+seo,seo.publish,operations_admin,global,no,no,
+seo,seo.publish,super_admin,global,no,no,
+seo,seo.publish,owner,company,no,no,
+seo,seo.settings,system_admin,global,yes,no,robots/canonical/hreflang degisikligi tum siteyi deindeksleyebilir
+seo,seo.settings,super_admin,global,yes,no,robots/canonical/hreflang degisikligi tum siteyi deindeksleyebilir
+seo,seo.integrations,system_admin,global,yes,no,saglayici kimlik bilgisi erisimi
+seo,seo.integrations,super_admin,global,yes,no,saglayici kimlik bilgisi erisimi
+seo,seo.analytics.view,system_admin,global,no,no,
+seo,seo.analytics.view,operations_admin,global,no,no,
+seo,seo.analytics.view,super_admin,global,no,no,
+seo,seo.analytics.view,owner,company,no,no,
+seo,seo.analytics.view,company_admin,company,no,no,
+seo,seo.integration.manage,system_admin,global,yes,no,API anahtari ekleme/donduurme
+seo,seo.integration.manage,super_admin,global,yes,no,API anahtari ekleme/donduurme
+seo,search_console.integration.manage,system_admin,global,yes,no,Search Console baglantisi
+seo,search_console.integration.manage,super_admin,global,yes,no,Search Console baglantisi
+geo,geo.view,system_admin,global,no,no,
+geo,geo.view,operations_admin,global,no,no,
+geo,geo.view,super_admin,global,no,no,
+geo,geo.view,owner,company,no,no,
+geo,geo.view,company_admin,company,no,no,
+geo,geo.audit,system_admin,global,no,no,
+geo,geo.audit,operations_admin,global,no,no,
+geo,geo.audit,super_admin,global,no,no,
+geo,geo.edit,system_admin,global,no,no,entity/knowledge graph duzenleme
+geo,geo.edit,operations_admin,global,no,no,entity/knowledge graph duzenleme
+geo,geo.edit,super_admin,global,no,no,entity/knowledge graph duzenleme
+geo,geo.publish,system_admin,global,no,no,
+geo,geo.publish,super_admin,global,no,no,
+geo,geo.settings,system_admin,global,yes,no,entity tanimlari tum sitede tutarlilik kirar
+geo,geo.settings,super_admin,global,yes,no,entity tanimlari tum sitede tutarlilik kirar
+cms,content.edit,system_admin,global,no,no,
+cms,content.edit,operations_admin,global,no,no,
+cms,content.edit,owner,company,no,no,
+cms,content.edit,company_admin,company,no,no,
+cms,content.review,system_admin,global,no,no,
+cms,content.review,operations_admin,global,no,no,
+cms,content.review,owner,company,no,no,
+cms,content.approve,system_admin,global,no,no,P0B: legal/tax/KYC icerigi icin zorunlu
+cms,content.approve,super_admin,global,no,no,P0B: legal/tax/KYC icerigi icin zorunlu
+cms,content.schedule,system_admin,global,no,no,
+cms,content.schedule,operations_admin,global,no,no,
+cms,content.schedule,owner,company,no,no,
+cms,content.archive,system_admin,global,no,no,
+cms,content.archive,super_admin,global,no,no,
+ai_content,ai_content.generate,system_admin,global,no,no,maliyet limitine tabi
+ai_content,ai_content.generate,operations_admin,global,no,no,maliyet limitine tabi
+ai_content,ai_content.generate,owner,company,no,no,
+ai_content,ai_content.generate,company_admin,company,no,no,
+ai_content,ai_content.review,system_admin,global,no,no,
+ai_content,ai_content.review,operations_admin,global,no,no,
+ai_content,ai_content.review,owner,company,no,no,
+ai_content,ai_content.approve,system_admin,global,no,no,AI ciktisi dogrulanmadan gercek kabul edilmez
+ai_content,ai_content.approve,super_admin,global,no,no,AI ciktisi dogrulanmadan gercek kabul edilmez
+ai_content,ai_content.publish,system_admin,global,no,no,
+ai_content,ai_content.publish,super_admin,global,no,no,
+performance,performance.view,system_admin,global,no,no,
+performance,performance.view,operations_admin,global,no,no,
+performance,performance.view,super_admin,global,no,no,
+performance,performance.audit,system_admin,global,no,no,benchmark calistirma
+performance,performance.audit,super_admin,global,no,no,benchmark calistirma
+performance,performance.settings,system_admin,global,yes,no,butce/esik degisikligi regression gate davranisini degistirir
+performance,performance.settings,super_admin,global,yes,no,butce/esik degisikligi regression gate davranisini degistirir
+cache,cache.view,system_admin,global,no,no,
+cache,cache.view,operations_admin,global,no,no,
+cache,cache.view,super_admin,global,no,no,
+cache,cache.inspect,system_admin,global,no,no,key icerigi hassas olabilir
+cache,cache.inspect,super_admin,global,no,no,key icerigi hassas olabilir
+cache,cache.warm,system_admin,global,no,no,
+cache,cache.warm,super_admin,global,no,no,
+cache,cache.invalidate,system_admin,global,yes,no,"global purge yikici, gerekce ve sure siniri gerekir"
+cache,cache.invalidate,super_admin,global,yes,no,"global purge yikici, gerekce ve sure siniri gerekir"
+cache,cache.settings,system_admin,global,yes,no,
+cache,cache.settings,super_admin,global,yes,no,
+analytics,analytics.integration.manage,system_admin,global,yes,no,Analytics API kimlik bilgisi
+analytics,analytics.integration.manage,super_admin,global,yes,no,Analytics API kimlik bilgisi

@@ -1,0 +1,207 @@
+/* Ofisvio — vitrin etkileşimleri
+ *
+ * Bağımlılık yok. Alpine/Vue eklemek npm zinciri gerektirirdi; bu kadarlık
+ * etkileşim için sade JS yeterli ve site derleme adımı olmadan çalışıyor.
+ *
+ * İlke: JavaScript KAPALIYKEN de sayfa kullanılabilir olmalı. Filtreler
+ * yalnızca görünürlük daraltır (tüm lokasyonlar sunucudan basılır), formlar
+ * gerçek POST yapar. JS sadece deneyimi iyileştirir.
+ */
+(function () {
+  'use strict';
+
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+
+  /* ---------- gezinme ---------- */
+  function initNav() {
+    var toggles = $$('[data-nav-toggle]');
+    var panel = $('[data-nav-panel]');
+    if (!panel || !toggles.length) return;
+
+    function setOpen(open) {
+      panel.hidden = !open;
+      toggles.forEach(function (t) { t.setAttribute('aria-expanded', String(open)); });
+    }
+
+    toggles.forEach(function (t) {
+      t.addEventListener('click', function () {
+        setOpen(panel.hidden);
+      });
+    });
+
+    $$('[data-nav-panel] a').forEach(function (a) {
+      a.addEventListener('click', function () { setOpen(false); });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !panel.hidden) { setOpen(false); toggles[0].focus(); }
+    });
+
+    setOpen(false);
+  }
+
+  /* ---------- lokasyon filtresi ---------- */
+  function initLocations() {
+    var grid = $('[data-locations]');
+    if (!grid) return;
+
+    var cards = $$('[data-location]', grid);
+    var tabs = $$('[data-region-tab]');
+    var empty = $('[data-locations-empty]');
+    var count = $('[data-match-line]');
+    var regionSelect = $('[data-filter-region]');
+    var typeSelect = $('[data-filter-type]');
+    var teamSelect = $('[data-filter-team]');
+    var applyBtn = $('[data-filter-apply]');
+
+    var state = { region: 'Tümü', type: 'Tümü' };
+
+    function apply() {
+      var visible = 0;
+
+      cards.forEach(function (card) {
+        var region = card.getAttribute('data-region') || '';
+        var tags = (card.getAttribute('data-tags') || '').split('|');
+        var okRegion = state.region === 'Tümü' || region === state.region;
+        var okType = state.type === 'Tümü' || tags.indexOf(state.type) > -1;
+        var show = okRegion && okType;
+        card.hidden = !show;
+        if (show) visible++;
+      });
+
+      if (empty) empty.hidden = visible > 0;
+
+      if (count) {
+        var parts = [visible + ' lokasyon'];
+        parts.push(state.region === 'Tümü' ? 'tüm bölgeler' : state.region);
+        if (state.type !== 'Tümü') parts.push(state.type);
+        count.textContent = parts.join(' · ');
+      }
+
+      tabs.forEach(function (tab) {
+        tab.setAttribute('aria-pressed', String(tab.getAttribute('data-region-tab') === state.region));
+      });
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        state.region = tab.getAttribute('data-region-tab');
+        if (regionSelect) regionSelect.value = state.region;
+        apply();
+      });
+    });
+
+    if (applyBtn) {
+      applyBtn.addEventListener('click', function () {
+        if (regionSelect) state.region = regionSelect.value;
+        if (typeSelect) state.type = typeSelect.value;
+        apply();
+      });
+    }
+
+    // Ekip büyüklüğü filtrelemez, yalnızca teklif formuna taşınır.
+    if (teamSelect) {
+      teamSelect.addEventListener('change', function () {
+        var hidden = $('[data-form-team]');
+        if (hidden) hidden.value = teamSelect.value;
+      });
+    }
+
+    apply();
+  }
+
+  /* ---------- rezervasyon seçici ---------- */
+  function initBooking() {
+    var root = $('[data-booking]');
+    if (!root) return;
+
+    var dateInput = $('[data-booking-date]', root);
+    var slotInput = $('[data-booking-slot]', root);
+    var summary = $('[data-booking-summary]', root);
+    var dayBtns = $$('[data-booking-day]', root);
+    var slotBtns = $$('[data-booking-slot-btn]', root);
+    var locSelect = $('[data-booking-loc]', root);
+
+    function press(list, activeEl) {
+      list.forEach(function (b) { b.setAttribute('aria-pressed', String(b === activeEl)); });
+    }
+
+    // Gizli alan sunucuya ISO tarih gonderir; ozet metninde ise kullaniciya
+    // dugmenin uzerindeki insan okunur etiket gosterilir ("Bugün 15.09").
+    var dayLabel = '';
+
+    function refreshSummary() {
+      if (!summary) return;
+      var loc = locSelect ? locSelect.options[locSelect.selectedIndex].text : '';
+      var slot = slotInput ? slotInput.value : '';
+      summary.textContent = loc + ' · ' + dayLabel + ' ' + slot +
+        ' · 1 saat · ön talep, uygunluk teyidi e-posta ile gelir';
+    }
+
+    dayBtns.forEach(function (btn) {
+      if (btn.getAttribute('aria-pressed') === 'true') {
+        dayLabel = btn.getAttribute('data-day-label') || '';
+      }
+      btn.addEventListener('click', function () {
+        if (dateInput) dateInput.value = btn.getAttribute('data-booking-day');
+        dayLabel = btn.getAttribute('data-day-label') || '';
+        press(dayBtns, btn);
+        refreshSummary();
+      });
+    });
+
+    slotBtns.forEach(function (btn) {
+      if (btn.disabled) return;
+      btn.addEventListener('click', function () {
+        if (slotInput) slotInput.value = btn.getAttribute('data-booking-slot-btn');
+        press(slotBtns, btn);
+        refreshSummary();
+      });
+    });
+
+    if (locSelect) locSelect.addEventListener('change', refreshSummary);
+
+    refreshSummary();
+  }
+
+  /* ---------- çözüm kartından forma aktarım ---------- */
+  function initSolutionPrefill() {
+    $$('[data-solution-pick]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var select = $('[data-form-solution]');
+        if (select) select.value = el.getAttribute('data-solution-pick');
+      });
+    });
+  }
+
+  /* ---------- gönderim sırasında çift tıklamayı engelle ---------- */
+  function initForms() {
+    $$('form[data-guard]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        var btn = form.querySelector('[type="submit"]');
+        if (!btn) return;
+        // disabled bir düğme değer göndermez; bu yüzden sadece görsel kilit.
+        setTimeout(function () {
+          btn.setAttribute('aria-busy', 'true');
+          btn.style.pointerEvents = 'none';
+          btn.style.opacity = '.72';
+        }, 0);
+      });
+    });
+  }
+
+  function boot() {
+    initNav();
+    initLocations();
+    initBooking();
+    initSolutionPrefill();
+    initForms();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();
