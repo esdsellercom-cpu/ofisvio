@@ -1,5 +1,10 @@
 # Kurulum kayıtları
 
+> Bu bölüm `ofisvio-rbac` paketinin bir Laravel projesine kurulum notudur.
+> Bu depoda kurulum **tamamlanmıştır** (bkz. `bootstrap/app.php`,
+> `bootstrap/providers.php`, `app/Models/User.php`, `config/filesystems.php`);
+> kayıt olarak tutulur. Yeni modül kalıbı için aşağıdaki ikinci bölüme geçin.
+
 ## 1. Middleware (Laravel 11/12 — bootstrap/app.php)
 
 ```php

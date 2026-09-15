@@ -1,47 +1,44 @@
-<laravel-boost-guidelines>
-# Laravel Application
+# Ofisvio — çalışma kuralları
 
-This repository contains a Laravel application. Complete the following setup before working on the user's request.
+Laravel 13 / PHP 8.3. Sanal ofis & coworking SaaS; çok kiracılı (organization → company).
+Dil: kod yorumları, commit mesajları ve UI **Türkçe**; tanımlayıcılar İngilizce.
 
-## Prerequisites
+## §76 Kalite kapısı — her değişiklikten sonra dördü de yeşil olmalı
 
-Verify that PHP and Composer are available:
-
-```sh
-php -v
-composer -V
+```
+./vendor/bin/pint --test
+./vendor/bin/phpstan analyse        # level 6, 0 hata
+php artisan test                    # Unit + Feature + Architecture
+npm run build
 ```
 
-If either command is unavailable, detect the user's operating system and install the prerequisites with the appropriate command:
+Kırmızı testi geçirmek için test **gevşetilmez**, kök neden düzeltilir. PHPStan seviyesi
+düşürülmez, `@phpstan-ignore` / baseline eklenmez. `tests/Architecture/ArchitectureTest.php`
+mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerekçeli yorumla.
 
-macOS:
+## Zincir: auth → tenant → permission (bkz. routes/panel.php)
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/mac/8.5)"
-```
+- **Yetki route'ta verilir**, controller'da değil: `->middleware('permission:<izin>[,<kapsam>[,<kaynak tipi>,<kaynak parametresi>]]')`.
+  `|` alternatif izindir. İzin adları `database/seeders/data/rbac_scope_permission_matrix.csv`'den gelir; CSV tek kaynaktır.
+- **Controller'da DB sorgusu yok.** `TenantContext::toArray()` ile doğrulanmış context alınır, servis çağrılır, cevap biçimlendirilir.
+- **Servisler HTTP'den bağımsız**: `request()`, `session()` yok (TenantContext ve ContextSwitchService istisna).
+- **`companies.status`'a yalnızca `CompanyActivationService` yazar** (state machine + audit).
+- **`withoutTenantScope()` her çağrısı güvenlik kararıdır**; ArchitectureTest allowlist'inde gerekçesiyle yer almalı.
+- İç içe route'larda `->scopeBindings()` zorunlu; çocuk parametre adı ebeveynin **çoğul ilişki metoduyla** eşleşmeli
+  (`{kycDocument}` → `Company::kycDocuments()`, `{userRole}` → `Company::userRoles()`).
+- Tenant sınırı ihlali **404** döner (403 kaydın varlığını sızdırır); context yoksa 409 → tarayıcıda seçim ekranı.
+- `Gate::before` yasak ("Super Admin != Root"); JIT izinleri (`requires_jit`) `allows()` ile, rolde-var-mı sorusu `can()` ile.
+- Sahte ticari veri yasak: seeder yalnızca referans veri (roller, lokasyonlar). Kullanıcı/şifre seed edilmez; ilk personel `php artisan ofisvio:make-admin`.
 
-Windows PowerShell:
+## Görünüm katmanı
 
-```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://php.new/install/windows/8.5'))
-```
+- Tasarım sistemi `public/css/ofisvio.css` (derlenmez, `<link>` ile). `resources/css/app.css` boş giriş noktası — public asset'i `@import` ETME (Vite build kırılır).
+- Panel sayfaları `layouts.panel`'i extend eder; `$activeOrganization`, `$isStaff`, `$canSwitchOrganization` `PanelLayoutComposer`'dan gelir (`panel.*` görünümlerine de bağlı).
+- Türkçe metinler `lang/tr/*` ve `lang/tr.json`; rol etiketleri `lang/tr/roles.php`.
 
-Linux:
+## Windows notları
 
-```sh
-/bin/bash -c "$(curl -fsSL https://php.new/install/linux/8.5)"
-```
+PowerShell 5.1: `Get-Content -Raw` ANSI okur — UTF-8 dosyaları `[IO.File]::ReadAllText($f, [Text.Encoding]::UTF8)` ile oku, BOM'suz yaz.
+Vendor binary'leri `.\vendor\bin\pint.bat`, `.\vendor\bin\phpstan.bat`.
 
-After installation, ask the user to restart their terminal. If the agent needs the restarted shell to continue, ask the user to reopen their terminal and rerun their original prompt.
-
-## Agent Setup
-
-Install Laravel Boost from the application root before making application changes:
-
-```sh
-composer require laravel/boost --dev
-php artisan boost:install
-```
-
-Boost replaces these bootstrap instructions with guidelines tailored to the application. After installation, read `AGENTS.md` again and continue with the user's original request using the generated guidelines.
-</laravel-boost-guidelines>
+Yol haritası: `ROADMAP.md`. Yeni modül kalıbı: `routes/BOOTSTRAP.md`.
