@@ -38,4 +38,16 @@ class Company extends Model
     {
         return $this->hasMany(CompanyStatusTransition::class);
     }
+
+    /**
+     * Şirket kapsamlı rol atamaları. Route'larda {userRole} scopeBindings ile
+     * bu ilişki üzerinden çözülür — başka şirketin rol kaydı bu şirketin
+     * URL'sine takılmaz.
+     *
+     * @return HasMany<UserRole, $this>
+     */
+    public function userRoles(): HasMany
+    {
+        return $this->hasMany(UserRole::class);
+    }
 }

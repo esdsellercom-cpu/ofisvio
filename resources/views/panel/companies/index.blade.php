@@ -38,7 +38,9 @@
                             <td>{{ $company->created_at?->format('d.m.Y') }}</td>
                             <td>
                                 <div class="row-actions">
-                                    <a href="{{ route('panel.companies.kyc.show', $company) }}" class="btn btn--ghost btn--pill">Belgeler</a>
+                                    @canany(['kyc.view', 'kyc.view_status'], $company)
+                                        <a href="{{ route('panel.companies.kyc.show', $company) }}" class="btn btn--ghost btn--pill">Belgeler</a>
+                                    @endcanany
                                 </div>
                             </td>
                         </tr>

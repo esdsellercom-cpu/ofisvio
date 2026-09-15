@@ -16,6 +16,7 @@ use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\KycController;
+use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +90,22 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             ->middleware('permission:kyc.request_more_info,company')
             ->scopeBindings()
             ->name('companies.kyc.more-info');
+
+        // Üyelikler — şirket sahibi / yasal temsilci (membership.manage, company).
+        Route::get('/sirketler/{company}/uyeler', [MembershipController::class, 'index'])
+            ->middleware('permission:membership.manage,company')
+            ->name('companies.members.index');
+        Route::post('/sirketler/{company}/uyeler', [MembershipController::class, 'store'])
+            ->middleware('permission:membership.manage,company')
+            ->name('companies.members.store');
+        Route::post('/sirketler/{company}/uyeler/{userRole}/askiya-al', [MembershipController::class, 'suspend'])
+            ->middleware('permission:membership.manage,company')
+            ->scopeBindings()
+            ->name('companies.members.suspend');
+        Route::post('/sirketler/{company}/uyeler/{userRole}/etkinlestir', [MembershipController::class, 'reactivate'])
+            ->middleware('permission:membership.manage,company')
+            ->scopeBindings()
+            ->name('companies.members.reactivate');
 
         // Personel kuyruğu — aktif organizasyon içinde.
         Route::get('/kyc-kuyrugu', [KycController::class, 'queue'])

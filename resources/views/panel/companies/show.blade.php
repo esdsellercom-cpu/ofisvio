@@ -13,7 +13,12 @@
         </div>
         <div class="panel-head__actions">
             @include('panel.partials.company-status', ['status' => $currentStatus])
-            <a href="{{ route('panel.companies.kyc.show', $company) }}" class="btn btn--brand">KYC belgeleri</a>
+            @can('membership.manage', $company)
+                <a href="{{ route('panel.companies.members.index', $company) }}" class="btn btn--ghost">Üyeler</a>
+            @endcan
+            @canany(['kyc.view', 'kyc.view_status'], $company)
+                <a href="{{ route('panel.companies.kyc.show', $company) }}" class="btn btn--brand">KYC belgeleri</a>
+            @endcanany
         </div>
     </div>
 

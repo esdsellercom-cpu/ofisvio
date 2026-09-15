@@ -53,7 +53,9 @@
                             </td>
                             <td>
                                 <div class="row-actions">
-                                    <a href="{{ route('panel.companies.kyc.show', $row['company']) }}" class="btn btn--ghost btn--pill">Belgeler</a>
+                                    @canany(['kyc.view', 'kyc.view_status'], $row['company'])
+                                        <a href="{{ route('panel.companies.kyc.show', $row['company']) }}" class="btn btn--ghost btn--pill">Belgeler</a>
+                                    @endcanany
                                 </div>
                             </td>
                         </tr>

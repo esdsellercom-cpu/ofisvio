@@ -10,6 +10,7 @@ use App\Services\JitAccessService;
 use App\Services\KycQueueService;
 use App\Services\KycService;
 use App\Services\LeadService;
+use App\Services\MembershipService;
 use App\Services\OrganizationOnboardingService;
 use App\Services\TenantContext;
 use App\View\Composers\PanelLayoutComposer;
@@ -49,6 +50,7 @@ class TenantServiceProvider extends ServiceProvider
         $this->app->singleton(CompanyService::class);
         $this->app->singleton(OrganizationOnboardingService::class);
         $this->app->singleton(KycQueueService::class);
+        $this->app->singleton(MembershipService::class);
     }
 
     public function boot(): void
