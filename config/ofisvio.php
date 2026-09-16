@@ -113,22 +113,9 @@ return [
 
     'pricing_note' => 'Fiyatlar KDV hariç, aylıktır. Yıllık sözleşmede iki ay ücretsizdir; depozito bir aylık bedeldir.',
 
-    'posts' => [
-        ['meta' => 'Sanal Ofis · 5 dk', 'title' => 'Sanal ofisle şirket kurmanın gerçek maliyeti', 'excerpt' => 'Tescil, muhasebe ve adres kalemlerini tek tabloda karşılaştırdık.'],
-        ['meta' => 'Mevzuat · 6 dk', 'title' => 'Tescil adresi için hangi belgeler isteniyor?', 'excerpt' => 'Vergi levhası, sicil gazetesi, imza sirküleri: neyin neden istendiği.'],
-        ['meta' => 'Hibrit Çalışma · 7 dk', 'title' => 'Haftada üç gün ofis: ekip verimini bozmayan takvim', 'excerpt' => 'Dört ekiple yürüttüğümüz denemenin sonuçları ve uyguladığımız kurallar.'],
-    ],
-
     'footer_columns' => [
         ['title' => 'Çözümler', 'items' => ['Sanal Ofis', 'Hazır Ofis', 'Coworking', 'Gün Geçişi', 'Toplantı Odası', 'Etkinlik Alanı']],
         ['title' => 'Kurumsal', 'items' => ['Hakkımızda', 'Franchise', 'Kariyer', 'Basın', 'S.S.S.', 'İletişim']],
-    ],
-
-    'legal_links' => [
-        ['label' => 'Aydınlatma Metni', 'href' => '#'],
-        ['label' => 'Gizlilik Politikası', 'href' => '#'],
-        ['label' => 'Franchise', 'href' => '#'],
-        ['label' => 'Kariyer', 'href' => '#'],
     ],
 
     'solution_options' => ['Sanal Ofis', 'Hazır Ofis', 'Coworking', 'Gün Geçişi', 'Toplantı Odası', 'Etkinlik Alanı'],

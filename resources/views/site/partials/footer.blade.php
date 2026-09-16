@@ -39,8 +39,9 @@
     <div class="wrap" style="padding-block:22px 40px;border-top:1px solid var(--dark-line);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font-size:13px;color:var(--dark-ink-mute)">
         <span>© {{ date('Y') }} {{ $brand['legal_name'] }}</span>
         <span style="display:flex;gap:18px;flex-wrap:wrap">
-            @foreach (config('ofisvio.legal_links') as $link)
-                <a href="{{ $link['href'] }}" style="color:var(--dark-ink-mute)">{{ $link['label'] }}</a>
+            {{-- CMS: yayındaki sayfalar (SiteFooterComposer). Yayında sayfa yoksa bağlantı basılmaz. --}}
+            @foreach ($legalPages ?? [] as $page)
+                <a href="{{ route('site.page', $page->slug) }}" style="color:var(--dark-ink-mute)">{{ $page->title }}</a>
             @endforeach
         </span>
     </div>

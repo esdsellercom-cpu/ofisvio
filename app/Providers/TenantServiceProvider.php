@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\AuthorizationService;
 use App\Services\CompanyActivationService;
 use App\Services\CompanyService;
+use App\Services\ContentService;
 use App\Services\ContextSwitchService;
 use App\Services\JitAccessService;
 use App\Services\KycQueueService;
@@ -14,6 +15,7 @@ use App\Services\MembershipService;
 use App\Services\OrganizationOnboardingService;
 use App\Services\TenantContext;
 use App\View\Composers\PanelLayoutComposer;
+use App\View\Composers\SiteFooterComposer;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -51,6 +53,7 @@ class TenantServiceProvider extends ServiceProvider
         $this->app->singleton(OrganizationOnboardingService::class);
         $this->app->singleton(KycQueueService::class);
         $this->app->singleton(MembershipService::class);
+        $this->app->singleton(ContentService::class);
     }
 
     public function boot(): void
@@ -59,5 +62,8 @@ class TenantServiceProvider extends ServiceProvider
         // tek noktadan alır. Sayfalar da listede: @extends eden görünüm layout'tan
         // ÖNCE derlenir, yalnızca layout'a bağlı composer sayfaya değişken vermez.
         View::composer(['layouts.panel', 'panel.*'], PanelLayoutComposer::class);
+
+        // Vitrin footer'ı yasal sayfaları CMS'ten alır.
+        View::composer('site.partials.footer', SiteFooterComposer::class);
     }
 }

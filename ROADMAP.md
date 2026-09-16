@@ -14,11 +14,13 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **144/144** (Unit 6 · Feature 132 · Architecture 6) |
+| `php artisan test` | ✅ **157/157** (Unit 10 · Feature 141 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
-(lokalde birebir aynı komutlar; **henüz GitHub'da koşmadı** — remote yok).
+— GitHub'da da yeşil (esdsellercom-cpu/ofisvio, 16 Eylül 2026). İlk pipeline
+koşusu Redis önbelleğiyle 7 testte 429 verdi: paylaşılan throttle anahtarı +
+test izolasyonu (ikisi de kodda düzeltildi, `RateLimitTest`).
 
 İlk koşuda kök nedeninden düzeltilenler (0702880): sabit `location_id` FK ihlali,
 `tests/Architecture` hiçbir suite'te değildi, Laravel iskelet `ExampleTest`'i,
@@ -40,10 +42,10 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-144 test; "izin verilmemeli" senaryoları her modülde var.
+157 test; "izin verilmemeli" senaryoları her modülde var.
 
-### 4. CI/CD Pipeline ✅ (lokal) · ⬜ (GitHub)
-İlk push'ta doğrulanacak.
+### 4. CI/CD Pipeline ✅
+GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
 
 ### 5. P0 Security Infrastructure 🟡
 Var: tenant izolasyonu, RBAC+scope, JIT, dual-control, fail-closed, audit
@@ -77,8 +79,22 @@ personel yalnızca açık grant ile), JIT talebi (gerekçe ≥ 10 karakter, TTL
 kuyruk, organizasyon seçim ekranında bekleyen belge sayısı (`KycQueueService`,
 gerekçeli tenant-scope baypası).
 
-### 9. CMS Core ⛔ ⬜
-### 10. Website / Page Engine 🟡 (vitrin statik Blade, lokasyonlar DB'den)
+### 9. CMS Core ✅
+`websites` (§66: `organization_id` NULL = Ofisvio vitrini, `is_default`),
+`contents` (page | post, markdown gövde, SEO alanları), `content_revisions`
+(her kayıtta anlık görüntü). State machine `ContentStatus`: DRAFT → IN_REVIEW
+→ (APPROVED →) PUBLISHED | SCHEDULED → ARCHIVED; `requires_approval`
+(yasal/vergi/KYC — "P0B") onaysız yayınlanamaz; yalnızca taslak düzenlenir
+(canlı metin önce yayından kalkar). Her geçiş kendi `content.*` izniyle ayrı
+route. `content:publish-scheduled` dakikada bir. Vitrin: `/blog`, `/blog/{slug}`,
+`/{slug}`; footer yasal bağlantıları yayındaki sayfalardan. Seeder yalnızca
+TASLAK iskelet açar (uydurma metin yayınlanmaz; yazı yoksa bölüm gizlenir).
+Karar notları: içerik operatör sitesi için, personel global izinle; müşteri
+siteleri (owner:company `content.edit`) faz 10 ile gelir.
+
+### 10. Website / Page Engine 🟡
+Vitrin statik Blade + CMS sayfaları. Eksik: çoklu website (tenant başına site,
+`websites.organization_id` dolu kayıtlar), tema/şablon seçimi, menü yönetimi.
 
 ---
 
@@ -98,7 +114,7 @@ Tamamı 9. ve 10. fazlara bağlı; sıra ve önkoşullar değişmedi.
 | F4 | KYC belge yükleme + durum takibi | ✅ |
 | F5 | Admin KYC inceleme kuyruğu + JIT talep ekranı | ✅ |
 | F6 | Şirket aktivasyon takip ekranı | ✅ şirket detayında (adımlar + geçmiş) |
-| F7 | CMS editörü | ⛔ |
+| F7 | CMS editörü | ✅ liste/süzgeç, form (markdown), akış eylemleri, revizyonlar |
 | F8 | SEO/GEO Command Center | ⛔ |
 | F9 | Performance + Cache Command Center | ⛔ |
 
@@ -106,11 +122,12 @@ Tamamı 9. ve 10. fazlara bağlı; sıra ve önkoşullar değişmedi.
 
 ## SIRADAKİ ADIMLAR
 
-1. **GitHub'a push** — remote ekle, CI'ın pipeline'da da yeşil olduğunu gör.
-   §76 kapısı lokalde değil pipeline'da sayılır.
-2. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
+1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-3. **Faz 9–10** — CMS Core + Website Engine; `config/ofisvio.php`'deki vitrin
-   metinleri ve blog yazıları DB'ye taşınır. 11+ bunu bekler.
+2. **Faz 10** — Website Engine: çoklu website + tenant siteleri (`content.*`
+   müşteri rolleri), menü/tema. Sonra 11+ (SEO/GEO/Performance) açılır.
+3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
+   `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
+   bloklara taşınır.
 
 Kapıyı yeniden koşturmak için proje kökünde dört komut (yukarıda).

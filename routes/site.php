@@ -11,6 +11,7 @@
  * permission zinciri) ayrı grupta kalır; bkz. routes/panel.php.
  */
 
+use App\Http\Controllers\Site\ContentController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadController;
 use Illuminate\Support\Facades\Route;
@@ -29,3 +30,12 @@ Route::post('/talep', [LeadController::class, 'store'])
  * yönlendirmedir; header route('login')'i kullanır.
  */
 Route::redirect('/giris', '/login', 301);
+
+/*
+ * CMS (faz 9): yayındaki yazı ve sayfalar. /{slug} EN SONDA kalır — önce
+ * tanımlı tüm route'lar eşleşir; slug regex'i /panel, /login gibi yolları
+ * zaten dışlar (küçük harf-rakam-tire).
+ */
+Route::get('/blog', [ContentController::class, 'posts'])->name('site.posts');
+Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->name('site.post');
+Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|up$)[a-z0-9-]+')->name('site.page');

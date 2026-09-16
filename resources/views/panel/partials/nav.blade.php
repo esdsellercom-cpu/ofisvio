@@ -8,6 +8,9 @@
         <a href="{{ route('panel.kyc.queue') }}" @if (request()->routeIs('panel.kyc.queue')) aria-current="page" @endif>KYC kuyruğu</a>
     @endcan
 @endisset
+@can('content.view')
+    <a href="{{ route('panel.content.index') }}" @if (request()->routeIs('panel.content.*')) aria-current="page" @endif>İçerik</a>
+@endcan
 @can('user.manage')
     <a href="{{ route('panel.onboarding.create') }}" @if (request()->routeIs('panel.onboarding.*')) aria-current="page" @endif>Yeni müşteri</a>
 @endcan

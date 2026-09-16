@@ -16,6 +16,7 @@
 
 use App\Http\Controllers\Panel\AccountController;
 use App\Http\Controllers\Panel\CompanyController;
+use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\KycController;
@@ -48,6 +49,31 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::post('/yeni-musteri', [OnboardingController::class, 'store'])
             ->middleware(['permission:user.manage', 'throttle:invite'])
             ->name('onboarding.store');
+
+        // --- CMS (faz 9) — varsayılan website, personel, tenant context'siz ----
+        // Her durum geçişi kendi izniyle (bkz. ContentController başlığı).
+        // Liste/detay: content.* taşıyan HERKES görür — matriste operations_admin
+        // content.edit/review/schedule taşır ama content.view taşımaz; okumadan
+        // düzenleme olmaz, görme yetkisi eylem yetkisinden türer.
+        $canSee = 'permission:content.view|content.create|content.edit|content.review|content.approve|content.publish|content.schedule|content.archive';
+
+        Route::prefix('icerik')->name('content.')->group(function () use ($canSee) {
+            Route::get('/', [ContentController::class, 'index'])->middleware($canSee)->name('index');
+            Route::get('/yeni', [ContentController::class, 'create'])->middleware('permission:content.create')->name('create');
+            Route::post('/', [ContentController::class, 'store'])->middleware('permission:content.create')->name('store');
+            Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');
+            Route::get('/{content}/duzenle', [ContentController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
+            Route::put('/{content}', [ContentController::class, 'update'])->middleware('permission:content.edit')->name('update');
+
+            Route::post('/{content}/incelemeye-gonder', [ContentController::class, 'submit'])->middleware('permission:content.edit')->name('submit');
+            Route::post('/{content}/geri-gonder', [ContentController::class, 'reject'])->middleware('permission:content.review')->name('reject');
+            Route::post('/{content}/onayla', [ContentController::class, 'approve'])->middleware('permission:content.approve')->name('approve');
+            Route::post('/{content}/yayinla', [ContentController::class, 'publish'])->middleware('permission:content.publish')->name('publish');
+            Route::post('/{content}/yayindan-kaldir', [ContentController::class, 'unpublish'])->middleware('permission:content.publish')->name('unpublish');
+            Route::post('/{content}/zamanla', [ContentController::class, 'schedule'])->middleware('permission:content.schedule')->name('schedule');
+            Route::post('/{content}/arsivle', [ContentController::class, 'archive'])->middleware('permission:content.archive')->name('archive');
+            Route::post('/{content}/taslaga-al', [ContentController::class, 'restore'])->middleware('permission:content.edit')->name('restore');
+        });
 
         // --- Tenant context'li ekranlar -----------------------------------
         Route::middleware('tenant')->group(function () {

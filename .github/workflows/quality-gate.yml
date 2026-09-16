@@ -69,6 +69,7 @@ jobs:
           php artisan migrate --force
           php artisan db:seed --class=RolePermissionSeeder --force
           php artisan db:seed --class=LocationSeeder --force
+          php artisan db:seed --class=WebsiteSeeder --force
 
       - name: Testler
         env:

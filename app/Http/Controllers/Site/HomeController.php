@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
+use App\Services\ContentService;
 use App\Support\ActivationJourney;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -25,6 +26,8 @@ class HomeController extends Controller
 
     private const DAY_NAMES = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
+    public function __construct(private readonly ContentService $contents) {}
+
     public function __invoke(): View
     {
         $locations = Location::published()->get();
@@ -36,6 +39,8 @@ class HomeController extends Controller
             'journey' => ActivationJourney::steps(),
             'bookingDays' => $this->bookingDays(),
             'bookingSlots' => self::SLOTS,
+            // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
+            'posts' => $this->contents->livePosts($this->contents->defaultWebsiteOrNull(), 3),
         ]);
     }
 

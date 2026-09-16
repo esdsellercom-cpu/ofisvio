@@ -67,7 +67,9 @@ class AuthTest extends TestCase
     {
         // Kullanıcılar yalnızca davetle var olur (config/fortify.php).
         $this->get('/register')->assertNotFound();
-        $this->post('/register', ['email' => 'x@example.com', 'password' => 'p'])->assertNotFound();
+        // POST: route yok -> 405 (GET /{slug} vitrin sayfası route'u var) ya da 404; ikisi de "kayıt yok".
+        $this->assertContains($this->post('/register', ['email' => 'x@example.com', 'password' => 'p'])->status(), [404, 405]);
+        $this->assertDatabaseMissing('users', ['email' => 'x@example.com']);
     }
 
     #[Test]

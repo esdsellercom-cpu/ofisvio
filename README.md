@@ -13,6 +13,7 @@ php artisan key:generate
 php artisan migrate
 php artisan db:seed --class=RolePermissionSeeder
 php artisan db:seed --class=LocationSeeder
+php artisan db:seed --class=WebsiteSeeder
 php artisan ofisvio:make-admin sen@ornek.com --name="Ad Soyad"
 php artisan serve
 ```
