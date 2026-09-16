@@ -27,7 +27,7 @@
                 </div>
                 <div class="card__body" style="padding:20px 20px 22px;gap:8px">
                     <div class="label">{{ $loc->region }}</div>
-                    <h3 class="h3">{{ $loc->name }}</h3>
+                    <h3 class="h3"><a href="{{ route('site.location', $loc->slug) }}">{{ $loc->name }}</a></h3>
                     <p class="body-muted" style="margin:0;font-size:14.5px;flex:1">{{ $loc->address_line }}</p>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
                         @foreach ($loc->tags ?? [] as $tag)
@@ -36,7 +36,7 @@
                     </div>
                     <div class="card__foot" style="margin-top:12px">
                         <span class="mono" style="font-size:13px;color:var(--brand)">{{ $loc->price_from }}</span>
-                        <a href="#teklif" style="font-size:14px;font-weight:600">Tur planla →</a>
+                        <a href="{{ route('site.location', $loc->slug) }}" style="font-size:14px;font-weight:600">Şubeyi gör →</a>
                     </div>
                 </div>
             </article>

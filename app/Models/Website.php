@@ -23,9 +23,10 @@ class Website extends Model
     protected $fillable = [
         'organization_id', 'name', 'slug', 'domain', 'is_default',
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
+        'same_as', 'legal_name',
     ];
 
-    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array'];
 
     /** Sitenin mutlak kök adresi: alan adı varsa https ile, yoksa uygulama adresi. */
     public function baseUrl(): string

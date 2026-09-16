@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Models\Content;
+use App\Models\Location;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use App\Services\SeoService;
@@ -34,8 +35,13 @@ class SiteLayoutComposer
         // SEO head verisi: içerik sayfası -> içerikten; liste/ana sayfa -> sayfa sabitleri.
         $seo = null;
         if ($site !== null) {
+            $location = $data['location'] ?? null;
+            $location = $location instanceof Location ? $location : null;
+
             $seo = match (true) {
                 $content !== null => $this->seo->head($site, $content),
+                $location !== null => $this->seo->locationHead($site, $location),
+                str_ends_with($view->name(), 'site.locations') => $this->seo->head($site, null, '/lokasyonlar', 'Lokasyonlar', 'Ofisvio şubeleri: şehir, bölge ve sunulan çözümlere göre.'),
                 str_ends_with($view->name(), 'site.posts') => $this->seo->head($site, null, '/blog', 'Yazılar'),
                 $tenant => $this->seo->head($site),
                 default => $this->seo->head($site, null, '/', 'Şirketinizin adresi bugün hazır olsun', 'Sanal ofis, hazır ofis ve coworking. Tescil adresi, çağrı ve kargo karşılama, saatlik toplantı odası.'),

@@ -14,6 +14,7 @@
 use App\Http\Controllers\Site\ContentController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadController;
+use App\Http\Controllers\Site\LocationController;
 use App\Http\Controllers\Site\SeoController;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,10 @@ Route::redirect('/giris', '/login', 301);
 Route::get('/robots.txt', [SeoController::class, 'robots'])->middleware('public.cache')->name('site.robots');
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->middleware('public.cache')->name('site.sitemap');
 
+// GEO (faz 16): lokasyon sayfaları — yalnızca Ofisvio vitrini (müşteri sitesinde 404).
+Route::get('/lokasyonlar', [LocationController::class, 'index'])->middleware('public.cache')->name('site.locations');
+Route::get('/lokasyon/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.location');
+
 Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cache')->name('site.posts');
 Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
-Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');
+Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

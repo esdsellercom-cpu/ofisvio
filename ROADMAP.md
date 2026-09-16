@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **176/176** (Unit 10 · Feature 160 · Architecture 6) |
+| `php artisan test` | ✅ **180/180** (Unit 10 · Feature 164 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -43,7 +43,7 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-176 test; "izin verilmemeli" senaryoları her modülde var.
+180 test; "izin verilmemeli" senaryoları her modülde var.
 
 ### 4. CI/CD Pipeline ✅
 GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
@@ -142,8 +142,21 @@ kapalıysa Disallow: / + boş sitemap). Panel `/panel/seo`: ayarlar JIT'li
 Eksik: hreflang, breadcrumb şeması, Search Console/analytics entegrasyonu
 (faz 20), `seo.edit` ile içerik-dışı SEO alanları.
 
-### ⛔ 16–28 (GEO, Content, AI, Command Center'lar)
-`website_id`, sorgu bütçesi, önbellek ve SEO temeli hazır; sıra değişmedi.
+### 16–17. GEO Engine · Entity / Knowledge Graph 🟡 (v1 ✅)
+Varlık modeli: `Organization` (website: ad, `legal_name`, `sameAs`, `@id`) ←
+`LocalBusiness` (lokasyon: adres, koordinat, telefon, `openingHours`,
+sunulan çözümler `makesOffer`) + `BreadcrumbList`. Lokasyon sayfaları
+`/lokasyonlar`, `/lokasyon/{slug}` (yalnızca Ofisvio vitrini; müşteri
+sitesinde 404), sitemap'te. Şemaya YALNIZCA var olan veri girer (koordinat
+yoksa `geo` düğümü yok — uydurma değer yok); eksikler `geo.audit` bulgusudur.
+Panel `/panel/geo`: lokasyon varlık alanları (`geo.edit`), Organization
+kimliği JIT'li (`geo.settings`, kaynak website). Ana sayfa `WebSite` şeması
+Organization düğümünü `sameAs`/`legalName` ile taşır.
+Eksik: FAQ/Service şemaları, harita gömme, çok dilli hreflang, `geo.publish`
+akışı (lokasyon yayını şu an `is_published` bayrağı).
+
+### ⛔ 18–28 (Content Engine, AI, Search Console, Schema/Internal Linking, Takvim, Command Center'lar)
+Temeller hazır; sıra değişmedi.
 
 ---
 
@@ -159,7 +172,7 @@ Eksik: hreflang, breadcrumb şeması, Search Console/analytics entegrasyonu
 | F5 | Admin KYC inceleme kuyruğu + JIT talep ekranı | ✅ |
 | F6 | Şirket aktivasyon takip ekranı | ✅ şirket detayında (adımlar + geçmiş) |
 | F7 | CMS editörü | ✅ liste/süzgeç, form (markdown), akış eylemleri, revizyonlar |
-| F8 | SEO/GEO Command Center | 🟡 SEO v1 (`/panel/seo`); GEO ⛔ |
+| F8 | SEO/GEO Command Center | 🟡 SEO v1 (`/panel/seo`) + GEO v1 (`/panel/geo`) |
 | F9 | Performance + Cache Command Center | 🟡 Cache v1 (`/panel/onbellek`); performans paneli ⛔ |
 
 ---
@@ -168,8 +181,9 @@ Eksik: hreflang, breadcrumb şeması, Search Console/analytics entegrasyonu
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 16-17 GEO / Entity** — `geo.*` izinleri hazır; lokasyon sayfaları
-   (`/lokasyon/{slug}`) + LocalBusiness şeması doğal başlangıç.
+2. **Faz 18 Content Engine** — içerik takvimi (faz 24) ve iç bağlantı (faz 23)
+   ile birlikte: kategori sayfaları, ilgili yazılar, taslak-kopyası (canlı
+   metni düşürmeden düzenleme).
 3. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
    (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
    vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık

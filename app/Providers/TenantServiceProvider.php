@@ -8,6 +8,7 @@ use App\Services\CompanyService;
 use App\Services\ContentService;
 use App\Services\ContextSwitchService;
 use App\Services\CurrentWebsite;
+use App\Services\GeoService;
 use App\Services\JitAccessService;
 use App\Services\KycQueueService;
 use App\Services\KycService;
@@ -58,6 +59,7 @@ class TenantServiceProvider extends ServiceProvider
         $this->app->singleton(MembershipService::class);
         $this->app->singleton(ContentService::class);
         $this->app->singleton(SeoService::class);
+        $this->app->singleton(GeoService::class);
 
         // İstek başına tek örnek (Octane'da da istek sonunda sıfırlanır).
         $this->app->scoped(CurrentWebsite::class);
@@ -74,6 +76,6 @@ class TenantServiceProvider extends ServiceProvider
         View::composer('site.partials.footer', SiteFooterComposer::class);
 
         // Vitrin görünümleri: Ofisvio mu müşteri sitesi mi -> iskelet + menü.
-        View::composer(['site.content', 'site.posts', 'site.tenant-home', 'layouts.tenant', 'layouts.site'], SiteLayoutComposer::class);
+        View::composer(['site.content', 'site.posts', 'site.locations', 'site.location', 'site.tenant-home', 'layouts.tenant', 'layouts.site'], SiteLayoutComposer::class);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ContentKind;
 use App\Models\Content;
+use App\Models\Location;
 use App\Models\Website;
 use Illuminate\Support\Str;
 
@@ -25,7 +26,29 @@ class SeoService
 
     private const DESCRIPTION_MIN = 50;
 
-    public function __construct(private readonly ContentService $contents) {}
+    public function __construct(
+        private readonly ContentService $contents,
+        private readonly GeoService $geo,
+    ) {}
+
+    /**
+     * Lokasyon sayfası head verisi (GEO): LocalBusiness + Breadcrumb şeması.
+     *
+     * @return array{title: string, description: string, canonical: string, robots: string, locale: string, og_type: string, json_ld: array<string, mixed>}
+     */
+    public function locationHead(Website $website, Location $location): array
+    {
+        $head = $this->head(
+            $website,
+            null,
+            $location->path(),
+            $location->name.' · '.$location->city,
+            $location->geo_meta_description ?: ($location->name.' — '.$location->address_line.'. '.implode(', ', $location->tags ?? [])),
+        );
+        $head['json_ld'] = $this->geo->locationJsonLd($website, $location);
+
+        return $head;
+    }
 
     /**
      * Bir sayfanın <head> verisi.
@@ -63,11 +86,8 @@ class SeoService
     /** @return array<string, mixed> */
     private function jsonLd(Website $website, ?Content $content, string $path): array
     {
-        $organization = [
-            '@type' => 'Organization',
-            'name' => $website->name,
-            'url' => $website->baseUrl(),
-        ];
+        // Organization varlığı tek yerden (GeoService): sameAs, legalName, @id.
+        $organization = $this->geo->organizationNode($website);
 
         if ($content === null) {
             return ['@context' => 'https://schema.org', '@type' => 'WebSite', 'name' => $website->name, 'url' => $website->baseUrl(), 'publisher' => $organization];
@@ -137,6 +157,17 @@ class SeoService
         foreach ($this->contents->livePages($website) as $page) {
             if (! $page->noindex) {
                 $entries[] = ['loc' => $base.$page->path(), 'lastmod' => $page->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.7'];
+            }
+        }
+
+        // Lokasyonlar yalnızca varsayılan (Ofisvio) sitede yayınlanır.
+        if ($website->is_default) {
+            $locations = $this->geo->publishedLocations();
+            if ($locations->isNotEmpty()) {
+                $entries[] = ['loc' => $base.'/lokasyonlar', 'lastmod' => null, 'changefreq' => 'weekly', 'priority' => '0.8'];
+            }
+            foreach ($locations as $location) {
+                $entries[] = ['loc' => $base.$location->path(), 'lastmod' => $location->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.7'];
             }
         }
 

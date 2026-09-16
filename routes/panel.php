@@ -20,6 +20,7 @@ use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
+use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
@@ -110,6 +111,17 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 ->middleware('permission:seo.settings,,seo_settings,website')->name('settings');
             Route::post('/{website}/jit', [SeoController::class, 'requestJit'])
                 ->middleware(['permission:seo.view', 'throttle:jit-request'])->name('jit');
+        });
+
+        // --- GEO / Entity (faz 16-17) — personel, tenant context'siz -----------
+        Route::prefix('geo')->name('geo.')->group(function () {
+            Route::get('/', [GeoController::class, 'index'])->middleware('permission:geo.view')->name('index');
+            Route::get('/lokasyon/{location}', [GeoController::class, 'edit'])->middleware('permission:geo.edit')->name('edit');
+            Route::put('/lokasyon/{location}', [GeoController::class, 'update'])->middleware('permission:geo.edit')->name('update');
+            Route::put('/{website}/varlik', [GeoController::class, 'entity'])
+                ->middleware('permission:geo.settings,,geo_entity,website')->name('entity');
+            Route::post('/{website}/jit', [GeoController::class, 'requestJit'])
+                ->middleware(['permission:geo.view', 'throttle:jit-request'])->name('jit');
         });
 
         // --- Tenant context'li ekranlar -----------------------------------

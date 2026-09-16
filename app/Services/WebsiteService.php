@@ -75,6 +75,19 @@ class WebsiteService
         return $website;
     }
 
+    /**
+     * Organization varlığı (faz 17). Yetki route'ta: geo.settings + JIT.
+     *
+     * @param  array{legal_name: string|null, same_as: array<int, string>|null}  $data
+     */
+    public function updateEntity(Website $website, array $data): Website
+    {
+        $website->fill($data);
+        $website->save();
+
+        return $website;
+    }
+
     private function normalizeDomain(?string $domain): ?string
     {
         $domain = strtolower(trim((string) $domain));

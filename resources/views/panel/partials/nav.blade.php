@@ -14,6 +14,9 @@
 @can('seo.view')
     <a href="{{ route('panel.seo.index') }}" @if (request()->routeIs('panel.seo.*')) aria-current="page" @endif>SEO</a>
 @endcan
+@can('geo.view')
+    <a href="{{ route('panel.geo.index') }}" @if (request()->routeIs('panel.geo.*')) aria-current="page" @endif>GEO</a>
+@endcan
 @can('cache.view')
     <a href="{{ route('panel.cache.index') }}" @if (request()->routeIs('panel.cache.*')) aria-current="page" @endif>Önbellek</a>
 @endcan
