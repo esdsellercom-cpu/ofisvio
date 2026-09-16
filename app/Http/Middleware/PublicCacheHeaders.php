@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\CurrentWebsite;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -20,6 +21,12 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class PublicCacheHeaders
 {
+    public const MAX_AGE = 60;
+
+    public const S_MAXAGE = 300;
+
+    public function __construct(private readonly CurrentWebsite $website) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -38,10 +45,13 @@ class PublicCacheHeaders
             return $response;
         }
 
+        // Süreler site başına ayarlanabilir (cache.settings, JIT); NULL = varsayılan.
+        $site = $this->website->get();
+
         $response->setCache([
             'public' => true,
-            'max_age' => 60,
-            's_maxage' => 300,
+            'max_age' => (int) ($site->http_max_age ?? self::MAX_AGE),
+            's_maxage' => (int) ($site->http_s_maxage ?? self::S_MAXAGE),
             'stale_while_revalidate' => 300,
             'etag' => '"'.sha1((string) $response->getContent()).'"',
         ]);

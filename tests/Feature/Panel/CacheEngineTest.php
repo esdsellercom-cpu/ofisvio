@@ -210,4 +210,45 @@ class CacheEngineTest extends TestCase
         $this->actingAs($admin)->post('/panel/onbellek/0/jit', ['reason' => 'sürüm geçişi sonrası tam temizlik', 'ttl_minutes' => 15])->assertRedirect();
         $this->actingAs($admin)->post('/panel/onbellek/tumu/bosalt')->assertRedirect('/panel/onbellek');
     }
+
+    #[Test]
+    public function anahtar_ozeti_icerik_gostermez_ve_ayarlar_jit_ister(): void
+    {
+        $admin = $this->staff('system_admin');
+        $ops = $this->staff('operations_admin'); // cache.view var; inspect/settings yok
+
+        $this->get('/blog')->assertOk(); // posts:50 + kategoriler üretilir
+        $this->actingAs($admin)->post("/panel/onbellek/{$this->default->id}/isit")->assertRedirect();
+
+        $this->actingAs($ops)->get("/panel/onbellek/{$this->default->id}/anahtarlar")->assertForbidden();
+        $this->actingAs($ops)->get('/panel/onbellek')->assertOk()->assertDontSee('Anahtarlar')->assertDontSee('Ayar erişimi aç');
+
+        $html = $this->actingAs($admin)->get("/panel/onbellek/{$this->default->id}/anahtarlar")->assertOk()->getContent();
+        $this->assertStringContainsString('posts:50', $html);
+        $this->assertStringContainsString('pages', $html);
+        $this->assertStringContainsString('array', $html);
+        $this->assertStringNotContainsString('Sözleşme', $html, 'Anahtar içeriği (gövde) basılmaz.');
+
+        // Ayarlar: grant yokken 403; JIT (izin=settings) sonrası kaydedilir, HTTP başlıkları ve TTL değişir.
+        $this->actingAs($admin)->put("/panel/onbellek/{$this->default->id}/ayarlar", ['cache_ttl_seconds' => 120, 'http_max_age' => 15, 'http_s_maxage' => 900])->assertForbidden();
+        $this->actingAs($admin)->post("/panel/onbellek/{$this->default->id}/jit", ['izin' => 'settings', 'reason' => 'kampanya döneminde daha kısa proxy süresi', 'ttl_minutes' => 30])->assertRedirect('/panel/onbellek');
+        $this->actingAs($admin)->get('/panel/onbellek')->assertOk()->assertSee('name="cache_ttl_seconds"', false);
+        $this->actingAs($admin)->from('/panel/onbellek')->put("/panel/onbellek/{$this->default->id}/ayarlar", ['cache_ttl_seconds' => 5])->assertSessionHasErrors('cache_ttl_seconds');
+        $this->actingAs($admin)->put("/panel/onbellek/{$this->default->id}/ayarlar", ['cache_ttl_seconds' => 120, 'http_max_age' => 15, 'http_s_maxage' => 900])->assertRedirect('/panel/onbellek');
+
+        $this->default->refresh();
+        $this->assertSame(120, app(ContentCache::class)->ttl($this->default));
+        auth()->logout(); // misafir başlıkları
+        $cc = (string) $this->get('http://localhost/blog')->assertOk()->headers->get('Cache-Control');
+        $this->assertStringContainsString('max-age=15', $cc);
+        $this->assertStringContainsString('s-maxage=900', $cc);
+
+        // Başka site (tenant) kod varsayılanında kalır; settings grant'i yalnız o siteye.
+        $this->assertStringContainsString('max-age=60', (string) $this->get('http://acme.example/')->assertOk()->headers->get('Cache-Control'));
+        $this->actingAs($admin)->put("/panel/onbellek/{$this->tenant->id}/ayarlar", ['cache_ttl_seconds' => 120])->assertForbidden();
+
+        // Boş = varsayılana dönüş.
+        $this->actingAs($admin)->put("/panel/onbellek/{$this->default->id}/ayarlar", [])->assertRedirect();
+        $this->assertSame(ContentCache::TTL_SECONDS, app(ContentCache::class)->ttl($this->default->fresh()));
+    }
 }

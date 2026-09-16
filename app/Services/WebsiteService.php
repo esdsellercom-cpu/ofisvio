@@ -162,6 +162,19 @@ class WebsiteService
     }
 
     /**
+     * Önbellek ayarları (faz 12-14, cache.settings + JIT). NULL = kod varsayılanı.
+     *
+     * @param  array{cache_ttl_seconds: int|null, http_max_age: int|null, http_s_maxage: int|null}  $data
+     */
+    public function updateCacheSettings(Website $website, array $data): Website
+    {
+        $website->fill($data);
+        $website->save();
+
+        return $website;
+    }
+
+    /**
      * Organization varlığı (faz 17). Yetki route'ta: geo.settings + JIT.
      *
      * @param  array{legal_name: string|null, same_as: array<int, string>|null}  $data

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **203/203** (Unit 10 · Feature 187 · Architecture 6) |
+| `php artisan test` | ✅ **204/204** (Unit 10 · Feature 188 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -151,7 +151,7 @@ memo'su (singleton + `PerRequestCaches`), `has()+get()` yerine tek `get()`,
 sayaçta önce `increment()`: vitrin 29 → 18 sorgu. HTTP önbellek başlıkları
 faz 12'de.
 
-### 12–14. Cache Engine · Tenant İzolasyonu · Gözlem 🟡 (v1 ✅)
+### 12–14. Cache Engine · Tenant İzolasyonu · Gözlem ✅ (Redis etiket/CDN hariç)
 `ContentCache`: website başına SÜRÜMLÜ anahtar (`site:{id}:v{n}:{ad}`) —
 geçersizleme sürümü artırır, başka sitenin anahtarına dokunmaz; etiket
 gerektirmez (database/Redis). CMS okumaları (yazı listesi, sayfalar, slug)
@@ -161,8 +161,13 @@ oturum açmışa `private, no-store`. Panel `/panel/onbellek`: sürüm, isabet/
 ıskalama/oran, ısıtma (`cache.warm`), geçersizleme JIT'li (`cache.invalidate`,
 kaynak = website id; global purge kaynak 0, yıkıcı). `EnsurePermission` boş
 kapsam ve sabit kaynak id (`=0`) destekler.
-Eksik: `cache.inspect` (anahtar içeriği), `cache.settings`, Redis etiketli
-genişletme, CDN purge entegrasyonu.
+**cache.inspect:** `/panel/onbellek/{website}/anahtarlar` — `remember()`
+adları site başına kayıt kümesine yazar (sürücü listeleme yapmaz), ekran
+var/yok, tür, öğe sayısı, boyut ve ilk üç başlığı gösterir; içerik BASILMAZ
+(matris: hassas olabilir). **cache.settings (JIT, kaynak `cache_settings`):**
+site başına uygulama TTL'i + misafir `max-age`/`s-maxage`; boş = kod
+varsayılanı; kaydedince sürüm atlar. `PublicCacheHeaders` süreleri geçerli
+siteden okur. Eksik (dış bağımlılık): Redis etiketli genişletme, CDN purge.
 
 ### 15 · 21. SEO Engine · Sitemap 🟡 (v1 ✅)
 `SeoService`: website başına ayar (`seo_title_suffix`, `seo_default_description`,

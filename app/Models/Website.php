@@ -24,6 +24,7 @@ class Website extends Model
         'organization_id', 'name', 'slug', 'domain', 'theme', 'is_default',
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
         'same_as', 'legal_name', 'nav_links',
+        'cache_ttl_seconds', 'http_max_age', 'http_s_maxage',
     ];
 
     protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array'];

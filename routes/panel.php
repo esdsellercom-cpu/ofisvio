@@ -121,6 +121,9 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::prefix('onbellek')->name('cache.')->group(function () {
             Route::get('/', [CacheController::class, 'index'])->middleware('permission:cache.view')->name('index');
             Route::post('/{website}/isit', [CacheController::class, 'warm'])->middleware('permission:cache.warm')->name('warm');
+            Route::get('/{website}/anahtarlar', [CacheController::class, 'inspect'])->middleware('permission:cache.inspect')->name('inspect');
+            Route::put('/{website}/ayarlar', [CacheController::class, 'settings'])
+                ->middleware('permission:cache.settings,,cache_settings,website')->name('settings');
             Route::post('/{website}/gecersiz-kil', [CacheController::class, 'purge'])
                 ->middleware('permission:cache.invalidate,,cache,website')->name('purge');
             Route::post('/tumu/bosalt', [CacheController::class, 'purgeAll'])

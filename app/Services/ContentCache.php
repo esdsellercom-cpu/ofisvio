@@ -78,7 +78,8 @@ class ContentCache
 
         $this->bump($this->statKey($website, 'misses'));
         $value = $compute();
-        $this->cache->put($key, $value, self::TTL_SECONDS);
+        $this->cache->put($key, $value, $this->ttl($website));
+        $this->register($website, $name);
 
         return $value;
     }
@@ -94,8 +95,9 @@ class ContentCache
     public function refresh(Website $website, string $name, Closure $compute): mixed
     {
         $value = $compute();
-        $this->cache->put($this->key($website, $name), $value, self::TTL_SECONDS);
+        $this->cache->put($this->key($website, $name), $value, $this->ttl($website));
         $this->bump($this->statKey($website, 'misses'));
+        $this->register($website, $name);
 
         return $value;
     }
@@ -153,6 +155,79 @@ class ContentCache
             'purges' => (int) $this->cache->get($this->statKey($website, 'purges'), 0),
             'hit_ratio' => ($hits + $misses) > 0 ? round($hits / ($hits + $misses), 3) : null,
         ];
+    }
+
+    /** Site TTL'i (cache.settings) ya da kod varsayılanı. */
+    public function ttl(Website $website): int
+    {
+        $ttl = (int) ($website->cache_ttl_seconds ?? 0);
+
+        return $ttl > 0 ? $ttl : self::TTL_SECONDS;
+    }
+
+    /**
+     * ANAHTAR KAYDI (cache.inspect için). Sürücüler anahtar listelemez
+     * (database/Redis'te SCAN yok ya da pahalı); remember() her adı sitenin
+     * kayıt kümesine ekler. Küme sürümden bağımsızdır, en fazla 200 ad tutar.
+     */
+    private function register(Website $website, string $name): void
+    {
+        $setKey = "site:{$website->id}:keys";
+        $names = $this->cache->get($setKey, []);
+        $names = is_array($names) ? $names : [];
+
+        if (in_array($name, $names, true)) {
+            return;
+        }
+
+        $names[] = $name;
+
+        if (count($names) > 200) {
+            array_shift($names);
+        }
+
+        $this->cache->forever($setKey, $names);
+    }
+
+    /**
+     * Kayıtlı adların özeti (cache.inspect): var mı, tür, öğe sayısı, yaklaşık
+     * boyut. İÇERİK DÖNMEZ — "key içeriği hassas olabilir" (matris notu);
+     * yalnız ilk 3 öğenin başlığı önizleme olarak.
+     *
+     * @return array<int, array{name: string, key: string, present: bool, type: string, count: int|null, bytes: int|null, preview: array<int, string>}>
+     */
+    public function inspect(Website $website): array
+    {
+        $names = $this->cache->get("site:{$website->id}:keys", []);
+        $rows = [];
+
+        foreach (is_array($names) ? $names : [] as $name) {
+            $key = $this->key($website, $name);
+            $miss = new \stdClass;
+            $value = $this->cache->get($key, $miss);
+            $present = $value !== $miss;
+            $preview = [];
+
+            if (is_array($value)) {
+                foreach (array_slice($value, 0, 3) as $item) {
+                    $preview[] = is_array($item) ? (string) ($item['title'] ?? $item['name'] ?? $item['label'] ?? '…') : (is_scalar($item) ? (string) $item : '…');
+                }
+            }
+
+            $rows[] = [
+                'name' => (string) $name,
+                'key' => $key,
+                'present' => $present,
+                'type' => $present ? get_debug_type($value) : '—',
+                'count' => is_array($value) ? count($value) : null,
+                'bytes' => $present ? strlen(serialize($value)) : null,
+                'preview' => $preview,
+            ];
+        }
+
+        usort($rows, fn (array $a, array $b) => strcmp($a['name'], $b['name']));
+
+        return $rows;
     }
 
     public function key(Website $website, string $name): string

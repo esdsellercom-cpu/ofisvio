@@ -71,10 +71,11 @@ jobs:
           php artisan db:seed --class=LocationSeeder --force
           php artisan db:seed --class=WebsiteSeeder --force
 
+      # DB env'i BİLEREK verilmez: phpunit.xml'in :memory: ayarı geçerli olsun (dışarıdan
+      # gelen env phpunit <env>'i ezer; dosya DB'si RefreshDatabase ile boşalırdı).
+      # CACHE_STORE=redis kasıtlı: throttle/önbellek gerçek sürücüde de test edilir.
       - name: Testler
         env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: database/database.sqlite
           CACHE_STORE: redis
           REDIS_HOST: 127.0.0.1
         run: php artisan test
@@ -86,7 +87,10 @@ jobs:
           DB_DATABASE: database/database.sqlite
           CACHE_STORE: redis
           REDIS_HOST: 127.0.0.1
-        run: php artisan ofisvio:perf-baseline --out=storage/app/perf/baseline.json
+        # Test adımı RefreshDatabase ile aynı dosya DB'sini boşaltır; ölçüm öncesi referans veri yeniden seed'lenir (idempotent).
+        run: |
+          php artisan db:seed --force
+          php artisan ofisvio:perf-baseline --out=storage/app/perf/baseline.json
 
       - uses: actions/upload-artifact@v4
         with:

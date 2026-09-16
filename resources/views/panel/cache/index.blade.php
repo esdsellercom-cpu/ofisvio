@@ -32,6 +32,9 @@
                         <td class="num mono">{{ $s['purges'] }}</td>
                         <td>
                             <div class="row-actions">
+                                @if ($canInspect)
+                                    <a href="{{ route('panel.cache.inspect', $site) }}" class="btn btn--ghost btn--pill">Anahtarlar</a>
+                                @endif
                                 @can('cache.warm')
                                     <form method="POST" action="{{ route('panel.cache.warm', $site) }}">@csrf
                                         <button type="submit" class="btn btn--ghost btn--pill">Isıt</button>
@@ -100,6 +103,50 @@
                         </form>
                     @endif
                 </div>
+            </div>
+        </div>
+    @endif
+    {{-- cache.settings (JIT): TTL + HTTP süreleri, site başına --}}
+    @if ($canRequestSettingsJit)
+        <div class="panel" style="margin-top:20px">
+            <p class="eyebrow">Önbellek ayarları (JIT)</p>
+            <p class="body-muted" style="margin:0 0 16px">
+                Uygulama önbelleği TTL'i ve misafir HTTP başlıkları (<code>max-age</code> tarayıcı, <code>s-maxage</code> proxy/CDN).
+                Boş = kod varsayılanı ({{ $defaults['ttl'] }} sn / {{ $defaults['max_age'] }} / {{ $defaults['s_maxage'] }}). Değişiklik JIT ister; kaydedince site önbelleği sürüm atlar.
+            </p>
+            <div class="grid-auto" style="--min:280px;--gap:14px">
+                @foreach ($rows as $row)
+                    @php($site = $row['website'])
+                    <div style="border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px">
+                        <strong>{{ $site->name }}</strong>
+                        <div class="small muted mono" style="margin-top:4px">TTL {{ $site->cache_ttl_seconds ?? $defaults['ttl'] }} sn · max-age {{ $site->http_max_age ?? $defaults['max_age'] }} · s-maxage {{ $site->http_s_maxage ?? $defaults['s_maxage'] }}</div>
+                        @if ($row['settingsGrant'])
+                            <form method="POST" action="{{ route('panel.cache.settings', $site) }}" class="stack" style="gap:10px;margin-top:10px">
+                                @csrf @method('PUT')
+                                <div class="grid-auto" style="--min:80px;--gap:10px">
+                                    <label class="field"><span class="label">TTL (sn)</span><input class="control mono" type="number" name="cache_ttl_seconds" value="{{ old('cache_ttl_seconds', $site->cache_ttl_seconds) }}" min="30" max="86400" placeholder="{{ $defaults['ttl'] }}"></label>
+                                    <label class="field"><span class="label">max-age</span><input class="control mono" type="number" name="http_max_age" value="{{ old('http_max_age', $site->http_max_age) }}" min="0" max="86400" placeholder="{{ $defaults['max_age'] }}"></label>
+                                    <label class="field"><span class="label">s-maxage</span><input class="control mono" type="number" name="http_s_maxage" value="{{ old('http_s_maxage', $site->http_s_maxage) }}" min="0" max="604800" placeholder="{{ $defaults['s_maxage'] }}"></label>
+                                </div>
+                                <div><button type="submit" class="btn btn--brand">Kaydet</button></div>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('panel.cache.jit', $site->id) }}" class="stack" style="gap:10px;margin-top:10px">
+                                @csrf
+                                <input type="hidden" name="izin" value="settings">
+                                <label class="field"><span class="label">Gerekçe</span>
+                                    <textarea class="control" name="reason" required minlength="10" maxlength="500" style="min-height:56px"></textarea>
+                                </label>
+                                <div class="inline-form">
+                                    <label class="field" style="flex:0 1 140px"><span class="label">Süre (dk)</span>
+                                        <input class="control" type="number" name="ttl_minutes" value="{{ $defaultTtl }}" min="5" max="{{ $maxTtl }}" required>
+                                    </label>
+                                    <button type="submit" class="btn btn--ghost">Ayar erişimi aç</button>
+                                </div>
+                            </form>
+                        @endif
+                    </div>
+                @endforeach
             </div>
         </div>
     @endif

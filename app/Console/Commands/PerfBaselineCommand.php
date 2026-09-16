@@ -73,6 +73,10 @@ class PerfBaselineCommand extends Command
                     }
                 }
 
+                if ($samples[0]['status'] !== 200) {
+                    $this->warn("{$path}: {$samples[0]['status']} — ".$samples[0]['diag']);
+                }
+
                 $results[] = [
                     'path' => $path,
                     'label' => $label,
@@ -116,7 +120,7 @@ class PerfBaselineCommand extends Command
         return self::SUCCESS;
     }
 
-    /** @return array{status: int, queries: int, ms: float, peak_bytes: int} */
+    /** @return array{status: int, queries: int, ms: float, peak_bytes: int, diag: string} */
     private function measure(Kernel $kernel, string $path, ?User $staff): array
     {
         if ($staff !== null) {
@@ -136,7 +140,12 @@ class PerfBaselineCommand extends Command
         DB::disableQueryLog();
         $kernel->terminate($request, $response);
 
-        return ['status' => $response->getStatusCode(), 'queries' => $queries, 'ms' => round($ms, 1), 'peak_bytes' => memory_get_peak_usage(true)];
+        // Tanı: yönlendirme hedefi ya da hata sayfasının başlığı (CI logunda okunsun).
+        $diag = $response->isRedirection()
+            ? 'Location: '.$response->headers->get('Location')
+            : (preg_match('/<title>(.*?)<\/title>/s', (string) $response->getContent(), $m) === 1 ? trim($m[1]) : '');
+
+        return ['status' => $response->getStatusCode(), 'queries' => $queries, 'ms' => round($ms, 1), 'peak_bytes' => memory_get_peak_usage(true), 'diag' => $diag];
     }
 
     /** Transaction içinde açılan, komut sonunda geri alınan 2FA'lı personel. */
