@@ -12,7 +12,7 @@
                 @if ($content->reading_minutes) · {{ $content->reading_minutes }} dk @endif
             </p>
         @else
-            <p class="eyebrow">{{ $currentWebsite->name }}</p>
+            <p class="eyebrow">@if ($content->parent_slug)<a href="/{{ $content->parent_slug }}">{{ $content->parent?->title ?? $content->parent_slug }}</a>@else{{ $currentWebsite->name }}@endif</p>
         @endif
 
         <h1 class="h2">{{ $content->title }}</h1>
@@ -37,6 +37,17 @@
                     <a href="{{ route('site.tag', \Illuminate\Support\Str::slug($tag)) }}" class="tag">#{{ $tag }}</a>
                 @endforeach
             </p>
+        @endif
+
+        @if (! $isPost && isset($children) && $children->isNotEmpty())
+            <section style="margin-top:36px" aria-labelledby="children-heading">
+                <p class="eyebrow" id="children-heading">Alt sayfalar</p>
+                <ul class="stack" style="gap:10px;margin:12px 0 0;padding:0;list-style:none">
+                    @foreach ($children as $child)
+                        <li><a href="{{ $child->path() }}" style="font-weight:600">{{ $child->title }}</a>@if ($child->excerpt)<div class="small muted">{{ $child->excerpt }}</div>@endif</li>
+                    @endforeach
+                </ul>
+            </section>
         @endif
     </article>
 

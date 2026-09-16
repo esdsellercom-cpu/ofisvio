@@ -51,4 +51,5 @@ Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cac
 Route::get('/blog/etiket/{tag}', [ContentController::class, 'tag'])->where('tag', '[a-z0-9-]+')->middleware('public.cache')->name('site.tag');
 Route::get('/blog/kategori/{category}', [ContentController::class, 'category'])->where('category', '[a-z0-9-]+')->middleware('public.cache')->name('site.category');
 Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
+Route::get('/{parent}/{slug}', [ContentController::class, 'childPage'])->where(['parent' => '(?!panel$|login$|logout$|blog$|lokasyon$|lokasyonlar$|up$)[a-z0-9-]+', 'slug' => '[a-z0-9-]+'])->middleware('public.cache')->name('site.page.child');
 Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

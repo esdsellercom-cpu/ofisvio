@@ -107,6 +107,7 @@ class ContentService
             ->where('kind', ContentKind::PAGE->value)
             ->live()
             ->where('show_in_nav', true)
+            ->whereNull('parent_id') // alt sayfalar menüde değil; ebeveyn sayfasında listelenir
             ->orderByRaw('nav_order IS NULL, nav_order')
             ->orderBy('title')
             ->get());
@@ -226,7 +227,7 @@ class ContentService
     }
 
     /**
-     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function create(User $author, Website $website, array $data): Content
     {
@@ -234,10 +235,14 @@ class ContentService
         $slug = $this->uniqueSlug($website, $kind, $data['slug'] ?? null, $data['title']);
 
         return DB::transaction(function () use ($author, $website, $kind, $slug, $data) {
+            $parent = $kind === ContentKind::PAGE ? $this->resolveParent($website, null, $data['parent_id'] ?? null) : null;
+
             $content = Content::create([
                 'website_id' => $website->id,
                 'kind' => $kind,
                 'slug' => $slug,
+                'parent_id' => $parent?->id,
+                'parent_slug' => $parent?->slug,
                 'title' => trim($data['title']),
                 'excerpt' => $data['excerpt'] ?? null,
                 'body' => $data['body'] ?? null,
@@ -259,7 +264,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function update(User $editor, Content $content, array $data): Content
     {
@@ -289,13 +294,78 @@ class ContentService
                 'meta_description' => $data['meta_description'] ?? null,
                 'noindex' => (bool) ($data['noindex'] ?? false),
             ]);
+
+            if ($content->kind === ContentKind::PAGE) {
+                $parent = $this->resolveParent($content->website, $content, $data['parent_id'] ?? null);
+                $content->parent_id = $parent?->id;
+                $content->parent_slug = $parent?->slug;
+            }
+
             $content->save();
+
+            // Ebeveynin slug'ı değiştiyse çocukların denormalize yolu güncellenir.
+            Content::query()->where('parent_id', $content->id)->where('parent_slug', '!=', $content->slug)->update(['parent_slug' => $content->slug]);
 
             $this->snapshot($content, $editor);
             $this->cache->invalidate($content->website);
 
             return $content;
         });
+    }
+
+    /**
+     * Ebeveyn sayfa (faz 29, tek seviye): aynı site, kind=page, kendisi üst seviye,
+     * içeriğin kendisi değil; çocuğu olan sayfa alt sayfa yapılamaz.
+     */
+    private function resolveParent(Website $website, ?Content $self, int|string|null $parentId): ?Content
+    {
+        $parentId = (int) $parentId;
+
+        if ($parentId <= 0) {
+            return null;
+        }
+
+        $parent = Content::query()->where('website_id', $website->id)->where('kind', ContentKind::PAGE->value)->find($parentId);
+
+        if ($parent === null) {
+            throw new DomainException('Ebeveyn sayfa bu sitede bulunamadı.');
+        }
+
+        if ($parent->parent_id !== null) {
+            throw new DomainException('Alt sayfanın altına sayfa açılamaz (tek seviye).');
+        }
+
+        if ($self !== null && ($parent->id === $self->id || Content::query()->where('parent_id', $self->id)->exists())) {
+            throw new DomainException('Bu sayfa kendi ebeveyni olamaz; alt sayfası olan sayfa alt sayfa yapılamaz.');
+        }
+
+        return $parent;
+    }
+
+    /**
+     * Ebeveyn adayları: sitenin üst seviye sayfaları (kendisi hariç).
+     *
+     * @return Collection<int, Content>
+     */
+    public function parentCandidates(Website $website, ?Content $self = null): Collection
+    {
+        return Content::query()
+            ->where('website_id', $website->id)
+            ->where('kind', ContentKind::PAGE->value)
+            ->whereNull('parent_id')
+            ->when($self, fn ($q) => $q->where('id', '!=', $self->id))
+            ->orderBy('title')
+            ->get();
+    }
+
+    /**
+     * Yayındaki alt sayfalar (ebeveyn sayfasında liste).
+     *
+     * @return Collection<int, Content>
+     */
+    public function liveChildren(Content $parent): Collection
+    {
+        return $this->livePages($parent->website)->filter(fn (Content $p) => $p->parent_id === $parent->id)->values();
     }
 
     /**
@@ -970,6 +1040,21 @@ class ContentService
                 ->concat($working->filter(fn (ContentDraft $d) => $d->status === ContentStatus::SCHEDULED && $d->scheduled_for !== null && $d->scheduled_for->isPast()))
                 ->values(),
         ];
+    }
+
+    /**
+     * Sayfa yolu çözümü (faz 29): /slug yalnız üst seviye, /ebeveyn/slug yalnız o ebeveynin
+     * çocuğu — kanonik dışı yol 404 (aynı sayfa iki adreste yaşamaz).
+     */
+    public function findLivePage(?Website $website, string $slug, ?string $parentSlug = null): ?Content
+    {
+        $page = $this->findLive($website, ContentKind::PAGE, $slug);
+
+        if ($page === null || ($page->parent_slug ?? null) !== $parentSlug) {
+            return null;
+        }
+
+        return $page;
     }
 
     /** @return Collection<int, ContentRevision> */

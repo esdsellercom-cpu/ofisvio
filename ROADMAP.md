@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **207/207** (Unit 10 · Feature 191 · Architecture 6) |
+| `php artisan test` | ✅ **212/212** (Unit 10 · Feature 196 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -236,6 +236,23 @@ sınır); yazı sayfası da bütçede (ilgili yazılar önbellekli listeden).
 **editör iş yükü:** yazar başına taslak/inceleme/onaylı/zamanlanmış/çalışma
 taslağı sayıları. Sürükle-bırak yeniden zamanlama bilinçli olarak yok: JS'siz
 çalışma ilkesi; zamanlama içerik sayfasındaki formdan.
+
+### 29. Panel tamamlama ✅ (kullanıcı geri bildirimi, 16 Eylül 2026)
+Panelde görünen boşluklar — fazlarda karşılığı olmayan, ama ürünün
+kullanılabilmesi için şart olan ekranlar:
+**Kullanıcı yönetimi** `/panel/kullanicilar` (`user.manage`): liste (roller,
+2FA), personel daveti (şifre belirleme bağlantısı; şifre girilmez/görülmez),
+global rol atama / askıya alma / etkinleştirme; kendi rolünü ve son aktif
+super_admin'i askıya alma reddedilir; müşteri rolleri yalnız görünür.
+**Site genel ayarları:** `websites.contact_phone/contact_email/tagline/address`,
+`Website::brand()` (site > config [yalnız Ofisvio] > boş); personel site
+formunda, müşteri menü ekranında; üst şerit / footer / tenant footer.
+**Ana sayfa yönetimi:** hero, üst şerit ve bölüm başlık/açıklamaları
+`config('ofisvio.texts')` + `texts` bloğu (anahtar başına alan); liste blokları
+ile aynı "Ana sayfa" ekranı. **Sayfa yönetimi:** menüde Sayfalar / Yazılar /
+Takvim / Ana sayfa ayrımı; **alt sayfa** (`parent_id`, tek seviye,
+`/ebeveyn/sayfa` kanonik yol, `parent_slug` denormalize; alt sayfa menüde
+değil, ebeveyn sayfasında listelenir; breadcrumb ve sitemap yolu kullanır).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

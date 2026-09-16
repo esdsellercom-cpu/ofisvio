@@ -17,7 +17,7 @@ class Content extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'website_id', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
+        'website_id', 'parent_id', 'parent_slug', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
         'requires_approval', 'meta_title', 'meta_description', 'noindex', 'author_id',
     ];
 
@@ -86,7 +86,23 @@ class Content extends Model
     /** Sitedeki göreli yol: /blog/{slug} ya da /{slug}. */
     public function path(): string
     {
-        return ($this->kind === ContentKind::POST ? '/blog/' : '/').$this->slug;
+        if ($this->kind === ContentKind::POST) {
+            return '/blog/'.$this->slug;
+        }
+
+        return ($this->parent_slug ? '/'.$this->parent_slug : '').'/'.$this->slug;
+    }
+
+    /** @return BelongsTo<Content, $this> */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
+
+    /** @return HasMany<Content, $this> */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
     }
 
     public function getRouteKeyName(): string

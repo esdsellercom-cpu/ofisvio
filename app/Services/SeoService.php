@@ -154,6 +154,11 @@ class SeoService
             }
         }
 
+        if ($content->kind === ContentKind::PAGE && $content->parent_slug) {
+            $parent = $content->parent;
+            $items[] = ['name' => $parent !== null ? $parent->title : $content->parent_slug, 'item' => $base.'/'.$content->parent_slug];
+        }
+
         $items[] = ['name' => $content->title, 'item' => $base.$content->path()];
 
         return [

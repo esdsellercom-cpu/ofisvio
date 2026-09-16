@@ -155,10 +155,13 @@ class ContentController extends Controller
 
     public function create(Request $request): View
     {
+        $website = $this->selectedWebsite($request);
+
         return view('panel.content.form', [
             'content' => null,
-            'website' => $this->selectedWebsite($request),
+            'website' => $website,
             'kind' => ContentKind::tryFrom((string) $request->query('kind', 'post')) ?? ContentKind::POST,
+            'parents' => $this->contents->parentCandidates($website),
         ]);
     }
 
@@ -200,7 +203,7 @@ class ContentController extends Controller
                 ->withErrors(['status' => 'Yalnızca taslak düzenlenir; önce taslağa alın.']);
         }
 
-        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind]);
+        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind, 'parents' => $this->contents->parentCandidates($content->website, $content)]);
     }
 
     public function update(StoreContentRequest $request, Content $content): RedirectResponse

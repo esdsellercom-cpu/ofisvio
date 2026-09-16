@@ -180,6 +180,7 @@ class SiteController extends Controller
             'content' => $model,
             'website' => $model->website,
             'kind' => $model->kind,
+            'parents' => $this->contents->parentCandidates($model->website, $model),
             'formAction' => route('panel.companies.site.update', [$company, $model->id]),
             'indexUrl' => route('panel.companies.site.index', $company),
             'cancelUrl' => route('panel.companies.site.show', [$company, $model->id]),

@@ -62,6 +62,18 @@
                         <input class="control" type="text" name="tags" value="{{ old('tags', implode(', ', $src?->tags ?? [])) }}" maxlength="300" placeholder="sanal ofis, tescil, kdv">
                     </label>
                 @endif
+                @if ($kind->value === 'page' && ! $draft)
+                    <label class="field">
+                        <span class="label">Ebeveyn sayfa (alt sayfa yapmak için)</span>
+                        <select class="control" name="parent_id" @error('parent_id') aria-invalid="true" @enderror>
+                            <option value="">— Üst seviye</option>
+                            @foreach ($parents ?? [] as $p)
+                                <option value="{{ $p->id }}" @selected((int) old('parent_id', $content?->parent_id) === $p->id)>{{ $p->title }} (/{{ $p->slug }})</option>
+                            @endforeach
+                        </select>
+                        <span class="small muted">Alt sayfa /ebeveyn/sayfa adresinde yaşar, menüde görünmez, ebeveyn sayfasında listelenir.</span>
+                    </label>
+                @endif
                 @if ($draft)
                     <p class="small muted" style="margin:0">Onay bayrağı yayındaki içeriğe aittir{{ $content?->requires_approval ? ' (onay gerekli)' : '' }}.</p>
                 @else

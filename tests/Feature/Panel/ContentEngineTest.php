@@ -224,6 +224,50 @@ class ContentEngineTest extends TestCase
     }
 
     #[Test]
+    public function alt_sayfa_ebeveyn_altinda_yasar_ve_menude_gorunmez(): void
+    {
+        $admin = $this->staff('system_admin');
+
+        $this->actingAs($admin)->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'page', 'title' => 'Hizmetler', 'body' => 'Hizmetlerimiz.'])->assertRedirect();
+        $parent = Content::where('slug', 'hizmetler')->firstOrFail();
+
+        // Alt sayfa: ebeveyn seçilir; yol /hizmetler/sanal-ofis.
+        $this->actingAs($admin)->get('/panel/icerik/yeni?kind=page')->assertOk()->assertSee('Ebeveyn sayfa')->assertSee('Hizmetler (/hizmetler)');
+        $this->actingAs($admin)->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'page', 'title' => 'Sanal Ofis', 'body' => 'Detay.', 'parent_id' => $parent->id])->assertRedirect()->assertSessionHasNoErrors();
+        $child = Content::where('slug', 'sanal-ofis')->firstOrFail();
+        $this->assertSame($parent->id, $child->parent_id);
+        $this->assertSame('/hizmetler/sanal-ofis', $child->path());
+
+        // Alt sayfanın altına sayfa açılamaz; yabancı site ebeveyn olamaz.
+        $this->actingAs($admin)->from('/panel/icerik/yeni')->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'page', 'title' => 'Üçüncü seviye', 'parent_id' => $child->id])->assertSessionHasErrors();
+        $this->assertNull(Content::where('title', 'Üçüncü seviye')->first());
+
+        foreach ([$parent, $child] as $c) {
+            $c->forceFill(['status' => ContentStatus::PUBLISHED, 'published_at' => now()->subDay()])->save();
+        }
+        app(ContentCache::class)->invalidate($this->website);
+
+        // Kanonik yol: /hizmetler/sanal-ofis 200; /sanal-ofis 404; /baska/hizmetler 404.
+        $this->get('/hizmetler/sanal-ofis')->assertOk()->assertSee('Detay.')->assertSee('href="/hizmetler"', false);
+        $this->get('/sanal-ofis')->assertNotFound();
+        $this->get('/baska/hizmetler')->assertNotFound();
+        $this->get('/hizmetler')->assertOk()->assertSee('Alt sayfalar')->assertSee('href="/hizmetler/sanal-ofis"', false);
+
+        // Breadcrumb ebeveyni içerir; sitemap alt yolu kullanır.
+        $html = $this->get('/hizmetler/sanal-ofis')->getContent();
+        $this->assertStringContainsString('"position":2,"name":"Hizmetler","item":"'.config('app.url').'/hizmetler"', $html);
+        $this->assertStringContainsString('"position":3,"name":"Sanal Ofis"', $html);
+        $this->get('/sitemap.xml')->assertSee('<loc>'.config('app.url').'/hizmetler/sanal-ofis</loc>', false);
+
+        // Ebeveyn slug'ı değişince çocuğun yolu güncellenir; menüde yalnız üst seviye.
+        $parent->forceFill(['status' => ContentStatus::DRAFT])->save();
+        $this->actingAs($admin)->put("/panel/icerik/{$parent->id}", ['title' => 'Hizmetler', 'slug' => 'cozumler', 'body' => 'Hizmetlerimiz.'])->assertRedirect();
+        $this->assertSame('/cozumler/sanal-ofis', $child->fresh()->path());
+        $nav = app(ContentService::class)->navigation($this->website);
+        $this->assertFalse($nav->contains('id', $child->id), 'Alt sayfa menüde değil.');
+    }
+
+    #[Test]
     public function kategori_sayfalari_ve_ilgili_yazilar(): void
     {
         $a = $this->published('Sanal ofis nedir', 'Sanal Ofis');

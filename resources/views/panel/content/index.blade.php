@@ -17,7 +17,7 @@
     <div class="panel-head">
         <div>
             <p class="eyebrow">CMS · {{ $website->name }}@if ($website->domain) · {{ $website->domain }}@endif</p>
-            <h1 class="h2">İçerik</h1>
+            <h1 class="h2">{{ $kind?->value === 'page' ? 'Sayfalar' : ($kind?->value === 'post' ? 'Yazılar' : 'İçerik') }}</h1>
         </div>
         <div class="panel-head__actions">
             <a href="{{ route('panel.content.calendar', ['website' => $website->id]) }}" class="btn btn--ghost">Takvim</a>
@@ -83,7 +83,7 @@
                         <tr>
                             <td>
                                 <a href="{{ route('panel.content.show', $item) }}">{{ $item->title }}</a>
-                                <span class="small muted mono" style="display:block;font-weight:400">/{{ $item->kind->value === 'post' ? 'blog/' : '' }}{{ $item->slug }}</span>
+                                <span class="small muted mono" style="display:block;font-weight:400">{{ $item->path() }}</span>
                             </td>
                             <td>{{ $item->kind->label() }}</td>
                             <td>

@@ -76,10 +76,20 @@ class ContentController extends Controller
 
     public function page(string $slug): View
     {
-        $content = $this->contents->findLive($this->website->get(), ContentKind::PAGE, $slug);
+        $content = $this->contents->findLivePage($this->website->get(), $slug);
 
         abort_if($content === null, 404);
 
-        return view('site.content', ['content' => $content, 'isPost' => false]);
+        return view('site.content', ['content' => $content, 'isPost' => false, 'children' => $this->contents->liveChildren($content)]);
+    }
+
+    /** Alt sayfa (faz 29): /ebeveyn/sayfa. */
+    public function childPage(string $parent, string $slug): View
+    {
+        $content = $this->contents->findLivePage($this->website->get(), $slug, $parent);
+
+        abort_if($content === null, 404);
+
+        return view('site.content', ['content' => $content, 'isPost' => false, 'children' => collect()]);
     }
 }

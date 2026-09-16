@@ -8,9 +8,14 @@
         <a href="{{ route('panel.kyc.queue') }}" @if (request()->routeIs('panel.kyc.queue')) aria-current="page" @endif>KYC kuyruğu</a>
     @endcan
 @endisset
-@can('content.view')
-    <a href="{{ route('panel.content.index') }}" @if (request()->routeIs('panel.content.*')) aria-current="page" @endif>İçerik</a>
-@endcan
+@canany(['content.view', 'content.edit', 'content.review', 'content.approve', 'content.publish', 'content.schedule', 'content.archive'])
+    <a href="{{ route('panel.content.index', ['kind' => 'page']) }}" @if (request()->routeIs('panel.content.*') && request()->query('kind') === 'page') aria-current="page" @endif>Sayfalar</a>
+    <a href="{{ route('panel.content.index', ['kind' => 'post']) }}" @if (request()->routeIs('panel.content.*') && request()->query('kind') === 'post') aria-current="page" @endif>Yazılar</a>
+    <a href="{{ route('panel.content.calendar') }}" @if (request()->routeIs('panel.content.calendar')) aria-current="page" @endif>Takvim</a>
+    @can('content.publish')
+        <a href="{{ route('panel.content.blocks') }}" @if (request()->routeIs('panel.content.blocks')) aria-current="page" @endif>Ana sayfa</a>
+    @endcan
+@endcanany
 @can('seo.view')
     <a href="{{ route('panel.seo.index') }}" @if (request()->routeIs('panel.seo.*')) aria-current="page" @endif>SEO</a>
 @endcan
