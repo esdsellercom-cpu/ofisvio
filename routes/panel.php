@@ -29,6 +29,7 @@ use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
+use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -49,6 +50,17 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::get('/organizasyon', [ContextController::class, 'select'])->name('context.select');
         Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:context-switch')->name('context.switch');
 
+        // Kullanıcı yönetimi (faz 29) — personel daveti + global rol; user.manage.
+        Route::prefix('kullanicilar')->name('users.')->middleware('permission:user.manage')->group(function () {
+            Route::get('/', [UserController::class, 'index'])->name('index');
+            Route::get('/yeni', [UserController::class, 'create'])->name('create');
+            Route::post('/', [UserController::class, 'store'])->middleware('throttle:invite')->name('store');
+            Route::get('/{user}', [UserController::class, 'show'])->name('show');
+            Route::post('/{user}/rol', [UserController::class, 'assignRole'])->name('roles.assign');
+            Route::post('/{user}/rol/{userRole}/askiya-al', [UserController::class, 'suspendRole'])->name('roles.suspend');
+            Route::post('/{user}/rol/{userRole}/etkinlestir', [UserController::class, 'reactivateRole'])->name('roles.reactivate');
+            Route::post('/{user}/davet', [UserController::class, 'resendInvite'])->middleware('throttle:invite')->name('resend');
+        });
         // Müşteri organizasyonu açma — personel (user.manage global). Tenant
         // middleware'i yok: açılacak organizasyon henüz mevcut değil.
         Route::get('/yeni-musteri', [OnboardingController::class, 'create'])

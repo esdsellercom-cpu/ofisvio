@@ -24,6 +24,6 @@
     <a href="{{ route('panel.websites.index') }}" @if (request()->routeIs('panel.websites.*')) aria-current="page" @endif>Websiteler</a>
 @endcanany
 @can('user.manage')
-    <a href="{{ route('panel.onboarding.create') }}" @if (request()->routeIs('panel.onboarding.*')) aria-current="page" @endif>Yeni müşteri</a>
+    <a href="{{ route('panel.users.index') }}" @if (request()->routeIs('panel.users.*') || request()->routeIs('panel.onboarding.*')) aria-current="page" @endif>Kullanıcılar</a>
 @endcan
 <a href="{{ route('panel.context.select') }}" @if (request()->routeIs('panel.context.*')) aria-current="page" @endif>Organizasyonlar</a>
