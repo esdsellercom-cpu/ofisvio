@@ -1,4 +1,3 @@
-@php($brand = config('ofisvio.brand'))
 @php($navLinks = [
     ['label' => 'Çözümler', 'href' => '#cozumler'],
     ['label' => 'Nasıl çalışır', 'href' => '#nasil'],

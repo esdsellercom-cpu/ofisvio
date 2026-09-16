@@ -43,7 +43,14 @@
 
     <footer class="site-footer">
         <div class="wrap" style="padding-block:28px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between">
-            <span>© {{ date('Y') }} {{ $currentWebsite->name }}</span>
+            <span>© {{ date('Y') }} {{ $brand['legal_name'] ?? $currentWebsite->name }}@if ($brand['tagline'] ?? '') · {{ $brand['tagline'] }}@endif</span>
+            @if (($brand['phone'] ?? '') || ($brand['email'] ?? '') || ($brand['address'] ?? ''))
+                <span class="mono" style="display:flex;gap:14px;flex-wrap:wrap">
+                    @if ($brand['phone'])<a href="{{ $brand['phone_href'] }}">{{ $brand['phone'] }}</a>@endif
+                    @if ($brand['email'])<a href="mailto:{{ $brand['email'] }}">{{ $brand['email'] }}</a>@endif
+                    @if ($brand['address'])<span>{{ $brand['address'] }}</span>@endif
+                </span>
+            @endif
             <span class="label">Altyapı: {{ config('ofisvio.brand.name') }}</span>
         </div>
     </footer>

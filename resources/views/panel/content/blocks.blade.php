@@ -1,12 +1,12 @@
 @extends('layouts.panel')
 
-@section('title', 'Vitrin blokları')
+@section('title', 'Ana sayfa')
 
 @section('content')
     <div class="panel-head">
         <div>
             <p class="eyebrow"><a href="{{ route('panel.content.index') }}">İçerik</a> · {{ $website->name }}</p>
-            <h1 class="h2">Vitrin blokları</h1>
+            <h1 class="h2">Ana sayfa</h1>
         </div>
         <div class="panel-head__actions">
             <a href="{{ $website->baseUrl() }}" class="btn btn--ghost" target="_blank" rel="noopener">Vitrini aç ↗</a>
@@ -17,6 +17,28 @@
         Ana sayfadaki listeler. Her satır bir kayıt, alanlar <code>|</code> ile ayrılır. Kaydetmek bloğu <strong>hemen canlıya</strong> çıkarır
         (yayın akışı yok; bu yüzden yalnız yayın yetkisi). Kutuyu boşaltıp kaydedince blok kod varsayılanına (config) döner.
     </p>
+
+    <form method="POST" action="{{ route('panel.content.blocks.texts') }}" class="panel stack" style="gap:12px;margin-bottom:24px">
+        @csrf @method('PUT')
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap">
+            <p class="eyebrow" style="margin:0">Metinler (hero, bölüm başlıkları)</p>
+            @if (in_array('texts', $overridden, true))<span class="badge badge--ok">CMS kaydı</span>@else<span class="badge badge--muted">kod varsayılanı</span>@endif
+        </div>
+        <div class="grid-auto" style="--min:260px;--gap:12px">
+            @foreach ($textKeys as $key => $label)
+                <label class="field" @if (str_ends_with($key, '_lede')) style="grid-column:1/-1" @endif>
+                    <span class="label">{{ $label }}</span>
+                    @if (str_ends_with($key, '_lede'))
+                        <textarea class="control" name="{{ $key }}" maxlength="300" style="min-height:64px">{{ old($key, $homeTexts[$key]) }}</textarea>
+                    @else
+                        <input class="control" type="text" name="{{ $key }}" value="{{ old($key, $homeTexts[$key]) }}" maxlength="300">
+                    @endif
+                </label>
+            @endforeach
+        </div>
+        <p class="small muted" style="margin:0">Boş bırakılan ya da varsayılanla aynı olan alan saklanmaz (kod varsayılanı geçerli kalır).</p>
+        <div><button type="submit" class="btn btn--brand">Metinleri yayınla</button></div>
+    </form>
 
     @foreach ($blocks as $key => $meta)
         <form method="POST" action="{{ route('panel.content.blocks.update', $key) }}" class="panel stack" style="gap:10px;margin-bottom:18px">

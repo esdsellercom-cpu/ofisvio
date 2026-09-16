@@ -35,6 +35,14 @@
             <button type="submit" class="btn btn--ghost">Temayı uygula</button>
         </form>
     @endisset
+    @isset($settingsAction)
+        <form method="POST" action="{{ $settingsAction }}" class="panel stack" style="margin-bottom:20px;gap:12px">
+            @csrf @method('PUT')
+            <p class="eyebrow" style="margin:0">Site genel ayarları — iletişim ve kimlik</p>
+            @include('panel.websites.partials.settings-fields', ['site' => $website])
+            <div><button type="submit" class="btn btn--ghost">Ayarları kaydet</button></div>
+        </form>
+    @endisset
     @isset($linksAction)
         <form method="POST" action="{{ $linksAction }}" class="panel stack" style="margin-bottom:20px;gap:10px">
             @csrf @method('PUT')

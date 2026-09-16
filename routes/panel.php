@@ -89,6 +89,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::put('/baglantilar/{website}', [ContentController::class, 'saveLinks'])->middleware('permission:content.edit')->name('links');
             // Vitrin blokları (faz 10): doğrudan canlıya çıkar -> content.publish.
             Route::get('/bloklar', [SiteBlockController::class, 'index'])->middleware('permission:content.publish')->name('blocks');
+            Route::put('/bloklar/metinler', [SiteBlockController::class, 'updateTexts'])->middleware('permission:content.publish')->name('blocks.texts');
             Route::put('/bloklar/{block}', [SiteBlockController::class, 'update'])->where('block', '[a-z_]+')->middleware('permission:content.publish')->name('blocks.update');
             Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');
             Route::get('/{content}/duzenle', [ContentController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
@@ -125,6 +126,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/', [WebsiteController::class, 'store'])->middleware('permission:website.manage')->name('store');
             Route::get('/{website}/duzenle', [WebsiteController::class, 'edit'])->middleware('permission:website.manage')->name('edit');
             Route::put('/{website}', [WebsiteController::class, 'update'])->middleware('permission:website.manage')->name('update');
+            Route::put('/{website}/ayarlar', [WebsiteController::class, 'settings'])->middleware('permission:website.manage')->name('settings');
         });
 
         // --- Önbellek (faz 12-14) — personel, tenant context'siz -----------------
@@ -252,6 +254,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 Route::get('/menu/{website}', [SiteController::class, 'menu'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('menu');
                 Route::put('/menu/{website}', [SiteController::class, 'saveMenu'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('menu.update');
                 Route::put('/tema/{website}', [SiteController::class, 'saveTheme'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('theme');
+                Route::put('/ayarlar/{website}', [SiteController::class, 'saveSettings'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('settings');
                 Route::put('/baglantilar/{website}', [SiteController::class, 'saveLinks'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('links');
                 Route::get('/seo', [SiteSeoController::class, 'index'])->middleware('permission:seo.view,company')->name('seo.index');
                 Route::put('/seo/{website}', [SiteSeoController::class, 'update'])->where('website', '[0-9]+')->middleware('permission:seo.edit,company')->name('seo.update');

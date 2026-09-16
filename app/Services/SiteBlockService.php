@@ -29,7 +29,65 @@ class SiteBlockService
         'footer_columns' => ['label' => 'Footer sütunları', 'fields' => ['Başlık', 'Madde, madde, …'], 'config' => 'footer_columns'],
     ];
 
+    /** Ana sayfa metin anahtarları => etiket (faz 29); varsayılan config('ofisvio.texts'). */
+    public const TEXT_KEYS = [
+        'topbar' => 'Üst şerit mesajı',
+        'hero_eyebrow' => 'Hero üst yazı',
+        'hero_title' => 'Hero başlık (1. satır)',
+        'hero_accent' => 'Hero vurgu kelimesi (serif)',
+        'hero_title_after' => 'Hero başlık (vurgudan sonra)',
+        'hero_lede' => 'Hero açıklama',
+        'solutions_title' => 'Çözümler başlığı',
+        'journey_title' => 'Nasıl çalışır başlığı',
+        'journey_lede' => 'Nasıl çalışır açıklaması',
+        'locations_title' => 'Lokasyonlar başlığı',
+        'meeting_title' => 'Toplantı başlığı',
+        'meeting_lede' => 'Toplantı açıklaması',
+        'amenities_title' => 'Dahil olanlar başlığı',
+        'pricing_title' => 'Üyelikler başlığı',
+    ];
+
     public function __construct(private readonly ContentCache $cache) {}
+
+    /**
+     * Ana sayfa metinleri: kayıt (texts bloğu) config varsayılanının üstüne.
+     *
+     * @return array<string, string>
+     */
+    public function texts(?Website $website): array
+    {
+        $defaults = array_map('strval', (array) config('ofisvio.texts'));
+        $stored = $website === null ? [] : (array) ($this->all($website)['texts'] ?? []);
+
+        return array_merge($defaults, array_intersect_key(array_map('strval', $stored), self::TEXT_KEYS));
+    }
+
+    /**
+     * Metinleri kaydeder; varsayılanla aynı ya da boş olanlar saklanmaz.
+     *
+     * @param  array<string, string|null>  $values
+     */
+    public function updateTexts(User $editor, Website $website, array $values): void
+    {
+        $defaults = array_map('strval', (array) config('ofisvio.texts'));
+        $data = [];
+
+        foreach (self::TEXT_KEYS as $key => $label) {
+            $value = trim((string) ($values[$key] ?? ''));
+
+            if ($value !== '' && $value !== ($defaults[$key] ?? '')) {
+                $data[$key] = $value;
+            }
+        }
+
+        if ($data === []) {
+            SiteBlock::query()->where('website_id', $website->id)->where('key', 'texts')->delete();
+        } else {
+            SiteBlock::query()->updateOrCreate(['website_id' => $website->id, 'key' => 'texts'], ['data' => $data, 'updated_by' => $editor->id]);
+        }
+
+        $this->cache->invalidate($website);
+    }
 
     /**
      * Tüm bloklar (kayıt ya da config varsayılanı) + pricing_note. Önbellekli;

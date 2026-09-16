@@ -37,8 +37,24 @@ class SiteBlockController extends Controller
             'website' => $website,
             'blocks' => SiteBlockService::BLOCKS,
             'texts' => $texts,
+            'homeTexts' => $this->blocks->texts($website),
+            'textKeys' => SiteBlockService::TEXT_KEYS,
             'overridden' => $this->blocks->overridden($website),
         ]);
+    }
+
+    /** Ana sayfa metinleri (faz 29): anahtar başına kısa metin; boş/varsayılan saklanmaz. */
+    public function updateTexts(Request $request): RedirectResponse
+    {
+        $rules = [];
+
+        foreach (array_keys(SiteBlockService::TEXT_KEYS) as $key) {
+            $rules[$key] = ['nullable', 'string', 'max:300'];
+        }
+
+        $this->blocks->updateTexts($request->user(), $this->contents->defaultWebsite(), $request->validate($rules));
+
+        return redirect()->route('panel.content.blocks')->with('status', 'Ana sayfa metinleri güncellendi.');
     }
 
     public function update(Request $request, string $block): RedirectResponse

@@ -162,6 +162,33 @@ class WebsiteService
     }
 
     /**
+     * Site genel ayarları (faz 29): iletişim/kimlik. Personel (website.manage)
+     * ve müşteri (content.edit, kendi sitesi) aynı yolu kullanır.
+     *
+     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null}  $data
+     */
+    public function updateSettings(Website $website, array $data): Website
+    {
+        $website->fill([
+            'contact_phone' => $this->blankToNull($data['contact_phone'] ?? null),
+            'contact_email' => $this->blankToNull($data['contact_email'] ?? null),
+            'tagline' => $this->blankToNull($data['tagline'] ?? null),
+            'address' => $this->blankToNull($data['address'] ?? null),
+            'legal_name' => $this->blankToNull($data['legal_name'] ?? $website->legal_name),
+        ]);
+        $website->save();
+
+        return $website;
+    }
+
+    private function blankToNull(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
      * Önbellek ayarları (faz 12-14, cache.settings + JIT). NULL = kod varsayılanı.
      *
      * @param  array{cache_ttl_seconds: int|null, http_max_age: int|null, http_s_maxage: int|null}  $data

@@ -13,11 +13,10 @@
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">02 — Nasıl çalışır</p>
-            <h2 class="h2" style="max-width:22ch">Adresiniz altı adımda tescile hazır</h2>
+            <h2 class="h2" style="max-width:22ch">{{ $texts['journey_title'] }}</h2>
         </div>
         <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">
-            Her adımın durumunu panelinizden canlı görürsünüz. Belgeleriniz incelenirken
-            nerede olduğunuzu tahmin etmeniz gerekmez.
+            {{ $texts['journey_lede'] }}
         </p>
     </div>
 

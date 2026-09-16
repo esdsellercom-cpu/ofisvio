@@ -1,4 +1,3 @@
-@php($brand = config('ofisvio.brand'))
 <footer class="site-footer">
     <div class="wrap grid-auto" style="--min:190px;--gap:40px 32px;padding-block:64px 28px">
         <div style="min-width:0">
@@ -8,8 +7,9 @@
             </div>
             <p style="margin:0;font-size:14.5px;line-height:1.6;max-width:30ch">{{ $brand['tagline'] }}</p>
             <div class="stack mono" style="margin-top:22px;gap:6px;font-size:13.5px">
-                <a href="{{ $brand['phone_href'] }}" style="color:var(--dark-ink)">{{ $brand['phone'] }}</a>
-                <a href="mailto:{{ $brand['email'] }}" style="color:var(--dark-ink)">{{ $brand['email'] }}</a>
+                @if ($brand['phone'])<a href="{{ $brand['phone_href'] }}" style="color:var(--dark-ink)">{{ $brand['phone'] }}</a>@endif
+                @if ($brand['email'])<a href="mailto:{{ $brand['email'] }}" style="color:var(--dark-ink)">{{ $brand['email'] }}</a>@endif
+                @if ($brand['address'])<span>{{ $brand['address'] }}</span>@endif
             </div>
         </div>
 

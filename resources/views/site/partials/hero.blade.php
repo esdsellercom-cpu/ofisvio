@@ -1,14 +1,11 @@
 <section class="wrap" style="padding-top:72px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:56px;align-items:end">
     <div style="min-width:0">
-        <p class="eyebrow" style="margin-bottom:22px">Sanal ofis · Hazır ofis · Coworking</p>
+        <p class="eyebrow" style="margin-bottom:22px">{{ $texts['hero_eyebrow'] }}</p>
         <h1 class="h1">
-            Şirketinizin adresi<br>
-            <span class="serif-accent">bugün</span> hazır olsun.
+            {{ $texts['hero_title'] }}<br>
+            <span class="serif-accent">{{ $texts['hero_accent'] }}</span> {{ $texts['hero_title_after'] }}
         </h1>
-        <p class="lede" style="margin:26px 0 0;max-width:50ch">
-            Tescile uygun adres, karşılanan çağrılar ve evraklar, dakikası hesap edilmiş toplantı odaları.
-            Tek sözleşme, {{ $locations->count() }} lokasyonun tamamına erişim.
-        </p>
+        <p class="lede" style="margin:26px 0 0;max-width:50ch">{{ $texts['hero_lede'] }}</p>
 
         <div class="panel" style="margin-top:38px;border-radius:var(--r-lg);padding:20px">
             <div class="grid-auto" style="--min:150px;--gap:14px">

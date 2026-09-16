@@ -27,6 +27,27 @@ return [
      * Site temaları (faz 10): anahtar = html[data-theme], token seti ofisvio.css'te.
      * Yeni tema = CSS'e bir blok + buraya bir satır; derleme adımı yok.
      */
+    /*
+     * Ana sayfa metinleri (faz 29): vitrin bloğu 'texts' ile panelden ezilir
+     * (SiteBlockService::TEXT_KEYS). Burası kod varsayılanıdır.
+     */
+    'texts' => [
+        'topbar' => 'Tek sözleşmeyle hepsine erişim',
+        'hero_eyebrow' => 'Sanal ofis · Hazır ofis · Coworking',
+        'hero_title' => 'Şirketinizin adresi',
+        'hero_accent' => 'bugün',
+        'hero_title_after' => 'hazır olsun.',
+        'hero_lede' => 'Tescile uygun adres, karşılanan çağrılar ve evraklar, dakikası hesap edilmiş toplantı odaları. Tek sözleşme, tüm lokasyonlara erişim.',
+        'solutions_title' => 'Çalışma biçiminize göre dört başlangıç noktası',
+        'journey_title' => 'Adresiniz altı adımda tescile hazır',
+        'journey_lede' => 'Her adımın durumunu panelinizden canlı görürsünüz. Belgeleriniz incelenirken nerede olduğunuzu tahmin etmeniz gerekmez.',
+        'locations_title' => 'İşin merkezinde, metroya yürüme mesafesinde',
+        'meeting_title' => 'Saatlik toplantı odası, aynı gün teyitli',
+        'meeting_lede' => '4 kişilik görüşme odasından 120 kişilik etkinlik katına kadar. Ekran, beyaz tahta, ikram ve teknik ekip fiyata dahil; üyelere aylık kredi tanımlanır.',
+        'amenities_title' => 'Her katta olması gerekenler, ek fatura olmadan',
+        'pricing_title' => 'Şeffaf karşılaştırma',
+    ],
+
     'themes' => [
         'kum' => 'Kum — sıcak zemin, orman yeşili (varsayılan)',
         'gece' => 'Gece — koyu zemin, açık yeşil vurgu',

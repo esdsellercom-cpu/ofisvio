@@ -26,6 +26,7 @@ class SiteFooterComposer
         $view->with([
             'legalPages' => $this->contents->livePages($site),
             'blocks' => $this->blocks->all($site),
+            'brand' => $site?->brand() ?? (array) config('ofisvio.brand') + ['address' => ''],
         ]);
     }
 }

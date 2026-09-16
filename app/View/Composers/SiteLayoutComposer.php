@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use App\Services\SeoService;
+use App\Services\SiteBlockService;
 use Illuminate\View\View;
 
 /**
@@ -21,6 +22,7 @@ class SiteLayoutComposer
         private readonly CurrentWebsite $website,
         private readonly ContentService $contents,
         private readonly SeoService $seo,
+        private readonly SiteBlockService $blocks,
     ) {}
 
     public function compose(View $view): void
@@ -55,6 +57,8 @@ class SiteLayoutComposer
         }
 
         $view->with([
+            'brand' => $site?->brand() ?? (array) config('ofisvio.brand') + ['address' => ''],
+            'texts' => $this->blocks->texts($site),
             'siteLayout' => $tenant ? 'layouts.tenant' : 'layouts.site',
             'currentWebsite' => $site,
             'tenantNav' => $tenant ? $this->contents->navigation($site) : collect(),

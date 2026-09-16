@@ -60,4 +60,15 @@
             </div>
         </form>
     </div>
+    @if ($website)
+        <div class="panel" style="max-width:640px;margin-top:20px">
+            <p class="eyebrow">Site genel ayarları — iletişim ve kimlik</p>
+            <p class="small muted" style="margin:0 0 14px">Vitrinde üst şerit, footer ve iletişim bölümlerinde kullanılır. Boş bırakılan alan{{ $website->is_default ? ' kod varsayılanına (config) düşer' : ' gösterilmez' }}.</p>
+            <form method="POST" action="{{ route('panel.websites.settings', $website) }}" class="stack" style="gap:12px">
+                @csrf @method('PUT')
+                @include('panel.websites.partials.settings-fields', ['site' => $website])
+                <div><button type="submit" class="btn btn--brand">Ayarları kaydet</button></div>
+            </form>
+        </div>
+    @endif
 @endsection

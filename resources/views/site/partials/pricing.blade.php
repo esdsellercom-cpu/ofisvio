@@ -2,7 +2,7 @@
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">06 — Üyelikler</p>
-            <h2 class="h2">Şeffaf karşılaştırma</h2>
+            <h2 class="h2">{{ $texts['pricing_title'] }}</h2>
         </div>
         <p class="body-muted" style="margin:0;max-width:32ch;font-size:16px">{{ $blocks['pricing_note'] }}</p>
     </div>

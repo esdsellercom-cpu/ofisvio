@@ -1,6 +1,6 @@
 <section class="wrap section">
     <p class="eyebrow">05 — Dahil olanlar</p>
-    <h2 class="h2" style="max-width:26ch;margin-bottom:32px">Her katta olması gerekenler, ek fatura olmadan</h2>
+    <h2 class="h2" style="max-width:26ch;margin-bottom:32px">{{ $texts['amenities_title'] }}</h2>
     <div class="grid-auto" style="--min:270px;--gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden">
         @foreach ($blocks['amenities'] as $item)
             <div style="background:var(--surface);padding:24px 22px 26px">

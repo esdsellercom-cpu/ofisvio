@@ -186,6 +186,36 @@ class SiteMenuTest extends TestCase
         $this->assertStringNotContainsString('Randevu', $this->nav($this->get('http://acme.example/')->getContent()));
     }
 
+    #[Test]
+    public function musteri_site_ayarlarini_duzenler_ve_tenant_footerda_gorunur(): void
+    {
+        $acme = $this->organization('Acme');
+        $acmeCo = $this->company($acme, 'Acme A.Ş.');
+        $site = Website::create(['organization_id' => $acme->id, 'name' => 'Acme', 'slug' => 'acme', 'domain' => 'acme.example']);
+        $owner = $this->owner($acme, $acmeCo);
+        $default = Website::query()->default()->firstOrFail();
+
+        // Müşteri sitesinde Ofisvio iletişim bilgisi SIZMAZ.
+        $html = $this->get('http://acme.example/')->assertOk()->getContent();
+        $this->assertStringNotContainsString(config('ofisvio.brand.phone'), $html);
+        $this->assertStringNotContainsString(config('ofisvio.brand.email'), $html);
+
+        $menu = "/panel/sirketler/{$acmeCo->id}/site/menu/{$site->id}";
+        $this->actingAs($owner)->withContext($acme)->get($menu)->assertOk()->assertSee('Site genel ayarları');
+        $this->actingAs($owner)->withContext($acme)->put("/panel/sirketler/{$acmeCo->id}/site/ayarlar/{$site->id}", ['contact_phone' => '+90 216 000 00 00', 'contact_email' => 'info@acme.example', 'tagline' => 'Acme slogan', 'address' => 'Kadıköy'])
+            ->assertRedirect($menu)->assertSessionHasNoErrors();
+
+        $html = $this->get('http://acme.example/')->assertOk()->getContent();
+        $this->assertStringContainsString('href="tel:+902160000000"', $html);
+        $this->assertStringContainsString('info@acme.example', $html);
+        $this->assertStringContainsString('Acme slogan', $html);
+        $this->assertStringContainsString('Kadıköy', $html);
+
+        // Yabancı site 404; Ofisvio vitrini değişmez.
+        $this->actingAs($owner)->withContext($acme)->put("/panel/sirketler/{$acmeCo->id}/site/ayarlar/{$default->id}", ['contact_phone' => '1'])->assertNotFound();
+        $this->assertNull($default->fresh()->contact_phone);
+    }
+
     private function nav(string $html): string
     {
         preg_match('/<nav class="nav-main".*?<\/nav>/s', $html, $m);

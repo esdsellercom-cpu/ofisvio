@@ -3,11 +3,8 @@
     <div class="wrap" style="padding-block:78px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:52px;align-items:start">
         <div style="min-width:0">
             <p class="eyebrow">04 — Toplantı &amp; Etkinlik</p>
-            <h2 class="h2" style="max-width:22ch">Saatlik toplantı odası, aynı gün teyitli</h2>
-            <p class="lede" style="margin:24px 0 0;max-width:46ch;font-size:17.5px">
-                4 kişilik görüşme odasından 120 kişilik etkinlik katına kadar. Ekran, beyaz tahta,
-                ikram ve teknik ekip fiyata dahil; üyelere aylık kredi tanımlanır.
-            </p>
+            <h2 class="h2" style="max-width:22ch">{{ $texts['meeting_title'] }}</h2>
+            <p class="lede" style="margin:24px 0 0;max-width:46ch;font-size:17.5px">{{ $texts['meeting_lede'] }}</p>
             <div class="row-list" style="margin-top:34px">
                 @foreach ($blocks['room_types'] as $room)
                     <div class="row-list__item">

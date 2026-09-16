@@ -60,6 +60,47 @@ class SiteBlocksTest extends TestCase
     }
 
     #[Test]
+    public function ana_sayfa_metinleri_ve_site_ayarlari_vitrine_yansir(): void
+    {
+        $admin = $this->staff('system_admin');
+        $default = Website::query()->default()->firstOrFail();
+
+        $this->get('/')->assertOk()->assertSee('Şirketinizin adresi')->assertSee(config('ofisvio.brand.phone'));
+        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Hero başlık (1. satır)');
+
+        // Metinler: değişen saklanır, varsayılanla aynı olan saklanmaz.
+        $this->actingAs($admin)->put('/panel/icerik/bloklar/metinler', [
+            'hero_title' => 'Şirketinizin yeni adresi', 'hero_accent' => 'yarın', 'hero_title_after' => 'hazır.',
+            'pricing_title' => config('ofisvio.texts.pricing_title'), 'meeting_lede' => 'Kısa toplantı açıklaması.',
+        ])->assertRedirect('/panel/icerik/bloklar')->assertSessionHasNoErrors();
+        $stored = SiteBlock::where('key', 'texts')->firstOrFail()->data;
+        $this->assertSame(['hero_title', 'hero_accent', 'hero_title_after', 'meeting_lede'], array_keys($stored));
+
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        $this->assertStringContainsString('Şirketinizin yeni adresi', $home);
+        $this->assertStringContainsString('<span class="serif-accent">yarın</span> hazır.', $home);
+        $this->assertStringContainsString('Kısa toplantı açıklaması.', $home);
+        $this->assertStringContainsString(config('ofisvio.texts.solutions_title'), $home); // dokunulmayan alan varsayılan
+
+        // Site genel ayarları (website.manage): telefon/e-posta/slogan/adres; boş = config.
+        $this->actingAs($admin)->get("/panel/websiteler/{$default->id}/duzenle")->assertOk()->assertSee('Site genel ayarları');
+        $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_phone' => '0212 555 00 00', 'contact_email' => 'info@ofisvio.com', 'tagline' => 'Yeni slogan.', 'address' => 'Levent, İstanbul'])
+            ->assertRedirect("/panel/websiteler/{$default->id}/duzenle")->assertSessionHasNoErrors();
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        $this->assertStringContainsString('0212 555 00 00', $home);
+        $this->assertStringContainsString('href="tel:+902125550000"', $home);
+        $this->assertStringContainsString('info@ofisvio.com', $home);
+        $this->assertStringContainsString('Yeni slogan.', $home);
+        $this->assertStringContainsString('Levent, İstanbul', $home);
+        $this->assertStringNotContainsString(config('ofisvio.brand.phone'), $home);
+
+        $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_email' => 'bozuk'])->assertSessionHasErrors('contact_email');
+        $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", [])->assertRedirect();
+        $this->assertNull($default->fresh()->contact_phone);
+        $this->get('http://localhost/')->assertOk()->assertSee(config('ofisvio.brand.phone'));
+    }
+
+    #[Test]
     public function bozuk_satir_reddedilir_ve_yetki_content_publish(): void
     {
         $admin = $this->staff('system_admin');

@@ -25,9 +25,33 @@ class Website extends Model
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
         'same_as', 'legal_name', 'nav_links',
         'cache_ttl_seconds', 'http_max_age', 'http_s_maxage',
+        'contact_phone', 'contact_email', 'tagline', 'address',
     ];
 
     protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array'];
+
+    /**
+     * Marka/iletişim bilgisi (faz 29): site alanı doluysa o, Ofisvio vitrininde
+     * config varsayılanı, müşteri sitesinde boş. phone_href telefon rakamlarından türer.
+     *
+     * @return array{name: string, legal_name: string, phone: string, phone_href: string, email: string, tagline: string, address: string}
+     */
+    public function brand(): array
+    {
+        $defaults = $this->is_default ? (array) config('ofisvio.brand') : [];
+        $phone = (string) ($this->contact_phone ?: ($defaults['phone'] ?? ''));
+        $digits = preg_replace('/\D+/', '', $phone) ?? '';
+
+        return [
+            'name' => $this->name,
+            'legal_name' => (string) ($this->legal_name ?: ($defaults['legal_name'] ?? $this->name)),
+            'phone' => $phone,
+            'phone_href' => $digits === '' ? '' : 'tel:'.(str_starts_with($digits, '0') ? '+90'.substr($digits, 1) : '+'.$digits),
+            'email' => (string) ($this->contact_email ?: ($defaults['email'] ?? '')),
+            'tagline' => (string) ($this->tagline ?: ($defaults['tagline'] ?? '')),
+            'address' => (string) ($this->address ?: ($defaults['address'] ?? '')),
+        ];
+    }
 
     /** Sitenin mutlak kök adresi: alan adı varsa https ile, yoksa uygulama adresi. */
     public function baseUrl(): string

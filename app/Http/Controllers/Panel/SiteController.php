@@ -90,9 +90,23 @@ class SiteController extends Controller
             'formAction' => route('panel.companies.site.menu.update', [$company, $site->id]),
             'themeAction' => route('panel.companies.site.theme', [$company, $site->id]),
             'linksAction' => route('panel.companies.site.links', [$company, $site->id]),
+            'settingsAction' => route('panel.companies.site.settings', [$company, $site->id]),
             'backUrl' => route('panel.companies.site.index', $company),
             'backLabel' => 'Web sitesi',
         ]);
+    }
+
+    /** Site genel ayarları (faz 29): iletişim/kimlik — müşteri kendi sitesi için. */
+    public function saveSettings(Request $request, Company $company, int $website): RedirectResponse
+    {
+        $site = $this->websites->findForOrganization($this->organizationId($request, $company), $website);
+
+        abort_if($site === null, 404);
+
+        $this->websites->updateSettings($site, $request->validate(WebsiteController::SETTINGS_RULES));
+        $this->cache->invalidate($site);
+
+        return redirect()->route('panel.companies.site.menu', [$company, $site->id])->with('status', 'Site ayarları kaydedildi.');
     }
 
     public function saveLinks(Request $request, Company $company, int $website): RedirectResponse

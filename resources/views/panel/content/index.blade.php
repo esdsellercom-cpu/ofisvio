@@ -26,7 +26,7 @@
             @endcan
             @if ($website->is_default)
                 @can('content.publish')
-                    <a href="{{ route('panel.content.blocks') }}" class="btn btn--ghost">Vitrin blokları</a>
+                    <a href="{{ route('panel.content.blocks') }}" class="btn btn--ghost">Ana sayfa</a>
                 @endcan
             @endif
             @can('content.create')
