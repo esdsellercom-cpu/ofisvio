@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Services\AuthorizationService;
 use App\Services\CompanyActivationService;
 use App\Services\CompanyService;
+use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\ContextSwitchService;
 use App\Services\CurrentWebsite;
@@ -48,6 +49,7 @@ class TenantServiceProvider extends ServiceProvider
         // Durumsuz servisler; singleton olmaları zorunlu değil ama gereksiz
         // yeniden kurulumu önler ve bağımlılık grafiğini açık hale getirir.
         $this->app->singleton(AuthorizationService::class);
+        $this->app->singleton(ContentCache::class); // istek başına sürüm memo'su (PerRequestCaches)
         $this->app->singleton(JitAccessService::class);
         $this->app->singleton(CompanyActivationService::class);
         $this->app->singleton(ContextSwitchService::class);

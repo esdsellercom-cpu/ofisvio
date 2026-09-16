@@ -35,7 +35,28 @@ class ContentCache
      */
     public const SCHEMA = 2;
 
+    /**
+     * İSTEK BAŞINA SÜRÜM MEMO'SU (faz 11 v2). Her okuma anahtar üretmek için
+     * sürümü sorar; database sürücüsünde bu bir SELECT'tir. Memo yalnız istek
+     * içinde açıktır (PerRequestCaches), invalidate() memo'yu da günceller.
+     * Konsolda/istek dışında kapalıdır — başka süreçlerin geçersizlemesi
+     * hemen görülür.
+     *
+     * @var array<int, int>|null
+     */
+    private ?array $versions = null;
+
     public function __construct(private readonly Repository $cache) {}
+
+    public function startRequestCache(): void
+    {
+        $this->versions = [];
+    }
+
+    public function stopRequestCache(): void
+    {
+        $this->versions = null;
+    }
 
     /**
      * Önbellekten dönen değerin tipi GARANTİ DEĞİLDİR (eski biçim, bozuk kayıt,
@@ -46,11 +67,13 @@ class ContentCache
     public function remember(Website $website, string $name, Closure $compute): mixed
     {
         $key = $this->key($website, $name);
+        $miss = new \stdClass;
+        $value = $this->cache->get($key, $miss); // tek okuma: has()+get() iki sorguydu
 
-        if ($this->cache->has($key)) {
+        if ($value !== $miss) {
             $this->bump($this->statKey($website, 'hits'));
 
-            return $this->cache->get($key);
+            return $value;
         }
 
         $this->bump($this->statKey($website, 'misses'));
@@ -83,6 +106,10 @@ class ContentCache
         $versionKey = $this->versionKey($website);
         $next = $this->version($website) + 1;
         $this->cache->forever($versionKey, $next);
+
+        if ($this->versions !== null) {
+            $this->versions[$website->id] = $next;
+        }
         $this->bump($this->statKey($website, 'purges'));
 
         return $next;
@@ -92,11 +119,25 @@ class ContentCache
     public function purgeAll(): void
     {
         $this->cache->getStore()->flush();
+
+        if ($this->versions !== null) {
+            $this->versions = [];
+        }
     }
 
     public function version(Website $website): int
     {
-        return (int) $this->cache->get($this->versionKey($website), 1);
+        if ($this->versions !== null && isset($this->versions[$website->id])) {
+            return $this->versions[$website->id];
+        }
+
+        $version = (int) $this->cache->get($this->versionKey($website), 1);
+
+        if ($this->versions !== null) {
+            $this->versions[$website->id] = $version;
+        }
+
+        return $version;
     }
 
     /** @return array{version: int, hits: int, misses: int, purges: int, hit_ratio: float|null} */
@@ -120,16 +161,15 @@ class ContentCache
     }
 
     /**
-     * Sayaç artırma. Database sürücüsünde increment() olmayan anahtarı OLUŞTURMAZ
-     * (false döner); önce sıfırla açılır. Sayaçlar istatistiktir, yarış kabul edilir.
+     * Sayaç artırma. Önce increment denenir (sıcak yol tek işlem); database
+     * sürücüsü olmayan anahtarda false döner, o zaman 1 ile açılır.
+     * Sayaçlar istatistiktir, yarış kabul edilir.
      */
     private function bump(string $key): void
     {
-        if (! $this->cache->has($key)) {
-            $this->cache->forever($key, 0);
+        if ($this->cache->increment($key) === false) {
+            $this->cache->forever($key, 1);
         }
-
-        $this->cache->increment($key);
     }
 
     private function versionKey(Website $website): string

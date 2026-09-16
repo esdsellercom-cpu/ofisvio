@@ -79,6 +79,20 @@ jobs:
           REDIS_HOST: 127.0.0.1
         run: php artisan test
 
+      # Faz 11: süre/bellek/sorgu baseline'ı — kapı değil, karşılaştırma artefaktı.
+      - name: Performans baseline
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: redis
+          REDIS_HOST: 127.0.0.1
+        run: php artisan ofisvio:perf-baseline --out=storage/app/perf/baseline.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: perf-baseline-${{ github.sha }}
+          path: storage/app/perf/baseline.json
+          retention-days: 30
       # --- 4/4 ---
       - name: Node kurulumu
         uses: actions/setup-node@v4

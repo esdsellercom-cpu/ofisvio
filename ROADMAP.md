@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **202/202** (Unit 10 · Feature 186 · Architecture 6) |
+| `php artisan test` | ✅ **203/203** (Unit 10 · Feature 187 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -131,7 +131,7 @@ Faz kapandı; kalan yalnız tasarım varlıkları (kapak görselleri).
 
 ---
 
-### 11. Performance Foundation 🟡 (v1 ✅)
+### 11. Performance Foundation ✅
 Ölçüm birimi SORGU SAYISI (CI'da deterministik; süre gürültülü).
 `tests/Feature/Performance/QueryBudgetTest`: liste sayfaları satır sayısıyla
 büyümez (2 vs 8 kayıt aynı sayı) + sayfa başına üst sınır. İlk ölçüm dashboard
@@ -141,7 +141,15 @@ grant'leri tek sorgu, şirket→organizasyon memo), `TenantContext` memo'su
 (personel/üyelik/organizasyon), `PerRequestCaches` middleware'i (istek dışında
 kapalı), `PanelLayoutComposer` parçalarda çalışmaz, `KycService::statusSummaries`
 tek sorgu. Sonuç: dashboard **11**, KYC **14**, vitrin 5, içerik 6.
-Eksik: süre/bellek baseline artefaktı, HTTP önbellek başlıkları (faz 12).
+**Baseline artefaktı:** `php artisan ofisvio:perf-baseline` dokuz temsilî
+sayfayı (vitrin, blog, lokasyonlar, sitemap, beş panel ekranı) geçici 2FA'lı
+personelle transaction içinde ölçer (sorgu, medyan ms, tepe MB), JSON yazar;
+CI her koşuda artefakt olarak saklar (`perf-baseline-<sha>`, 30 gün). Kapı
+değil, karşılaştırma kaynağı. Ölçüm database önbellek sürücüsünde her
+`remember()`'ın 5 sorgu ettiğini gösterdi → `ContentCache` istek başına sürüm
+memo'su (singleton + `PerRequestCaches`), `has()+get()` yerine tek `get()`,
+sayaçta önce `increment()`: vitrin 29 → 18 sorgu. HTTP önbellek başlıkları
+faz 12'de.
 
 ### 12–14. Cache Engine · Tenant İzolasyonu · Gözlem 🟡 (v1 ✅)
 `ContentCache`: website başına SÜRÜMLÜ anahtar (`site:{id}:v{n}:{ad}`) —
