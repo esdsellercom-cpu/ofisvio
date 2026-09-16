@@ -6,7 +6,7 @@
     use App\Enums\KycDocumentStatus;
     $statusTone = fn (KycDocumentStatus $s) => match ($s) {
         KycDocumentStatus::APPROVED => 'ok',
-        KycDocumentStatus::REJECTED => 'danger',
+        KycDocumentStatus::REJECTED, KycDocumentStatus::QUARANTINED => 'danger',
         KycDocumentStatus::MORE_INFO_REQUIRED => 'warn',
         KycDocumentStatus::PENDING, KycDocumentStatus::UNDER_REVIEW => 'info',
         KycDocumentStatus::SUPERSEDED => 'muted',
@@ -57,7 +57,7 @@
                         <td>
                             @if ($doc)
                                 <span class="badge badge--{{ $statusTone($doc->status) }}">{{ $doc->status->label() }}</span>
-                                @if ($doc->review_note && in_array($doc->status, [KycDocumentStatus::REJECTED, KycDocumentStatus::MORE_INFO_REQUIRED], true))
+                                @if ($doc->review_note && in_array($doc->status, [KycDocumentStatus::REJECTED, KycDocumentStatus::MORE_INFO_REQUIRED, KycDocumentStatus::QUARANTINED], true))
                                     <div class="small" style="margin-top:6px;color:var(--danger);max-width:36ch">{{ $doc->review_note }}</div>
                                 @endif
                             @else
@@ -74,7 +74,7 @@
                         </td>
                         <td>
                             <div class="row-actions">
-                                @if ($doc)
+                                @if ($doc && ! $doc->status->contentLocked())
                                     @if ($can['open_as_owner'] || ($grants[$doc->id] ?? false))
                                         <a href="{{ route('panel.companies.kyc.download', [$company, $doc]) }}" class="btn btn--ghost btn--pill">İndir</a>
                                     @elseif ($can['request_jit'])
@@ -129,6 +129,7 @@
             </p>
             <div class="grid-auto" style="--min:280px;--gap:14px">
                 @foreach ($latestByType as $doc)
+                    @continue($doc->status->contentLocked()) {{-- karantina: JIT ile bile açılmaz --}}
                     <div id="jit-{{ $doc->id }}" style="border:1px solid var(--line);border-radius:var(--r-md);padding:16px 18px">
                         <strong>{{ $doc->type->label() }}</strong>
                         <span class="small muted" style="display:block;margin-bottom:12px">{{ $doc->original_filename }}</span>

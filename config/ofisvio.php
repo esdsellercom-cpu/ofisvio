@@ -15,6 +15,22 @@
 
 return [
 
+    /*
+     * KYC belge karantinası (faz 5). Yüklenen her belge PENDING'e düşmeden
+     * önce taranır; enfekte -> QUARANTINED, tarama yapılamıyor -> yükleme
+     * reddedilir (fail-closed).
+     *
+     *   scanner: 'clamav' (üretim) | 'none' (YALNIZCA geliştirme; production'da
+     *            SecurityServiceProvider açılışta reddeder)
+     */
+    'kyc' => [
+        'scanner' => env('KYC_SCANNER', 'none'),
+        'clamav' => [
+            'address' => env('CLAMAV_ADDRESS', 'tcp://127.0.0.1:3310'),
+            'timeout' => (int) env('CLAMAV_TIMEOUT', 30),
+        ],
+    ],
+
     'brand' => [
         'name' => 'Ofisvio',
         'legal_name' => 'Ofisvio Gayrimenkul ve İşletme A.Ş.',

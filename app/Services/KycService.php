@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\KycDocument;
 use App\Models\Location;
 use App\Models\User;
+use App\Security\MalwareScanner;
 use DomainException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -45,12 +46,22 @@ class KycService
         private readonly AuthorizationService $authorization,
         private readonly JitAccessService $jit,
         private readonly CompanyActivationService $activation,
+        private readonly MalwareScanner $scanner,
     ) {}
 
     // -----------------------------------------------------------------
     // Yükleme (kyc.upload — company scope)
     // -----------------------------------------------------------------
 
+    /**
+     * Sıra: tip/boyut -> zararlı yazılım taraması -> kayıt.
+     *
+     * Tarama sonucu üç yola ayrılır (bkz. ScanResult):
+     *   temiz      -> PENDING, normal akış
+     *   enfekte    -> QUARANTINED kaydı; dosya quarantine/ altında, asla açılmaz
+     *   yapılamadı -> yükleme REDDEDİLİR (fail-closed) — tarayıcı çökünce
+     *                 kapı açılmaz, müşteri tekrar dener
+     */
     public function upload(
         Company $company,
         User $uploader,
@@ -65,7 +76,13 @@ class KycService
             throw new DomainException('Belge 10 MB sınırını aşıyor.');
         }
 
-        return DB::transaction(function () use ($company, $uploader, $type, $file) {
+        $scan = $this->scanner->scan((string) $file->getRealPath());
+
+        if (! $scan->available) {
+            throw new DomainException('Belge güvenlik taramasından geçirilemedi; lütfen birkaç dakika sonra tekrar deneyin.');
+        }
+
+        return DB::transaction(function () use ($company, $uploader, $type, $file, $scan) {
             // Aynı tipte önceki belge varsa SUPERSEDED yapılır, SİLİNMEZ.
             // Denetim izi için eski belgenin kaydı kalmalıdır.
             KycDocument::where('company_id', $company->id)
@@ -80,9 +97,12 @@ class KycService
                 });
 
             // Dosya adı tahmin edilemez olmalı: orijinal ad kullanılırsa
-            // storage yolu enumerate edilebilir hale gelir.
+            // storage yolu enumerate edilebilir hale gelir. Enfekte dosya ayrı
+            // bir ön ekte tutulur — inceleme/adli kayıt için saklanır, ama
+            // openDocument() QUARANTINED belgeyi hiçbir yoldan açmaz.
+            $prefix = $scan->isInfected() ? 'quarantine' : 'kyc';
             $path = $file->storeAs(
-                "kyc/{$company->id}",
+                "{$prefix}/{$company->id}",
                 Str::uuid()->toString().'.'.$file->extension(),
                 'private'
             );
@@ -90,14 +110,23 @@ class KycService
             $document = KycDocument::create([
                 'company_id' => $company->id,
                 'type' => $type,
-                'status' => KycDocumentStatus::PENDING,
+                'status' => $scan->isInfected() ? KycDocumentStatus::QUARANTINED : KycDocumentStatus::PENDING,
                 'original_filename' => $file->getClientOriginalName(),
                 'storage_path' => $path,
                 'mime_type' => $file->getMimeType(),
                 'size_bytes' => $file->getSize(),
-                'checksum_sha256' => hash_file('sha256', $file->getRealPath()),
+                'checksum_sha256' => hash_file('sha256', (string) $file->getRealPath()),
                 'uploaded_by' => $uploader->id,
             ]);
+
+            if ($scan->isInfected()) {
+                // Gerekçe müşteriye görünür (review_note) ve imza adı denetim
+                // için kayıtta kalır. Şirket durumu ilerlemez.
+                $document->review_note = 'Güvenlik taraması dosyada zararlı içerik buldu ('.$scan->signature.'). Belgeyi temiz bir cihazdan yeniden oluşturup yükleyin.';
+                $document->save();
+
+                return $document;
+            }
 
             // İlk belge yüklendiğinde şirket KYC sürecine girer.
             if ($company->status === CompanyStatus::REGISTERED) {
@@ -152,6 +181,12 @@ class KycService
         // servisi route yapılandırmasından bağımsız olarak güvenli tutar.
         if (isset($context['company_id']) && (int) $document->company_id !== (int) $context['company_id']) {
             throw new RuntimeException('Belge bu şirkete ait değil.');
+        }
+
+        // Karantina yetkiden ÖNCE gelir: müşteri de personel de (JIT'li bile)
+        // enfekte dosyayı indiremez — indirilen dosya bir sonraki kurbandır.
+        if ($document->status->contentLocked()) {
+            throw new RuntimeException('Bu belge güvenlik taramasında reddedildi; içeriği açılamaz.');
         }
 
         $allowed = false;

@@ -10,6 +10,7 @@ enum KycDocumentStatus: string
     case REJECTED = 'REJECTED';
     case MORE_INFO_REQUIRED = 'MORE_INFO_REQUIRED';
     case SUPERSEDED = 'SUPERSEDED';         // yerine yenisi yüklendi
+    case QUARANTINED = 'QUARANTINED';       // zararlı yazılım taramasında yakalandı; içerik asla açılmaz
 
     /** @return array<self> */
     public function allowedTransitions(): array
@@ -21,6 +22,9 @@ enum KycDocumentStatus: string
             // yüklenince SUPERSEDED olur. Denetim izi korunur.
             self::REJECTED, self::MORE_INFO_REQUIRED => [self::SUPERSEDED],
             self::APPROVED => [self::SUPERSEDED],
+            // Karantina terminaldir: incelenemez, onaylanamaz; müşteri temiz
+            // bir kopya yükler ve bu kayıt SUPERSEDED olur.
+            self::QUARANTINED => [self::SUPERSEDED],
             self::SUPERSEDED => [],
         };
     }
@@ -36,6 +40,12 @@ enum KycDocumentStatus: string
         return $this === self::APPROVED;
     }
 
+    /** Belge içeriği hiçbir yoldan (müşteri dahil) açılamaz mı? */
+    public function contentLocked(): bool
+    {
+        return $this === self::QUARANTINED;
+    }
+
     public function label(): string
     {
         return match ($this) {
@@ -45,6 +55,7 @@ enum KycDocumentStatus: string
             self::REJECTED => 'Reddedildi',
             self::MORE_INFO_REQUIRED => 'Ek bilgi gerekli',
             self::SUPERSEDED => 'Yenisiyle değiştirildi',
+            self::QUARANTINED => 'Güvenlik taramasında reddedildi',
         };
     }
 }
