@@ -117,6 +117,21 @@ class ContextSelectionTest extends TestCase
     }
 
     #[Test]
+    public function kyc_yetkisi_olmayan_personel_secim_ekranini_sayimsiz_gorur(): void
+    {
+        // finance_admin: internal ama kyc.view_status ve user.manage yok.
+        $this->organization('Acme');
+        $finance = $this->staff('finance_admin');
+
+        $this->actingAs($finance)->get('/panel/organizasyon')
+            ->assertOk()
+            ->assertSee('Acme')
+            ->assertDontSee('Bekleyen KYC')
+            ->assertDontSee('Yeni müşteri organizasyonu')
+            ->assertDontSee('KYC kuyruğu');
+    }
+
+    #[Test]
     public function sirkete_scopelanmis_internal_rol_personel_yolunu_acmaz(): void
     {
         // Sehven bir şirkete bağlanmış system_admin ataması global değildir.

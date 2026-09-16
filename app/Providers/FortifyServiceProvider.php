@@ -56,7 +56,8 @@ class FortifyServiceProvider extends ServiceProvider
                 ->greeting('Merhaba,')
                 ->line('Aşağıdaki bağlantıyla '.config('app.name').' panel hesabınızın şifresini belirleyebilirsiniz.')
                 ->action('Şifremi belirle', $url)
-                ->line("Bağlantı {$minutes} dakika geçerlidir. Bu isteği siz yapmadıysanız bir şey yapmanız gerekmez.")
+                ->line("Bağlantı {$minutes} dakika geçerlidir. Süresi dolarsa giriş sayfasındaki \"Şifremi unuttum\" ile yenisini isteyebilirsiniz.")
+                ->line('Bu isteği siz yapmadıysanız bir şey yapmanız gerekmez.')
                 ->salutation(config('app.name'));
         });
 

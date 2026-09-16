@@ -8,17 +8,18 @@
             <p class="eyebrow">Organizasyon</p>
             <h1 class="h2">{{ $isStaff ? 'Hangi müşteriye gireceksiniz?' : 'Hangi organizasyonla devam edeceksiniz?' }}</h1>
         </div>
-        @if ($isStaff)
+        @can('user.manage')
             <div class="panel-head__actions">
                 <a href="{{ route('panel.onboarding.create') }}" class="btn btn--brand">Yeni müşteri organizasyonu</a>
             </div>
-        @endif
+        @endcan
     </div>
 
     @if ($organizations->isEmpty())
         <div class="empty-state">
             @if ($isStaff)
-                Henüz müşteri organizasyonu yok. İlkini "Yeni müşteri organizasyonu" ile açın.
+                Henüz müşteri organizasyonu yok.
+                @can('user.manage') İlkini "Yeni müşteri organizasyonu" ile açın. @endcan
             @else
                 Hesabınız henüz bir organizasyona bağlı değil. Sizi davet eden kişiyle ya da Ofisvio ile iletişime geçin.
             @endif
@@ -35,7 +36,7 @@
                 <thead>
                     <tr>
                         <th>Organizasyon</th>
-                        @if ($isStaff)
+                        @if ($showsQueue)
                             <th class="num">Bekleyen KYC</th>
                         @endif
                         <th></th>
@@ -50,7 +51,7 @@
                                     <span class="badge badge--ok" style="margin-left:8px">Aktif</span>
                                 @endif
                             </td>
-                            @if ($isStaff)
+                            @if ($showsQueue)
                                 <td class="num">
                                     @php($pending = $pendingCounts[$organization->id] ?? 0)
                                     @if ($pending > 0)

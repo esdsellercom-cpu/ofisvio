@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Panel;
 
 use App\Exceptions\TenantContextException;
 use App\Http\Controllers\Controller;
+use App\Services\AuthorizationService;
 use App\Services\ContextSwitchService;
 use App\Services\KycQueueService;
 use App\Services\TenantContext;
@@ -22,18 +23,24 @@ class ContextController extends Controller
         private readonly ContextSwitchService $switcher,
         private readonly TenantContext $context,
         private readonly KycQueueService $queue,
+        private readonly AuthorizationService $authorization,
     ) {}
 
     public function select(Request $request): View
     {
         $user = $request->user();
-        $isStaff = $this->context->isInternalStaff($user);
         $organizations = $this->switcher->enterableOrganizations($user);
+
+        // Bekleyen KYC sütunu yalnızca kyc.view_status taşıyan personele:
+        // finance_admin gibi iç roller personeldir ama bu sayımı göremez.
+        $showsQueue = $this->context->isInternalStaff($user)
+            && $this->authorization->can($user, 'kyc.view_status');
 
         return view('panel.context.select', [
             'organizations' => $organizations,
             'activeId' => $this->context->activeOrganizationId(),
-            'pendingCounts' => $isStaff && $organizations->isNotEmpty() ? $this->queue->pendingCounts($user) : [],
+            'showsQueue' => $showsQueue,
+            'pendingCounts' => $showsQueue && $organizations->isNotEmpty() ? $this->queue->pendingCounts($user) : [],
         ]);
     }
 
