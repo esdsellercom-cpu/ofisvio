@@ -24,6 +24,7 @@ use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LeadController;
+use App\Http\Controllers\Panel\MediaController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\SeoController;
@@ -95,6 +96,12 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::put('/menu/{website}', [ContentController::class, 'saveMenu'])->middleware('permission:content.edit')->name('menu.update');
             Route::put('/tema/{website}', [ContentController::class, 'saveTheme'])->middleware('permission:content.edit')->name('theme');
             Route::put('/baglantilar/{website}', [ContentController::class, 'saveLinks'])->middleware('permission:content.edit')->name('links');
+            // Medya kütüphanesi (faz 30): yükle/alt metin content.edit; sil content.publish. ?website= seçimi.
+            Route::get('/medya', [MediaController::class, 'index'])->middleware('permission:content.edit|content.publish')->name('media.index');
+            Route::post('/medya', [MediaController::class, 'store'])->middleware('permission:content.edit')->name('media.store');
+            Route::put('/medya/{media}', [MediaController::class, 'update'])->middleware('permission:content.edit')->name('media.update');
+            Route::delete('/medya/{media}', [MediaController::class, 'destroy'])->middleware('permission:content.publish')->name('media.destroy');
+
             // Vitrin blokları (faz 10): doğrudan canlıya çıkar -> content.publish.
             Route::get('/bloklar', [SiteBlockController::class, 'index'])->middleware('permission:content.publish')->name('blocks');
             Route::put('/bloklar/metinler', [SiteBlockController::class, 'updateTexts'])->middleware('permission:content.publish')->name('blocks.texts');
@@ -137,6 +144,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::put('/{website}', [WebsiteController::class, 'update'])->middleware('permission:website.manage')->name('update');
             Route::put('/{website}/ayarlar', [WebsiteController::class, 'settings'])->middleware('permission:website.manage')->name('settings');
             Route::delete('/{website}', [WebsiteController::class, 'destroy'])->middleware('permission:website.manage')->name('destroy');
+            Route::put('/{website}/hero', [MediaController::class, 'hero'])->middleware('permission:website.manage')->name('hero');
         });
 
         // --- Önbellek (faz 12-14) — personel, tenant context'siz -----------------

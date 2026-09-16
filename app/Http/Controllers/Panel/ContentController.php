@@ -12,6 +12,7 @@ use App\Models\Website;
 use App\Services\AuthorizationService;
 use App\Services\ContentCache;
 use App\Services\ContentService;
+use App\Services\MediaService;
 use App\Services\WebsiteService;
 use Carbon\CarbonImmutable;
 use DomainException;
@@ -43,6 +44,7 @@ class ContentController extends Controller
         private readonly ContentService $contents,
         private readonly WebsiteService $websites,
         private readonly ContentCache $cache,
+        private readonly MediaService $media,
         private readonly AuthorizationService $authorization,
     ) {}
 
@@ -163,6 +165,7 @@ class ContentController extends Controller
             'website' => $website,
             'kind' => ContentKind::tryFrom((string) $request->query('kind', 'post')) ?? ContentKind::POST,
             'parents' => $this->contents->parentCandidates($website),
+            'mediaOptions' => $this->media->all($website),
         ]);
     }
 
@@ -204,7 +207,7 @@ class ContentController extends Controller
                 ->withErrors(['status' => 'Yalnızca taslak düzenlenir; önce taslağa alın.']);
         }
 
-        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind, 'parents' => $this->contents->parentCandidates($content->website, $content)]);
+        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind, 'parents' => $this->contents->parentCandidates($content->website, $content), 'mediaOptions' => $this->media->all($content->website)]);
     }
 
     public function update(StoreContentRequest $request, Content $content): RedirectResponse

@@ -28,6 +28,9 @@
         @can('content.edit')
             <a href="{{ route('panel.content.menu') }}" {!! $active('panel.content.menu') !!}>Menü &amp; tema</a>
         @endcan
+        @canany(['content.edit', 'content.publish'])
+            <a href="{{ route('panel.content.media.index') }}" {!! $active('panel.content.media.*') !!}>Medya</a>
+        @endcanany
     </div>
 @endcanany
 

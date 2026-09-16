@@ -17,7 +17,7 @@ class Content extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'website_id', 'parent_id', 'parent_slug', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
+        'website_id', 'parent_id', 'parent_slug', 'cover_media_id', 'cover_url', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
         'requires_approval', 'meta_title', 'meta_description', 'noindex', 'author_id',
     ];
 
@@ -91,6 +91,12 @@ class Content extends Model
         }
 
         return ($this->parent_slug ? '/'.$this->parent_slug : '').'/'.$this->slug;
+    }
+
+    /** @return BelongsTo<Media, $this> */
+    public function cover(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'cover_media_id');
     }
 
     /** @return BelongsTo<Content, $this> */

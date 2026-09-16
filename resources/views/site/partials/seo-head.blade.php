@@ -8,6 +8,7 @@
     <meta property="og:title" content="{{ $seo['title'] }}">
     <meta property="og:description" content="{{ $seo['description'] }}">
     <meta property="og:url" content="{{ $seo['canonical'] }}">
+    @if (! empty($seo['og_image']))<meta property="og:image" content="{{ $seo['og_image'] }}">@endif
     <meta property="og:locale" content="{{ $seo['locale'] }}">
     <meta property="og:site_name" content="{{ $currentWebsite->name ?? config('ofisvio.brand.name') }}">
     <meta name="twitter:card" content="summary">

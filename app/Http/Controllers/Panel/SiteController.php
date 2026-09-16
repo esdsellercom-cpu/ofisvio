@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Models\Content;
 use App\Services\ContentCache;
 use App\Services\ContentService;
+use App\Services\MediaService;
 use App\Services\TenantContext;
 use App\Services\WebsiteService;
 use DomainException;
@@ -37,6 +38,7 @@ class SiteController extends Controller
         private readonly ContentService $contents,
         private readonly WebsiteService $websites,
         private readonly ContentCache $cache,
+        private readonly MediaService $media,
         private readonly TenantContext $context,
     ) {}
 
@@ -181,6 +183,7 @@ class SiteController extends Controller
             'website' => $model->website,
             'kind' => $model->kind,
             'parents' => $this->contents->parentCandidates($model->website, $model),
+            'mediaOptions' => $this->media->all($model->website),
             'formAction' => route('panel.companies.site.update', [$company, $model->id]),
             'indexUrl' => route('panel.companies.site.index', $company),
             'cancelUrl' => route('panel.companies.site.show', [$company, $model->id]),

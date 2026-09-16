@@ -103,6 +103,15 @@ class WebsiteService
         $website->delete();
     }
 
+    /** Hero görseli (website.manage): medya id ya da null (yer tutucu). Site eşleşmesi çağıranda. */
+    public function updateHero(Website $website, ?int $mediaId): Website
+    {
+        $website->hero_media_id = $mediaId;
+        $website->save();
+
+        return $website;
+    }
+
     /** Tema (faz 10): müşteri paneli de çağırır (content.edit, company). Bilinmeyen anahtar reddedilir. */
     public function updateTheme(Website $website, string $theme): Website
     {

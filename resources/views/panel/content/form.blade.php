@@ -90,6 +90,29 @@
                 @endif
             </div>
 
+            @if (! $draft)
+            <div class="panel stack" style="gap:14px">
+                <p class="eyebrow" style="margin:0">Kapak görseli</p>
+                @if (empty($mediaOptions) || $mediaOptions->isEmpty())
+                    <p class="small muted" style="margin:0">Bu sitede görsel yok — Medya ekranından yükleyin.</p>
+                    <input type="hidden" name="cover_media_id" value="">
+                @else
+                    <label class="field">
+                        <span class="label">Görsel (Medya kütüphanesinden)</span>
+                        <select class="control" name="cover_media_id" @error('cover_media_id') aria-invalid="true" @enderror>
+                            <option value="">— Kapak yok</option>
+                            @foreach ($mediaOptions as $m)
+                                <option value="{{ $m->id }}" @selected((int) old('cover_media_id', $content?->cover_media_id) === $m->id)>#{{ $m->id }} · {{ $m->original_name }} ({{ $m->width }}×{{ $m->height }})</option>
+                            @endforeach
+                        </select>
+                    </label>
+                    @if ($content?->cover_url)
+                        <img src="{{ $content->cover_url }}" alt="" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r-sm)">
+                    @endif
+                @endif
+            </div>
+            @endif
+
             <div class="panel stack" style="gap:14px">
                 <p class="eyebrow" style="margin:0">SEO</p>
                 <label class="field">

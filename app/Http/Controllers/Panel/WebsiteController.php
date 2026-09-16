@@ -7,6 +7,7 @@ use App\Http\Requests\StoreWebsiteRequest;
 use App\Models\Website;
 use App\Services\ContentCache;
 use App\Services\ContextSwitchService;
+use App\Services\MediaService;
 use App\Services\WebsiteService;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -31,6 +32,7 @@ class WebsiteController extends Controller
         private readonly WebsiteService $websites,
         private readonly ContextSwitchService $switcher,
         private readonly ContentCache $cache,
+        private readonly MediaService $media,
     ) {}
 
     /** website.manage: soft delete — yalnız içeriksiz, varsayılan olmayan site. */
@@ -83,6 +85,7 @@ class WebsiteController extends Controller
     public function edit(Request $request, Website $website): View
     {
         return view('panel.websites.form', [
+            'mediaOptions' => $this->media->all($website),
             'website' => $website,
             'organizations' => $this->switcher->enterableOrganizations($request->user()),
         ]);

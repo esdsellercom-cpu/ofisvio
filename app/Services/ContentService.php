@@ -7,6 +7,7 @@ use App\Enums\ContentStatus;
 use App\Models\Content;
 use App\Models\ContentDraft;
 use App\Models\ContentRevision;
+use App\Models\Media;
 use App\Models\User;
 use App\Models\Website;
 use Carbon\CarbonImmutable;
@@ -256,7 +257,7 @@ class ContentService
     }
 
     /**
-     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, cover_media_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function create(User $author, Website $website, array $data): Content
     {
@@ -265,6 +266,7 @@ class ContentService
 
         return DB::transaction(function () use ($author, $website, $kind, $slug, $data) {
             $parent = $kind === ContentKind::PAGE ? $this->resolveParent($website, null, $data['parent_id'] ?? null) : null;
+            $cover = $this->coverFor($website, $data['cover_media_id'] ?? null);
 
             $content = Content::create([
                 'website_id' => $website->id,
@@ -272,6 +274,8 @@ class ContentService
                 'slug' => $slug,
                 'parent_id' => $parent?->id,
                 'parent_slug' => $parent?->slug,
+                'cover_media_id' => $cover?->id,
+                'cover_url' => $cover?->url(),
                 'title' => trim($data['title']),
                 'excerpt' => $data['excerpt'] ?? null,
                 'body' => $data['body'] ?? null,
@@ -293,7 +297,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, cover_media_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function update(User $editor, Content $content, array $data): Content
     {
@@ -324,6 +328,10 @@ class ContentService
                 'noindex' => (bool) ($data['noindex'] ?? false),
             ]);
 
+            $cover = $this->coverFor($content->website, $data['cover_media_id'] ?? null);
+            $content->cover_media_id = $cover?->id;
+            $content->cover_url = $cover?->url();
+
             if ($content->kind === ContentKind::PAGE) {
                 $parent = $this->resolveParent($content->website, $content, $data['parent_id'] ?? null);
                 $content->parent_id = $parent?->id;
@@ -340,6 +348,24 @@ class ContentService
 
             return $content;
         });
+    }
+
+    /** Kapak görseli: yalnız aynı sitenin medyası; yabancı id DomainException (sessiz düşmez). */
+    private function coverFor(Website $website, int|string|null $mediaId): ?Media
+    {
+        $mediaId = (int) $mediaId;
+
+        if ($mediaId <= 0) {
+            return null;
+        }
+
+        $media = Media::query()->where('website_id', $website->id)->find($mediaId);
+
+        if ($media === null) {
+            throw new DomainException('Kapak görseli bu sitenin medya kütüphanesinde bulunamadı.');
+        }
+
+        return $media;
     }
 
     /**

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **229/229** (Unit 10 · Feature 206 · Architecture 13) |
+| `php artisan test` | ✅ **231/231** (Unit 10 · Feature 208 · Architecture 13) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -262,15 +262,20 @@ güvenlik denetimi. Düzeltmeler: ticari içerik config → `site_blocks`/`websi
 hata sayfaları; gruplu panel menüsü; koruyucu testler (`MockDataDetectionTest`,
 `ApiRouteConsistencyTest`, `TenantIsolationTest`, `ErrorHandlingTest`).
 
-### 30. Panel boşlukları (denetim sonrası) ✅ (medya hariç)
+### 30. Panel boşlukları (denetim sonrası) ✅
 **Lokasyon:** yeni şube (`geo.edit`, gizli açılır, tekil slug), künye (ad, şehir,
 bölge, adres, rozet, etiket, fiyat metni, sıra, operasyon; slug sabit), silme
 (`geo.publish`, yalnız vitrinde olmayan; talepler nullOnDelete). **Şirket künyesi:**
 unvan + vergi no (`company.update`, company kapsamı; tenant dışı 404).
 **Organizasyon adı:** genel bakışta (`organization.manage`; slug sabit).
 **Website silme:** `website.manage`, yalnız varsayılan olmayan ve içeriksiz site;
-soft delete, alan adı/slug boşa çıkar. Açık: içerik görseli / medya kütüphanesi
-(dosya karantina zinciri KYC'de var; medya için ayrı modül).
+soft delete, alan adı/slug boşa çıkar. **Medya kütüphanesi** `/panel/icerik/medya`:
+JPEG/PNG/WebP ≤ 5 MB; zincir MIME (içerikten) → uzantı → sihirli bayt →
+boyut → ClamAV (tarayıcı yoksa RED, enfekte yazılmaz) → sha256 (site içi
+yinelenen engeli) → public disk UUID. Kapak (`contents.cover_media_id` +
+`cover_url` denormalize, önbellekli listeler sorgusuz) ve hero
+(`websites.hero_media_id`, `website.manage`); vitrin kart/yazı/hero + `og:image`;
+kullanımdaki görsel silinemez; yabancı site 404. `php artisan storage:link` gerekir.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

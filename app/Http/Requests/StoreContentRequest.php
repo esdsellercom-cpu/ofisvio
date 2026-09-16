@@ -27,6 +27,7 @@ class StoreContentRequest extends FormRequest
             'body' => ['nullable', 'string', 'max:200000'],
             'category' => ['nullable', 'string', 'max:80'],
             'parent_id' => ['nullable', 'integer'], // sayfa ebeveyni; site/tür/seviye kontrolü serviste
+            'cover_media_id' => ['nullable', 'integer'], // aynı sitenin medyası; kontrol serviste
             'tags' => ['nullable', 'string', 'max:300'], // virgülle ayrılmış; serviste normalize edilir
             'requires_approval' => ['sometimes', 'boolean'],
             'noindex' => ['sometimes', 'boolean'],

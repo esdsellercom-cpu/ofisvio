@@ -44,8 +44,12 @@
     </div>
 
     <div style="min-width:0">
-        <div class="shot" style="aspect-ratio:4/5;border-radius:20px;border:1px solid var(--line);align-items:flex-end;padding:22px">
-            <span class="shot__note">lokasyon ana görseli · 1200×1500</span>
-        </div>
+        @if ($currentWebsite?->hero)
+            <img src="{{ $currentWebsite->hero->url() }}" alt="{{ $currentWebsite->hero->alt ?? '' }}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block">
+        @else
+            <div class="shot" style="aspect-ratio:4/5;border-radius:20px;border:1px solid var(--line);align-items:flex-end;padding:22px">
+                <span class="shot__note">lokasyon ana görseli · 1200×1500</span>
+            </div>
+        @endif
     </div>
 </section>

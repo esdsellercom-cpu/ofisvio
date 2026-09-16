@@ -28,6 +28,10 @@
             @endif
         </p>
 
+        @if ($content->cover_url)
+            <img src="{{ $content->cover_url }}" alt="{{ $content->cover?->alt ?? '' }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-lg);margin-top:28px">
+        @endif
+
         {{-- renderedBody() markdown'ı süzülmüş HTML'e çevirir (ham HTML strip, güvensiz link yok). --}}
         <div class="prose" style="margin-top:36px">{!! $content->renderedBody() !!}</div>
 

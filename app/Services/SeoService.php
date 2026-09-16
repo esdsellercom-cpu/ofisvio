@@ -54,7 +54,7 @@ class SeoService
     /**
      * Bir sayfanın <head> verisi.
      *
-     * @return array{title: string, description: string, canonical: string, robots: string, locale: string, og_type: string, json_ld: array<string, mixed>}
+     * @return array{title: string, description: string, canonical: string, robots: string, locale: string, og_type: string, og_image: string|null, json_ld: array<string, mixed>}
      */
     public function head(Website $website, ?Content $content = null, string $path = '/', ?string $titleOverride = null, ?string $descriptionOverride = null): array
     {
@@ -80,6 +80,7 @@ class SeoService
             'robots' => $index ? 'index, follow' : 'noindex, nofollow',
             'locale' => $website->seo_locale ?: 'tr_TR',
             'og_type' => $content?->kind === ContentKind::POST ? 'article' : 'website',
+            'og_image' => $content?->cover_url ?: ($website->hero_media_id !== null ? $website->hero?->url() : null),
             'json_ld' => $this->jsonLd($website, $content, $path),
         ];
     }

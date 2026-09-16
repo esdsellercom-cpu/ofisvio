@@ -25,7 +25,7 @@ class Website extends Model
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
         'same_as', 'legal_name', 'nav_links',
         'cache_ttl_seconds', 'http_max_age', 'http_s_maxage',
-        'contact_phone', 'contact_email', 'tagline', 'address',
+        'contact_phone', 'contact_email', 'tagline', 'address', 'hero_media_id',
     ];
 
     protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array'];
@@ -57,6 +57,12 @@ class Website extends Model
     public function baseUrl(): string
     {
         return $this->domain ? 'https://'.$this->domain : rtrim((string) config('app.url'), '/');
+    }
+
+    /** @return BelongsTo<Media, $this> */
+    public function hero(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'hero_media_id');
     }
 
     /** @return BelongsTo<Organization, $this> */

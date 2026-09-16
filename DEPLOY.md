@@ -51,6 +51,7 @@ dediği sürece uygulama KYC yüklemesini reddeder (fail-closed — tasarım ger
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
 php artisan migrate --force
+php artisan storage:link                     # medya kütüphanesi (public/storage -> storage/app/public)
 php artisan db:seed --force                  # roller, izin matrisi, lokasyonlar, varsayılan site (idempotent)
 php artisan optimize                         # config + route + view cache
 php artisan ofisvio:doctor                   # 0 dönmüyorsa trafik açma

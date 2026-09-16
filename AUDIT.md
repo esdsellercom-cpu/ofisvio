@@ -65,7 +65,7 @@ ile canlıda doğrulanmadan **"production ready" denmez**.
 | `config/ofisvio.php` | (eski) 60–140 | Sabit ticari liste (fiyatlı) | Yüksek — üretimde DB yerine config basılırdı | DB'ye taşındı (F-01) |
 | `database/seeders/LocationSeeder.php` | — | 14 şube referans verisi (adres, fiyat metni) | Orta — gerçek şube listesi olduğu doğrulanamadı → **UNKNOWN** | DB'de yaşar, panelden düzenlenir/gizlenir (`geo.edit`, `geo.publish`); yeni şube ekleme/silme ekranı **yok** (bkz. §E) |
 | `database/seeders/WebsiteSeeder.php` | — | 3 yazı + 3 yasal sayfa **taslağı** (gövdesiz) | Düşük — yayında değil, vitrine çıkmaz | Korundu (referans iskelet) |
-| `resources/views/site/partials/*.blade.php` | "kapak · 800×500", "lokasyon ana görseli" | Görsel yer tutucu **etiketi** (gerçek görsel sistemi yok) | Düşük — sahte veri değil, açık yer tutucu | Açık: içerik görseli/medya kütüphanesi modülü yok (**UNKNOWN**/gelecek faz) |
+| `resources/views/site/partials/*.blade.php` | "kapak · 800×500", "lokasyon ana görseli" | Görsel yer tutucu etiketi — yalnız görsel atanmamışsa | Düşük | Medya kütüphanesi eklendi; kapak/hero atanınca gerçek görsel basılır |
 | `tests/**`, `database/factories/**` | — | Test fixture | — | ALLOWED |
 
 ## D. LocalStorage raporu
@@ -94,8 +94,8 @@ ile canlıda doğrulanmadan **"production ready" denmez**.
 | Üyeler | ✅ | ✅ davet | ✅ | askıya al/etkinleştir | — | — | ✅ | — |
 
 **Denetim sonrası kapatılanlar (17 Eylül):** lokasyon ekleme/künye/silme; şirket
-künyesi; organizasyon adı; website silme — hepsi testli (bkz. ROADMAP faz 30).
-Açık: içerik görseli / medya kütüphanesi.
+künyesi; organizasyon adı; website silme; medya kütüphanesi (kapak + hero,
+KYC ile aynı karantina zinciri) — hepsi testli (bkz. ROADMAP faz 30).
 
 ## F. Frontend ↔ backend sözleşme raporu
 

@@ -71,6 +71,24 @@
             </form>
         </div>
     @endif
+    @if ($website)
+        <div class="panel" style="max-width:640px;margin-top:20px">
+            <p class="eyebrow">Hero görseli</p>
+            <form method="POST" action="{{ route('panel.websites.hero', $website) }}" class="stack" style="gap:12px">
+                @csrf @method('PUT')
+                <label class="field"><span class="label">Medya kütüphanesinden (boş = yer tutucu)</span>
+                    <select class="control" name="hero_media_id">
+                        <option value="">— Yok</option>
+                        @foreach ($mediaOptions ?? [] as $m)
+                            <option value="{{ $m->id }}" @selected((int) $website->hero_media_id === $m->id)>#{{ $m->id }} · {{ $m->original_name }} ({{ $m->width }}×{{ $m->height }})</option>
+                        @endforeach
+                    </select>
+                </label>
+                <div><button type="submit" class="btn btn--ghost">Hero'yu kaydet</button> <a href="{{ route('panel.content.media.index', ['website' => $website->id]) }}" class="small" style="margin-left:10px">Medya kütüphanesi →</a></div>
+            </form>
+        </div>
+    @endif
+
     @if ($website && ! $website->is_default)
         <div class="panel" style="max-width:640px;margin-top:20px">
             <p class="eyebrow">Tehlikeli bölge</p>
