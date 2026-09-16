@@ -10,8 +10,8 @@ use DomainException;
 /**
  * Vitrin blokları (faz 10): ana sayfanın pazarlama listeleri (çözümler,
  * toplantı odaları, dahil olanlar, üyelik tablosu, footer sütunları) CMS'ten
- * düzenlenir. Kayıt yoksa config/ofisvio.php varsayılanı geçerlidir —
- * geçiş kırılmaz, her blok tek tek devralınır.
+ * düzenlenir. Tek kaynak site_blocks tablosudur; ilk kurulumda SiteBlockSeeder
+ * doldurur. Kayıt yoksa bölüm vitrinde görünmez (kodda ticari varsayılan yok).
  *
  * Panelde bloklar satır tabanlı metin olarak düzenlenir ("Alan | Alan | …");
  * JSON editörü yok. parse() her satırı doğrular, bozuk satır DomainException.
@@ -19,14 +19,14 @@ use DomainException;
  */
 class SiteBlockService
 {
-    /** blok anahtarı => [etiket, alan başlıkları, config anahtarı] */
+    /** blok anahtarı => [etiket, alan başlıkları] — veri yalnız site_blocks tablosundan (SiteBlockSeeder açılışta doldurur) */
     public const BLOCKS = [
-        'solutions' => ['label' => 'Çözümler', 'fields' => ['Başlık', 'Açıklama', 'Fiyat', 'Amiral (evet/hayır)'], 'config' => 'solutions'],
-        'room_types' => ['label' => 'Toplantı odaları', 'fields' => ['Başlık', 'Kapasite/donanım', 'Fiyat'], 'config' => 'room_types'],
-        'amenities' => ['label' => 'Dahil olanlar', 'fields' => ['Başlık', 'Açıklama'], 'config' => 'amenities'],
-        'plans' => ['label' => 'Üyelik planları (sütunlar)', 'fields' => ['Plan', 'Fiyat'], 'config' => 'plans'],
-        'plan_rows' => ['label' => 'Üyelik karşılaştırma satırları', 'fields' => ['Özellik', 'Plan başına hücre…'], 'config' => 'plan_rows'],
-        'footer_columns' => ['label' => 'Footer sütunları', 'fields' => ['Başlık', 'Madde, madde, …'], 'config' => 'footer_columns'],
+        'solutions' => ['label' => 'Çözümler', 'fields' => ['Başlık', 'Açıklama', 'Fiyat', 'Amiral (evet/hayır)']],
+        'room_types' => ['label' => 'Toplantı odaları', 'fields' => ['Başlık', 'Kapasite/donanım', 'Fiyat']],
+        'amenities' => ['label' => 'Dahil olanlar', 'fields' => ['Başlık', 'Açıklama']],
+        'plans' => ['label' => 'Üyelik planları (sütunlar)', 'fields' => ['Plan', 'Fiyat']],
+        'plan_rows' => ['label' => 'Üyelik karşılaştırma satırları', 'fields' => ['Özellik', 'Plan başına hücre…']],
+        'footer_columns' => ['label' => 'Footer sütunları', 'fields' => ['Başlık', 'Madde, madde, …']],
     ];
 
     /** Ana sayfa metin anahtarları => etiket (faz 29); varsayılan config('ofisvio.texts'). */
@@ -45,6 +45,7 @@ class SiteBlockService
         'meeting_lede' => 'Toplantı açıklaması',
         'amenities_title' => 'Dahil olanlar başlığı',
         'pricing_title' => 'Üyelikler başlığı',
+        'stats_review_time' => 'İstatistik: belge inceleme süresi',
     ];
 
     public function __construct(private readonly ContentCache $cache) {}
@@ -97,13 +98,9 @@ class SiteBlockService
      */
     public function all(?Website $website): array
     {
-        $defaults = [];
-
-        foreach (self::BLOCKS as $key => $meta) {
-            $defaults[$key] = (array) config('ofisvio.'.$meta['config']);
-        }
-
-        $defaults['pricing_note'] = (string) config('ofisvio.pricing_note');
+        // Kayıt yoksa blok BOŞTUR ve vitrin o bölümü basmaz — kodda ticari varsayılan yok.
+        $defaults = array_fill_keys(array_keys(self::BLOCKS), []);
+        $defaults['pricing_note'] = '';
 
         if ($website === null) {
             return $defaults;
@@ -118,7 +115,32 @@ class SiteBlockService
         return is_array($stored) ? array_merge($defaults, $stored) : $defaults;
     }
 
-    /** Bloğun düzenleme metni: kayıt varsa ondan, yoksa config'ten. */
+    /**
+     * Talep formundaki "Çözüm" seçenekleri: çözümler + toplantı odası başlıkları (veritabanından).
+     *
+     * @return array<int, string>
+     */
+    public function solutionOptions(?Website $website): array
+    {
+        $all = $this->all($website);
+        $titles = [];
+
+        foreach ((array) $all['solutions'] as $s) {
+            if (is_array($s) && ! empty($s['title'])) {
+                $titles[] = (string) $s['title'];
+            }
+        }
+
+        foreach ((array) $all['room_types'] as $r) {
+            if (is_array($r) && ! empty($r['title'])) {
+                $titles[] = (string) $r['title'];
+            }
+        }
+
+        return array_values(array_unique($titles));
+    }
+
+    /** Bloğun düzenleme metni (kayıt yoksa boş). */
     public function text(Website $website, string $key): string
     {
         $data = $this->all($website)[$key] ?? [];
@@ -131,7 +153,7 @@ class SiteBlockService
     }
 
     /**
-     * Metni çözüp kaydeder. Boş metin = kaydı sil (config varsayılanına dön).
+     * Metni çözüp kaydeder. Boş metin = kaydı sil (bölüm vitrinden kalkar).
      */
     public function update(User $editor, Website $website, string $key, string $text): void
     {
@@ -153,7 +175,11 @@ class SiteBlockService
         $this->cache->invalidate($website);
     }
 
-    /** Kayıtlı (config'ten sapan) blok anahtarları. @return array<int, string> */
+    /**
+     * Kayıtlı blok anahtarları.
+     *
+     * @return array<int, string>
+     */
     public function overridden(Website $website): array
     {
         return SiteBlock::query()->where('website_id', $website->id)->pluck('key')->all();

@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             LocationSeeder::class,
             WebsiteSeeder::class,
+            SiteBlockSeeder::class,
         ]);
     }
 }

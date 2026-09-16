@@ -7,6 +7,8 @@ use App\Models\Lead;
 use App\Models\Location;
 use App\Support\ActivationJourney;
 use Database\Seeders\LocationSeeder;
+use Database\Seeders\SiteBlockSeeder;
+use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -19,6 +21,8 @@ class SiteTest extends TestCase
     {
         parent::setUp();
         $this->seed(LocationSeeder::class);
+        $this->seed(WebsiteSeeder::class);
+        $this->seed(SiteBlockSeeder::class); // talep formu çözüm seçenekleri veritabanından
     }
 
     // ---------------------------------------------------------------

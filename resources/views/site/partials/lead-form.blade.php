@@ -79,7 +79,7 @@
                         <label class="field">
                             <span class="label">Çözüm</span>
                             <select class="control" name="solution" data-form-solution>
-                                @foreach (config('ofisvio.solution_options') as $opt)
+                                @foreach ($leadOptions ?? [] as $opt)
                                     <option value="{{ $opt }}" @selected(old('solution') === $opt)>{{ $opt }}</option>
                                 @endforeach
                             </select>

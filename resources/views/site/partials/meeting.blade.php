@@ -1,4 +1,5 @@
 @php($sent = session('lead_sent') === 'booking')
+@if (! empty($blocks['room_types']))
 <section id="toplanti" class="dark-band" style="margin-top:96px">
     <div class="wrap" style="padding-block:78px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:52px;align-items:start">
         <div style="min-width:0">
@@ -101,3 +102,4 @@
         </div>
     </div>
 </section>
+@endif

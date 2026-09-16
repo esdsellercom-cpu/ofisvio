@@ -4,7 +4,9 @@ namespace Tests\Feature\Panel;
 
 use App\Models\SiteBlock;
 use App\Models\Website;
+use App\Services\ContentCache;
 use Database\Seeders\LocationSeeder;
+use Database\Seeders\SiteBlockSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -25,6 +27,7 @@ class SiteBlocksTest extends TestCase
         $this->seedRbac();
         $this->seed(LocationSeeder::class);
         $this->seed(WebsiteSeeder::class);
+        $this->seed(SiteBlockSeeder::class);
     }
 
     #[Test]
@@ -32,10 +35,13 @@ class SiteBlocksTest extends TestCase
     {
         $admin = $this->staff('system_admin');
 
-        // Varsayılan: config'ten.
-        $this->get('/')->assertOk()->assertSee('Sanal Ofis')->assertSee(config('ofisvio.pricing_note'));
+        // Varsayılan: seed'lenmiş veritabanı kaydından (config'te ticari içerik yok).
+        $seed = json_decode((string) file_get_contents(database_path('seeders/data/site_blocks.json')), true);
+        $this->assertArrayNotHasKey('solutions', config('ofisvio'));
+        $this->assertArrayNotHasKey('pricing_note', config('ofisvio'));
+        $this->get('/')->assertOk()->assertSee('Sanal Ofis')->assertSee($seed['blocks']['pricing_note']);
         $this->actingAs($admin)->get('/panel/icerik')->assertOk()->assertSee('/panel/icerik/bloklar', false);
-        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('kod varsayılanı')->assertSee('Sanal Ofis | Prestijli');
+        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('CMS kaydı')->assertSee('Sanal Ofis | Prestijli');
 
         $this->actingAs($admin)->put('/panel/icerik/bloklar/solutions', ['text' => "Sanal Ofis Plus | Tescil + çağrı + kargo | ₺990/ay'dan | evet\nGünlük Masa | Sözleşmesiz | ₺450/gün'den | hayır"])
             ->assertRedirect('/panel/icerik/bloklar')->assertSessionHasNoErrors();
@@ -45,7 +51,7 @@ class SiteBlocksTest extends TestCase
         $home = $this->get('http://localhost/')->assertOk()->getContent();
         $this->assertStringContainsString('Sanal Ofis Plus', $home);
         $this->assertStringContainsString('Günlük Masa', $home);
-        $this->assertStringNotContainsString('Hazır Ofis</h3>', $home, 'Config listesi tamamen ezildi.');
+        $this->assertStringNotContainsString('Hazır Ofis</h3>', $home, 'Seed listesi tamamen ezildi.');
         $this->assertStringContainsString('Fiyatlar KDV dahildir.', $home);
         $this->assertStringContainsString('amiral ürün', $home);
         $this->assertStringNotContainsString('>Kariyer<', $home, 'Footer sütunları ezildi.');
@@ -53,10 +59,13 @@ class SiteBlocksTest extends TestCase
 
         $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('CMS kaydı')->assertSee('Sanal Ofis Plus | Tescil + çağrı + kargo | ₺990/ay&#039;dan | evet', false);
 
-        // Boş metin: kayıt silinir, config geri gelir.
+        // Boş metin: kayıt silinir, bölüm vitrinden kalkar (kodda ticari varsayılan yok); seed yeniden getirir.
         $this->actingAs($admin)->put('/panel/icerik/bloklar/solutions', ['text' => ''])->assertRedirect();
         $this->assertSame(0, SiteBlock::where('key', 'solutions')->count());
-        $this->get('http://localhost/')->assertOk()->assertSee('Hazır Ofis')->assertDontSee('Sanal Ofis Plus');
+        $this->get('http://localhost/')->assertOk()->assertDontSee('id="cozumler"', false)->assertDontSee('Sanal Ofis Plus');
+        $this->seed(SiteBlockSeeder::class);
+        app(ContentCache::class)->invalidate(Website::query()->default()->firstOrFail());
+        $this->get('http://localhost/')->assertOk()->assertSee('Hazır Ofis');
     }
 
     #[Test]
@@ -65,7 +74,8 @@ class SiteBlocksTest extends TestCase
         $admin = $this->staff('system_admin');
         $default = Website::query()->default()->firstOrFail();
 
-        $this->get('/')->assertOk()->assertSee('Şirketinizin adresi')->assertSee(config('ofisvio.brand.phone'));
+        $seedPhone = json_decode((string) file_get_contents(database_path('seeders/data/site_blocks.json')), true)['website']['contact_phone'];
+        $this->get('/')->assertOk()->assertSee('Şirketinizin adresi')->assertSee($seedPhone);
         $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Hero başlık (1. satır)');
 
         // Metinler: değişen saklanır, varsayılanla aynı olan saklanmaz.
@@ -82,7 +92,7 @@ class SiteBlocksTest extends TestCase
         $this->assertStringContainsString('Kısa toplantı açıklaması.', $home);
         $this->assertStringContainsString(config('ofisvio.texts.solutions_title'), $home); // dokunulmayan alan varsayılan
 
-        // Site genel ayarları (website.manage): telefon/e-posta/slogan/adres; boş = config.
+        // Site genel ayarları (website.manage): telefon/e-posta/slogan/adres; boş = gösterilmez.
         $this->actingAs($admin)->get("/panel/websiteler/{$default->id}/duzenle")->assertOk()->assertSee('Site genel ayarları');
         $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_phone' => '0212 555 00 00', 'contact_email' => 'info@ofisvio.com', 'tagline' => 'Yeni slogan.', 'address' => 'Levent, İstanbul'])
             ->assertRedirect("/panel/websiteler/{$default->id}/duzenle")->assertSessionHasNoErrors();
@@ -92,12 +102,12 @@ class SiteBlocksTest extends TestCase
         $this->assertStringContainsString('info@ofisvio.com', $home);
         $this->assertStringContainsString('Yeni slogan.', $home);
         $this->assertStringContainsString('Levent, İstanbul', $home);
-        $this->assertStringNotContainsString(config('ofisvio.brand.phone'), $home);
+        $this->assertStringNotContainsString($seedPhone, $home);
 
         $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_email' => 'bozuk'])->assertSessionHasErrors('contact_email');
         $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", [])->assertRedirect();
         $this->assertNull($default->fresh()->contact_phone);
-        $this->get('http://localhost/')->assertOk()->assertSee(config('ofisvio.brand.phone'));
+        $this->get('http://localhost/')->assertOk()->assertDontSee('tel:+90');
     }
 
     #[Test]
@@ -109,7 +119,7 @@ class SiteBlocksTest extends TestCase
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/solutions', ['text' => 'Eksik | alan'])->assertSessionHasErrors('solutions');
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Tek hücre'])->assertSessionHasErrors('plan_rows');
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/bilinmeyen', ['text' => 'x | y'])->assertSessionHasErrors('bilinmeyen');
-        $this->assertSame(0, SiteBlock::count());
+        $this->assertSame(7, SiteBlock::count(), 'Bozuk satırlar seed kayıtlarını değiştirmedi.');
 
         $this->actingAs($admin)->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Şirket tescil adresi | Dahil | Opsiyonel | Dahil | —'])->assertRedirect();
         $this->assertSame(['Dahil', 'Opsiyonel', 'Dahil', '—'], SiteBlock::where('key', 'plan_rows')->firstOrFail()->data[0]['cells']);

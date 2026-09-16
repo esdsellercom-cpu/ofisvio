@@ -1,3 +1,4 @@
+@if (! empty($blocks['solutions']))
 <section id="cozumler" class="wrap section">
     <div class="section-head">
         <div style="min-width:0">
@@ -36,3 +37,4 @@
         @endforeach
     </div>
 </section>
+@endif

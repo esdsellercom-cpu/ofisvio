@@ -57,8 +57,9 @@ class SiteLayoutComposer
         }
 
         $view->with([
-            'brand' => $site?->brand() ?? (array) config('ofisvio.brand') + ['address' => ''],
+            'brand' => $site?->brand() ?? ['name' => (string) config('ofisvio.brand.name'), 'legal_name' => (string) config('ofisvio.brand.name'), 'phone' => '', 'phone_href' => '', 'email' => '', 'tagline' => '', 'address' => ''],
             'texts' => $this->blocks->texts($site),
+            'leadOptions' => $this->blocks->solutionOptions($site),
             'siteLayout' => $tenant ? 'layouts.tenant' : 'layouts.site',
             'currentWebsite' => $site,
             'tenantNav' => $tenant ? $this->contents->navigation($site) : collect(),

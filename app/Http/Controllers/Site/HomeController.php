@@ -22,10 +22,6 @@ use Illuminate\Support\Carbon;
  */
 class HomeController extends Controller
 {
-    /** Ön talep için gösterilen saat aralıkları. Gerçek uygunluk booking
-     *  modülü yazıldığında buradan değil, rezervasyon tablosundan gelecek. */
-    private const SLOTS = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
-
     private const DAY_NAMES = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
     public function __construct(
@@ -53,10 +49,10 @@ class HomeController extends Controller
         return view('site.home', [
             'locations' => $locations,
             'regions' => $locations->groupBy('region'),
-            'stats' => $this->stats($locations),
+            'stats' => $this->stats($locations, $this->blocks->texts($this->website->get())),
             'journey' => ActivationJourney::steps(),
             'bookingDays' => $this->bookingDays(),
-            'bookingSlots' => self::SLOTS,
+            'bookingSlots' => (array) config('ofisvio.booking_slots'),
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'posts' => $this->contents->livePosts($this->website->get(), 3),
             // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).
@@ -104,15 +100,17 @@ class HomeController extends Controller
 
     /**
      * @param  Collection<int, Location>  $locations
+     * @param  array<string, string>  $texts
      * @return list<array{value: string, label: string}>
      */
-    private function stats(Collection $locations): array
+    private function stats(Collection $locations, array $texts): array
     {
         return [
             ['value' => (string) $locations->count(), 'label' => 'Lokasyon'],
             ['value' => (string) $locations->pluck('city')->unique()->count(), 'label' => 'Şehir'],
             ['value' => (string) $locations->pluck('region')->unique()->count(), 'label' => 'Bölge'],
-            ['value' => 'Aynı gün', 'label' => 'Belge inceleme süresi'],
+            // Ölçülemeyen tek kalem: panelden düzenlenir (Ana sayfa > metinler), kodda sabit değil.
+            ['value' => (string) ($texts['stats_review_time'] ?? ''), 'label' => 'Belge inceleme süresi'],
         ];
     }
 }

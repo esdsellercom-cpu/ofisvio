@@ -70,6 +70,7 @@ jobs:
           php artisan db:seed --class=RolePermissionSeeder --force
           php artisan db:seed --class=LocationSeeder --force
           php artisan db:seed --class=WebsiteSeeder --force
+          php artisan db:seed --class=SiteBlockSeeder --force
 
       # DB env'i BİLEREK verilmez: phpunit.xml'in :memory: ayarı geçerli olsun (dışarıdan
       # gelen env phpunit <env>'i ezer; dosya DB'si RefreshDatabase ile boşalırdı).

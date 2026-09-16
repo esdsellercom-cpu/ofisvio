@@ -7,6 +7,7 @@ use App\Models\Content;
 use App\Models\Website;
 use App\Services\ContentCache;
 use App\Services\SeoService;
+use Database\Seeders\SiteBlockSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -73,7 +74,9 @@ class SeoEngineTest extends TestCase
         $this->assertStringNotContainsString('"name":"Fiyatlar"', $html, 'Soru işareti olmayan başlık soru değildir.');
         $this->assertStringContainsString('"position":2,"name":"Sık sorulan sorular"', $html); // sayfa: Ana sayfa → başlık
 
-        // Service düğümleri (faz 17): Ofisvio ana sayfası, vitrin bloğundan.
+        // Service düğümleri (faz 17): Ofisvio ana sayfası, vitrin bloğundan (veritabanı).
+        $this->seed(SiteBlockSeeder::class);
+        app(ContentCache::class)->invalidate($this->site);
         $home = $this->get('/')->assertOk()->getContent();
         $this->assertStringContainsString('"@type":"Service","name":"Sanal Ofis"', $home);
         $this->assertStringContainsString('"@type":"WebSite"', $home);

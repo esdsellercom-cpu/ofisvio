@@ -1,3 +1,4 @@
+@if (! empty($blocks['plans']))
 <section id="uyelik" class="wrap section">
     <div class="section-head">
         <div style="min-width:0">
@@ -34,3 +35,4 @@
         </table>
     </div>
 </section>
+@endif

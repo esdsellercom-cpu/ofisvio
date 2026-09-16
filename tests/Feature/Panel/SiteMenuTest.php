@@ -6,6 +6,7 @@ use App\Enums\ContentStatus;
 use App\Models\Content;
 use App\Models\Website;
 use App\Services\ContentCache;
+use Database\Seeders\SiteBlockSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -196,9 +197,10 @@ class SiteMenuTest extends TestCase
         $default = Website::query()->default()->firstOrFail();
 
         // Müşteri sitesinde Ofisvio iletişim bilgisi SIZMAZ.
+        $this->seed(SiteBlockSeeder::class);
         $html = $this->get('http://acme.example/')->assertOk()->getContent();
-        $this->assertStringNotContainsString(config('ofisvio.brand.phone'), $html);
-        $this->assertStringNotContainsString(config('ofisvio.brand.email'), $html);
+        $this->assertStringNotContainsString($default->fresh()->contact_phone, $html);
+        $this->assertStringNotContainsString($default->fresh()->contact_email, $html);
 
         $menu = "/panel/sirketler/{$acmeCo->id}/site/menu/{$site->id}";
         $this->actingAs($owner)->withContext($acme)->get($menu)->assertOk()->assertSee('Site genel ayarları');
@@ -213,7 +215,7 @@ class SiteMenuTest extends TestCase
 
         // Yabancı site 404; Ofisvio vitrini değişmez.
         $this->actingAs($owner)->withContext($acme)->put("/panel/sirketler/{$acmeCo->id}/site/ayarlar/{$default->id}", ['contact_phone' => '1'])->assertNotFound();
-        $this->assertNull($default->fresh()->contact_phone);
+        $this->assertNotSame('1', $default->fresh()->contact_phone);
     }
 
     private function nav(string $html): string

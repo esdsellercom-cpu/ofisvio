@@ -31,25 +31,25 @@ class Website extends Model
     protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array'];
 
     /**
-     * Marka/iletişim bilgisi (faz 29): site alanı doluysa o, Ofisvio vitrininde
-     * config varsayılanı, müşteri sitesinde boş. phone_href telefon rakamlarından türer.
+     * Marka/iletişim bilgisi (faz 29): yalnız site alanları (boşsa gösterilmez).
+     * phone_href telefon rakamlarından türer.
      *
      * @return array{name: string, legal_name: string, phone: string, phone_href: string, email: string, tagline: string, address: string}
      */
     public function brand(): array
     {
-        $defaults = $this->is_default ? (array) config('ofisvio.brand') : [];
-        $phone = (string) ($this->contact_phone ?: ($defaults['phone'] ?? ''));
+        // Audit: iletişim/kimlik yalnız veritabanından (SiteBlockSeeder varsayılan siteyi doldurur); config'te yok.
+        $phone = (string) ($this->contact_phone ?? '');
         $digits = preg_replace('/\D+/', '', $phone) ?? '';
 
         return [
             'name' => $this->name,
-            'legal_name' => (string) ($this->legal_name ?: ($defaults['legal_name'] ?? $this->name)),
+            'legal_name' => (string) ($this->legal_name ?: $this->name),
             'phone' => $phone,
             'phone_href' => $digits === '' ? '' : 'tel:'.(str_starts_with($digits, '0') ? '+90'.substr($digits, 1) : '+'.$digits),
-            'email' => (string) ($this->contact_email ?: ($defaults['email'] ?? '')),
-            'tagline' => (string) ($this->tagline ?: ($defaults['tagline'] ?? '')),
-            'address' => (string) ($this->address ?: ($defaults['address'] ?? '')),
+            'email' => (string) ($this->contact_email ?? ''),
+            'tagline' => (string) ($this->tagline ?? ''),
+            'address' => (string) ($this->address ?? ''),
         ];
     }
 

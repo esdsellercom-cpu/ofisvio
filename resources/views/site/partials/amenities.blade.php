@@ -1,3 +1,4 @@
+@if (! empty($blocks['amenities']))
 <section class="wrap section">
     <p class="eyebrow">05 — Dahil olanlar</p>
     <h2 class="h2" style="max-width:26ch;margin-bottom:32px">{{ $texts['amenities_title'] }}</h2>
@@ -11,3 +12,4 @@
         @endforeach
     </div>
 </section>
+@endif
