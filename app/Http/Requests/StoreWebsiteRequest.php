@@ -27,6 +27,7 @@ class StoreWebsiteRequest extends FormRequest
                 Rule::unique('websites', 'domain')->ignore($ignore)->whereNull('deleted_at'),
             ],
             'organization_id' => ['nullable', 'integer', Rule::exists('organizations', 'id')->whereNull('deleted_at')],
+            'theme' => ['nullable', 'string', Rule::in(array_keys((array) config('ofisvio.themes')))],
         ];
     }
 

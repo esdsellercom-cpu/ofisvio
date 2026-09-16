@@ -23,6 +23,16 @@ return [
      *   scanner: 'clamav' (üretim) | 'none' (YALNIZCA geliştirme; production'da
      *            SecurityServiceProvider açılışta reddeder)
      */
+    /*
+     * Site temaları (faz 10): anahtar = html[data-theme], token seti ofisvio.css'te.
+     * Yeni tema = CSS'e bir blok + buraya bir satır; derleme adımı yok.
+     */
+    'themes' => [
+        'kum' => 'Kum — sıcak zemin, orman yeşili (varsayılan)',
+        'gece' => 'Gece — koyu zemin, açık yeşil vurgu',
+        'deniz' => 'Deniz — açık zemin, lacivert vurgu',
+    ],
+
     'kyc' => [
         'scanner' => env('KYC_SCANNER', 'none'),
         'clamav' => [

@@ -24,6 +24,11 @@
             @can('content.edit')
                 <a href="{{ route('panel.content.menu', ['website' => $website->id]) }}" class="btn btn--ghost">Menü</a>
             @endcan
+            @if ($website->is_default)
+                @can('content.publish')
+                    <a href="{{ route('panel.content.blocks') }}" class="btn btn--ghost">Vitrin blokları</a>
+                @endcan
+            @endif
             @can('content.create')
                 <a href="{{ route('panel.content.create', ['kind' => 'post', 'website' => $website->id]) }}" class="btn btn--brand">Yeni yazı</a>
                 <a href="{{ route('panel.content.create', ['kind' => 'page', 'website' => $website->id]) }}" class="btn btn--ghost">Yeni sayfa</a>

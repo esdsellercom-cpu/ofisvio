@@ -10,7 +10,7 @@
     </div>
 
     <div class="grid-auto">
-        @foreach (config('ofisvio.solutions') as $item)
+        @foreach ($blocks['solutions'] as $item)
             <a href="#teklif" class="card card--link" data-solution-pick="{{ $item['title'] }}">
                 <div class="shot" style="aspect-ratio:4/3">
                     <span class="shot__note">{{ $item['key'] }} · 800×600</span>

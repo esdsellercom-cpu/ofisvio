@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
+use App\Services\SiteBlockService;
 use App\Support\ActivationJourney;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -29,6 +30,7 @@ class HomeController extends Controller
 
     public function __construct(
         private readonly ContentService $contents,
+        private readonly SiteBlockService $blocks,
         private readonly CurrentWebsite $website,
     ) {}
 
@@ -57,6 +59,8 @@ class HomeController extends Controller
             'bookingSlots' => self::SLOTS,
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'posts' => $this->contents->livePosts($this->website->get(), 3),
+            // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).
+            'blocks' => $this->blocks->all($this->website->get()),
         ]);
     }
 

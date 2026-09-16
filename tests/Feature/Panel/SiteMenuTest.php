@@ -126,6 +126,66 @@ class SiteMenuTest extends TestCase
         $this->actingAs($owner)->withContext($acme)->get('/panel/icerik/menu')->assertForbidden();
     }
 
+    #[Test]
+    public function tema_secimi_html_data_theme_olarak_basilir(): void
+    {
+        $acme = $this->organization('Acme');
+        $acmeCo = $this->company($acme, 'Acme A.Ş.');
+        $site = Website::create(['organization_id' => $acme->id, 'name' => 'Acme', 'slug' => 'acme', 'domain' => 'acme.example']);
+        $owner = $this->owner($acme, $acmeCo);
+        $default = Website::query()->default()->firstOrFail();
+
+        $this->get('http://acme.example/')->assertOk()->assertSee('<html lang="tr" data-theme="kum">', false);
+        $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/site/menu/{$site->id}")->assertOk()->assertSee('Temayı uygula');
+
+        $this->actingAs($owner)->withContext($acme)->put("/panel/sirketler/{$acmeCo->id}/site/tema/{$site->id}", ['theme' => 'gece'])->assertRedirect();
+        $this->assertSame('gece', $site->fresh()->theme);
+        $this->get('http://acme.example/')->assertOk()->assertSee('data-theme="gece"', false);
+        $this->get('http://localhost/')->assertOk()->assertSee('data-theme="kum"', false); // Ofisvio vitrini etkilenmez
+
+        // Bilinmeyen tema reddedilir; yabancı site 404.
+        $this->actingAs($owner)->withContext($acme)->from("/panel/sirketler/{$acmeCo->id}/site/menu/{$site->id}")
+            ->put("/panel/sirketler/{$acmeCo->id}/site/tema/{$site->id}", ['theme' => 'neon'])->assertSessionHasErrors('theme');
+        $this->actingAs($owner)->withContext($acme)->put("/panel/sirketler/{$acmeCo->id}/site/tema/{$default->id}", ['theme' => 'gece'])->assertNotFound();
+        $this->assertSame('kum', $default->fresh()->theme);
+
+        // Personel: site formundan ve menü ekranından.
+        $admin = $this->staff('system_admin');
+        $this->actingAs($admin)->put("/panel/websiteler/{$site->id}", ['name' => 'Acme', 'domain' => 'acme.example', 'organization_id' => $acme->id, 'theme' => 'deniz'])->assertRedirect();
+        $this->assertSame('deniz', $site->fresh()->theme);
+        $this->actingAs($admin)->put("/panel/icerik/tema/{$site->id}", ['theme' => 'kum'])->assertRedirect();
+        $this->assertSame('kum', $site->fresh()->theme);
+    }
+
+    #[Test]
+    public function sayfa_disi_baglantilar_menuye_eklenir_ve_dogrulanir(): void
+    {
+        $acme = $this->organization('Acme');
+        $acmeCo = $this->company($acme, 'Acme A.Ş.');
+        $site = Website::create(['organization_id' => $acme->id, 'name' => 'Acme', 'slug' => 'acme', 'domain' => 'acme.example']);
+        $owner = $this->owner($acme, $acmeCo);
+        $this->page($site, 'Hakkımızda');
+        $url = "/panel/sirketler/{$acmeCo->id}/site/baglantilar/{$site->id}";
+        $menu = "/panel/sirketler/{$acmeCo->id}/site/menu/{$site->id}";
+
+        $this->actingAs($owner)->withContext($acme)->put($url, ['links' => "Randevu | https://calendly.com/acme\nBize yazın | mailto:info@acme.example\nKampanya | /kampanya"])->assertRedirect($menu)->assertSessionHasNoErrors();
+        $nav = $this->nav($this->get('http://acme.example/')->assertOk()->getContent());
+        $this->assertMatchesRegularExpression('/Hakkımızda.*Randevu.*Bize yazın.*Kampanya/s', $nav);
+        $this->assertStringContainsString('href="https://calendly.com/acme" target="_blank" rel="noopener"', $nav);
+        $this->assertStringContainsString('href="/kampanya"', $nav);
+
+        // Geçersiz: javascript:, biçim hatası, 9 satır.
+        foreach (['Kötü | javascript:alert(1)', 'yalnız etiket', implode("\n", array_fill(0, 9, 'A | https://a.example'))] as $bad) {
+            $this->actingAs($owner)->withContext($acme)->from($menu)->put($url, ['links' => $bad])->assertRedirect($menu)->assertSessionHasErrors('links');
+        }
+        $this->assertCount(3, $site->fresh()->nav_links);
+
+        // Boş gönderim temizler.
+        $this->actingAs($owner)->withContext($acme)->put($url, ['links' => ''])->assertRedirect($menu);
+        $this->assertNull($site->fresh()->nav_links);
+        $this->assertStringNotContainsString('Randevu', $this->nav($this->get('http://acme.example/')->getContent()));
+    }
+
     private function nav(string $html): string
     {
         preg_match('/<nav class="nav-main".*?<\/nav>/s', $html, $m);

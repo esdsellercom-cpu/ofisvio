@@ -8,6 +8,7 @@ use App\Http\Requests\StoreContentRequest;
 use App\Http\Requests\UpdateNavigationRequest;
 use App\Models\Company;
 use App\Models\Content;
+use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\TenantContext;
 use App\Services\WebsiteService;
@@ -16,6 +17,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 /**
  * Müşteri sitesi (faz 10): organizasyonun web sitesindeki içerik, müşteri
@@ -34,6 +36,7 @@ class SiteController extends Controller
     public function __construct(
         private readonly ContentService $contents,
         private readonly WebsiteService $websites,
+        private readonly ContentCache $cache,
         private readonly TenantContext $context,
     ) {}
 
@@ -85,9 +88,44 @@ class SiteController extends Controller
             'website' => $site,
             'pages' => $this->contents->pagesFor($site),
             'formAction' => route('panel.companies.site.menu.update', [$company, $site->id]),
+            'themeAction' => route('panel.companies.site.theme', [$company, $site->id]),
+            'linksAction' => route('panel.companies.site.links', [$company, $site->id]),
             'backUrl' => route('panel.companies.site.index', $company),
             'backLabel' => 'Web sitesi',
         ]);
+    }
+
+    public function saveLinks(Request $request, Company $company, int $website): RedirectResponse
+    {
+        $site = $this->websites->findForOrganization($this->organizationId($request, $company), $website);
+
+        abort_if($site === null, 404);
+
+        $validated = $request->validate(['links' => ['nullable', 'string', 'max:2000']]);
+
+        try {
+            $this->websites->updateNavLinks($site, (string) ($validated['links'] ?? ''));
+        } catch (DomainException $e) {
+            return back()->withErrors(['links' => $e->getMessage()])->withInput();
+        }
+
+        $this->cache->invalidate($site);
+
+        return redirect()->route('panel.companies.site.menu', [$company, $site->id])->with('status', 'Bağlantılar kaydedildi.');
+    }
+
+    public function saveTheme(Request $request, Company $company, int $website): RedirectResponse
+    {
+        $site = $this->websites->findForOrganization($this->organizationId($request, $company), $website);
+
+        abort_if($site === null, 404);
+
+        $validated = $request->validate(['theme' => ['required', 'string', Rule::in(array_keys((array) config('ofisvio.themes')))]]);
+
+        $this->websites->updateTheme($site, $validated['theme']);
+        $this->cache->invalidate($site);
+
+        return redirect()->route('panel.companies.site.menu', [$company, $site->id])->with('status', 'Tema uygulandı.');
     }
 
     public function saveMenu(UpdateNavigationRequest $request, Company $company, int $website): RedirectResponse

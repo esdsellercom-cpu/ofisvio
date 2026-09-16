@@ -13,7 +13,7 @@
             </div>
         </div>
 
-        @foreach (config('ofisvio.footer_columns') as $col)
+        @foreach ($blocks['footer_columns'] as $col)
             <div style="min-width:0">
                 <div class="label" style="margin-bottom:16px">{{ $col['title'] }}</div>
                 <div class="stack" style="gap:9px;font-size:14.5px">

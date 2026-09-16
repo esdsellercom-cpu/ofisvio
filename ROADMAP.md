@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **198/198** (Unit 10 · Feature 182 · Architecture 6) |
+| `php artisan test` | ✅ **202/202** (Unit 10 · Feature 186 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -93,7 +93,7 @@ TASLAK iskelet açar (uydurma metin yayınlanmaz; yazı yoksa bölüm gizlenir).
 Karar notları: içerik operatör sitesi için, personel global izinle; müşteri
 siteleri (owner:company `content.edit`) faz 10 ile gelir.
 
-### 10. Website / Page Engine 🟡 (v1 ✅)
+### 10. Website / Page Engine ✅
 Çoklu website: `CurrentWebsite` isteğin Host'unu `websites.domain` ile eşler
 (port/büyük harf yok sayılır; bilinmeyen host varsayılana düşer, asla site
 üretmez). Müşteri sitesi kendi iskeletiyle (`layouts.tenant`: site adı +
@@ -119,8 +119,15 @@ gösterilen sayfalar sırayla (`ContentService::navigation`, önbellekli);
 `/site/menu/{website}` (`content.edit`, company), personel `/panel/icerik/menu`
 — aynı ekran, aynı servis; yabancı sayfa id'si atlanır. Menü yapısal alandır:
 akış/revizyon dışı, `updateNavigation` dışında yazılmaz.
-Eksik: tema/şablon seçimi, sayfa dışı menü bağlantısı, vitrin bloklarının
-(çözümler, planlar) CMS'e taşınması.
+**Tema:** `websites.theme` → `html[data-theme]`; üç token seti ofisvio.css'te
+(kum/gece/deniz), derleme yok; personel site formundan, müşteri menü
+ekranından (`content.edit`). **Sayfa dışı bağlantılar:** `websites.nav_links`
+("Etiket | URL", https/mailto/tel/yol; javascript: reddedilir; ≤ 8).
+**Vitrin blokları:** `site_blocks` (çözümler, toplantı odaları, dahil olanlar,
+üyelik sütun/satırları, footer sütunları, fiyat notu) — kayıt yoksa
+`config/ofisvio.php` varsayılanı; `/panel/icerik/bloklar` satır tabanlı
+düzenleme, doğrudan canlı (`content.publish`), boş = varsayılana dönüş.
+Faz kapandı; kalan yalnız tasarım varlıkları (kapak görselleri).
 
 ---
 
@@ -228,10 +235,12 @@ Temeller hazır; sıra değişmedi.
    https, clamd canlı tarama, önbellek/oturum sürücüsü, e-posta, migrasyon,
    zamanlayıcı kalp atışı, RBAC/site seed, personel hesabı). Kalan: gerçek
    sunucu, alan adı, sertifika, clamd — sen sağlarsın, doctor doğrular.
-2. **Faz 10 kalanı** — tema seçimi, vitrin bloklarının CMS'e taşınması.
-   11+ (GEO/Performance) müşteri sitesi için `website_id` üzerinde açılabilir.
-3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
-   `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
-   bloklara taşınır.
+2. **Kalan 🟡 fazların eksikleri sırayla** — 11 (baseline artefaktı),
+   12–14 (cache.inspect/settings), 15 (breadcrumb şeması), 16–17 (FAQ/Service
+   şeması, geo.publish), 18 (etiketler, iç bağlantı önerisi), 24 (haftalık
+   görünüm). Dış servis isteyenler (19–22, faz 5 entegrasyon kalemleri)
+   kimlik bilgisi gelince.
+3. **İçerik** — editör panelden yazıları, yasal sayfaları ve vitrin bloklarını
+   yayınlar.
 
 Kapıyı yeniden koşturmak için proje kökünde dört komut (yukarıda).

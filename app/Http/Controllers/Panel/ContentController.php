@@ -10,13 +10,16 @@ use App\Http\Requests\UpdateNavigationRequest;
 use App\Models\Content;
 use App\Models\Website;
 use App\Services\AuthorizationService;
+use App\Services\ContentCache;
 use App\Services\ContentService;
+use App\Services\WebsiteService;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 /**
  * CMS editörü (F7). Varsayılan website'in içeriği; personel, global content.*
@@ -38,6 +41,8 @@ class ContentController extends Controller
 {
     public function __construct(
         private readonly ContentService $contents,
+        private readonly WebsiteService $websites,
+        private readonly ContentCache $cache,
         private readonly AuthorizationService $authorization,
     ) {}
 
@@ -94,9 +99,36 @@ class ContentController extends Controller
             'website' => $website,
             'pages' => $this->contents->pagesFor($website),
             'formAction' => route('panel.content.menu.update', $website),
+            'themeAction' => route('panel.content.theme', $website),
+            'linksAction' => route('panel.content.links', $website),
             'backUrl' => route('panel.content.index', ['website' => $website->id]),
             'backLabel' => 'İçerik',
         ]);
+    }
+
+    public function saveLinks(Request $request, Website $website): RedirectResponse
+    {
+        $validated = $request->validate(['links' => ['nullable', 'string', 'max:2000']]);
+
+        try {
+            $this->websites->updateNavLinks($website, (string) ($validated['links'] ?? ''));
+        } catch (DomainException $e) {
+            return back()->withErrors(['links' => $e->getMessage()])->withInput();
+        }
+
+        $this->cache->invalidate($website);
+
+        return redirect()->route('panel.content.menu', ['website' => $website->id])->with('status', 'Bağlantılar kaydedildi.');
+    }
+
+    public function saveTheme(Request $request, Website $website): RedirectResponse
+    {
+        $validated = $request->validate(['theme' => ['required', 'string', Rule::in(array_keys((array) config('ofisvio.themes')))]]);
+
+        $this->websites->updateTheme($website, $validated['theme']);
+        $this->cache->invalidate($website);
+
+        return redirect()->route('panel.content.menu', ['website' => $website->id])->with('status', 'Tema uygulandı.');
     }
 
     public function saveMenu(UpdateNavigationRequest $request, Website $website): RedirectResponse

@@ -21,12 +21,12 @@ class Website extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'organization_id', 'name', 'slug', 'domain', 'is_default',
+        'organization_id', 'name', 'slug', 'domain', 'theme', 'is_default',
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
-        'same_as', 'legal_name',
+        'same_as', 'legal_name', 'nav_links',
     ];
 
-    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array'];
 
     /** Sitenin mutlak kök adresi: alan adı varsa https ile, yoksa uygulama adresi. */
     public function baseUrl(): string

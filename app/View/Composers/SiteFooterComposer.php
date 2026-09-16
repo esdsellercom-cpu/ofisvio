@@ -4,6 +4,7 @@ namespace App\View\Composers;
 
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
+use App\Services\SiteBlockService;
 use Illuminate\View\View;
 
 /**
@@ -14,11 +15,17 @@ class SiteFooterComposer
 {
     public function __construct(
         private readonly ContentService $contents,
+        private readonly SiteBlockService $blocks,
         private readonly CurrentWebsite $website,
     ) {}
 
     public function compose(View $view): void
     {
-        $view->with('legalPages', $this->contents->livePages($this->website->get()));
+        $site = $this->website->get();
+
+        $view->with([
+            'legalPages' => $this->contents->livePages($site),
+            'blocks' => $this->blocks->all($site),
+        ]);
     }
 }

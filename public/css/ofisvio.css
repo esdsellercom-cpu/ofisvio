@@ -422,3 +422,26 @@ textarea.control { min-height: 96px; resize: vertical; line-height: 1.5; }
   .calendar__item { font-size: 0; padding: 4px; width: 100%; }
   .calendar__item .mono { font-size: 10px; }
 }
+
+/* ---------- temalar (faz 10) — html[data-theme]; "kum" = :root ---------- */
+html[data-theme="gece"] {
+  --ground: #16140F; --surface: #1E1B15; --surface-sunk: #24211A; --surface-warm: #2B2720;
+  --ink: #F3EEE4; --ink-soft: #D9D2C4; --ink-muted: #B3AB9B; --ink-faint: #8E877B;
+  --line: #34302A; --line-soft: #2B2720; --line-strong: #46413A;
+  --brand: #7FBF9E; --brand-deep: #5FA684; --brand-light: #2E5A46; --brand-wash: #1F3A2E;
+  --dark: #0E0D0A; --dark-raised: #16140F; --dark-line: #26221C;
+  --danger: #E08A7C; --danger-wash: #3A211D; --ok: #7FBF9E;
+  --shadow-card: 0 16px 40px -28px rgba(0, 0, 0, 0.8);
+  color-scheme: dark;
+}
+html[data-theme="gece"] .btn--brand { color: #0E0D0A; }
+html[data-theme="gece"] .btn--brand:hover { color: #0E0D0A; }
+
+html[data-theme="deniz"] {
+  --ground: #F5F8FA; --surface: #FFFFFF; --surface-sunk: #EDF2F6; --surface-warm: #E4EBF1;
+  --ink: #14202B; --ink-soft: #3A4956; --ink-muted: #5F6E7B; --ink-faint: #7B8894;
+  --line: #D9E1E8; --line-soft: #E4EBF1; --line-strong: #C5D0DA;
+  --brand: #1D4E89; --brand-deep: #163B68; --brand-light: #9DBEE3; --brand-wash: #E8F0F9;
+  --dark: #14202B; --dark-raised: #1B2A38; --dark-line: #2A3A49; --dark-ink: #F2F6FA; --dark-ink-soft: #C6D1DC; --dark-ink-mute: #8896A4;
+  --ok: #1D4E89;
+}

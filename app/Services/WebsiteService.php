@@ -45,7 +45,7 @@ class WebsiteService
     }
 
     /**
-     * @param  array{name: string, slug?: string|null, domain?: string|null, organization_id?: int|null}  $data
+     * @param  array{name: string, slug?: string|null, domain?: string|null, organization_id?: int|null, theme?: string|null}  $data
      */
     public function create(array $data): Website
     {
@@ -53,13 +53,14 @@ class WebsiteService
             'name' => trim($data['name']),
             'slug' => $this->uniqueSlug($data['slug'] ?? null, $data['name']),
             'domain' => $this->normalizeDomain($data['domain'] ?? null),
+            'theme' => $this->theme($data['theme'] ?? null),
             'organization_id' => $data['organization_id'] ?? null,
             'is_default' => false,
         ]);
     }
 
     /**
-     * @param  array{name: string, domain?: string|null, organization_id?: int|null}  $data
+     * @param  array{name: string, domain?: string|null, organization_id?: int|null, theme?: string|null}  $data
      */
     public function update(Website $website, array $data): Website
     {
@@ -73,10 +74,78 @@ class WebsiteService
             'name' => trim($data['name']),
             'domain' => $this->normalizeDomain($data['domain'] ?? null),
             'organization_id' => $website->is_default ? null : $organizationId,
+            'theme' => $this->theme($data['theme'] ?? $website->theme),
         ]);
         $website->save();
 
         return $website;
+    }
+
+    /** Tema (faz 10): müşteri paneli de çağırır (content.edit, company). Bilinmeyen anahtar reddedilir. */
+    public function updateTheme(Website $website, string $theme): Website
+    {
+        $website->theme = $this->theme($theme);
+        $website->save();
+
+        return $website;
+    }
+
+    /**
+     * Sayfa dışı menü bağlantıları (faz 10). Girdi satır satır "Etiket | URL";
+     * URL https://, http://, mailto:, tel: ya da site içi "/yol" olabilir.
+     * Geçersiz satır DomainException — sessiz atlama menüde sürpriz bırakır.
+     */
+    public function updateNavLinks(Website $website, string $lines): Website
+    {
+        $links = [];
+
+        foreach (preg_split('/\r?\n/', $lines) ?: [] as $i => $line) {
+            $line = trim($line);
+
+            if ($line === '') {
+                continue;
+            }
+
+            $parts = array_map('trim', explode('|', $line, 2));
+
+            if (count($parts) !== 2 || $parts[0] === '' || $parts[1] === '') {
+                throw new DomainException(($i + 1).'. satır "Etiket | URL" biçiminde olmalı.');
+            }
+
+            [$label, $url] = $parts;
+
+            $valid = preg_match('#^(https?://[^\s]+|mailto:[^\s@]+@[^\s]+|tel:\+?[0-9 ]+|/[^\s]*)$#', $url) === 1;
+
+            if (! $valid || mb_strlen($label) > 40) {
+                throw new DomainException(($i + 1).'. satır: URL https://, mailto:, tel: ya da /yol olmalı; etiket en fazla 40 karakter.');
+            }
+
+            $links[] = ['label' => $label, 'url' => $url];
+        }
+
+        if (count($links) > 8) {
+            throw new DomainException('En fazla 8 dış bağlantı.');
+        }
+
+        $website->nav_links = $links === [] ? null : $links;
+        $website->save();
+
+        return $website;
+    }
+
+    private function theme(?string $theme): string
+    {
+        $themes = array_keys((array) config('ofisvio.themes'));
+
+        if ($theme === null || $theme === '') {
+            return 'kum';
+        }
+
+        if (! in_array($theme, $themes, true)) {
+            throw new DomainException('Bilinmeyen tema: '.$theme);
+        }
+
+        return $theme;
     }
 
     /**

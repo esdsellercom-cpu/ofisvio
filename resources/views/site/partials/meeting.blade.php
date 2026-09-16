@@ -9,7 +9,7 @@
                 ikram ve teknik ekip fiyata dahil; üyelere aylık kredi tanımlanır.
             </p>
             <div class="row-list" style="margin-top:34px">
-                @foreach (config('ofisvio.room_types') as $room)
+                @foreach ($blocks['room_types'] as $room)
                     <div class="row-list__item">
                         <div style="min-width:0">
                             <div style="font-size:15.5px;font-weight:600;color:var(--dark-ink)">{{ $room['title'] }}</div>

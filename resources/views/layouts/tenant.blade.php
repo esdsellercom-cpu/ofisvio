@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" data-theme="{{ $currentWebsite?->theme ?? 'kum' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -30,6 +30,9 @@
                     <a href="{{ route('site.page', $page->slug) }}">{{ $page->title }}</a>
                 @endforeach
                 @if ($tenantHasPosts ?? false)<a href="{{ route('site.posts') }}">Yazılar</a>@endif
+                @foreach ($currentWebsite->nav_links ?? [] as $link)
+                    <a href="{{ $link['url'] }}"{!! str_starts_with($link['url'], 'http') ? ' target="_blank" rel="noopener"' : '' !!}>{{ $link['label'] }}</a>
+                @endforeach
             </nav>
         </div>
     </header>

@@ -22,6 +22,29 @@
         Taslak/zamanlanmış sayfalar yayına girince buradaki ayarla menüye düşer. "Yazılar" bağlantısı yayında yazı varsa otomatik eklenir.
     </p>
 
+    @isset($themeAction)
+        <form method="POST" action="{{ $themeAction }}" class="panel inline-form" style="margin-bottom:20px;align-items:end">
+            @csrf @method('PUT')
+            <label class="field" style="flex:1 1 320px"><span class="label">Tema</span>
+                <select class="control" name="theme" @error('theme') aria-invalid="true" @enderror>
+                    @foreach (config('ofisvio.themes') as $key => $label)
+                        <option value="{{ $key }}" @selected(old('theme', $website->theme) === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <button type="submit" class="btn btn--ghost">Temayı uygula</button>
+        </form>
+    @endisset
+    @isset($linksAction)
+        <form method="POST" action="{{ $linksAction }}" class="panel stack" style="margin-bottom:20px;gap:10px">
+            @csrf @method('PUT')
+            <label class="field"><span class="label">Sayfa dışı bağlantılar — satır başına <code>Etiket | URL</code> (https://, mailto:, tel: ya da /yol; en fazla 8)</span>
+                <textarea class="control mono" name="links" style="min-height:88px" placeholder="Randevu | https://calendly.com/acme&#10;Bize yazın | mailto:info@acme.com" @error('links') aria-invalid="true" @enderror>{{ old('links', collect($website->nav_links ?? [])->map(fn ($l) => $l['label'].' | '.$l['url'])->implode("\n")) }}</textarea>
+            </label>
+            @error('links')<p class="small" style="color:var(--danger);margin:0">{{ $message }}</p>@enderror
+            <div><button type="submit" class="btn btn--ghost">Bağlantıları kaydet</button></div>
+        </form>
+    @endisset
     @if ($pages->isEmpty())
         <div class="empty-state">Bu sitede sayfa yok.</div>
     @else

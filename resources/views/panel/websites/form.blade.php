@@ -45,6 +45,15 @@
                 </label>
             @endif
 
+            <label class="field">
+                <span class="label">Tema</span>
+                <select class="control" name="theme" @error('theme') aria-invalid="true" @enderror>
+                    @foreach (config('ofisvio.themes') as $key => $label)
+                        <option value="{{ $key }}" @selected(old('theme', $website?->theme ?? 'kum') === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </label>
+
             <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
                 <button type="submit" class="btn btn--brand">{{ $website ? 'Kaydet' : 'Siteyi aç' }}</button>
                 <a href="{{ route('panel.websites.index') }}" class="btn btn--ghost">Vazgeç</a>
