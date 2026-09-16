@@ -38,7 +38,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
 
         // --- Context'siz ekranlar ---------------------------------------
         Route::get('/organizasyon', [ContextController::class, 'select'])->name('context.select');
-        Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:30,1')->name('context.switch');
+        Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:context-switch')->name('context.switch');
 
         // Müşteri organizasyonu açma — personel (user.manage global). Tenant
         // middleware'i yok: açılacak organizasyon henüz mevcut değil.
@@ -46,7 +46,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             ->middleware('permission:user.manage')
             ->name('onboarding.create');
         Route::post('/yeni-musteri', [OnboardingController::class, 'store'])
-            ->middleware(['permission:user.manage', 'throttle:20,1'])
+            ->middleware(['permission:user.manage', 'throttle:invite'])
             ->name('onboarding.store');
 
         // --- Tenant context'li ekranlar -----------------------------------
@@ -72,7 +72,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 ->middleware('permission:kyc.view|kyc.view_status,company')
                 ->name('companies.kyc.show');
             Route::post('/sirketler/{company}/kyc', [KycController::class, 'upload'])
-                ->middleware(['permission:kyc.upload,company', 'throttle:20,1'])
+                ->middleware(['permission:kyc.upload,company', 'throttle:kyc-upload'])
                 ->name('companies.kyc.upload');
 
             // Belge İÇERİĞİ: müşteri kyc.view ile JIT'siz, personel kyc.view_document
@@ -87,7 +87,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             // kapısından geçip grant açar. Grant'in kendisi allows() ile değil
             // can() ile doğrulanır — aksi halde kimse ilk grant'i açamazdı.
             Route::post('/sirketler/{company}/kyc/{kycDocument}/jit', [KycController::class, 'requestJit'])
-                ->middleware(['permission:kyc.view_status,company', 'throttle:10,1'])
+                ->middleware(['permission:kyc.view_status,company', 'throttle:jit-request'])
                 ->scopeBindings()
                 ->name('companies.kyc.jit');
 
@@ -110,7 +110,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 ->middleware('permission:membership.manage,company')
                 ->name('companies.members.index');
             Route::post('/sirketler/{company}/uyeler', [MembershipController::class, 'store'])
-                ->middleware(['permission:membership.manage,company', 'throttle:20,1'])
+                ->middleware(['permission:membership.manage,company', 'throttle:invite'])
                 ->name('companies.members.store');
             Route::post('/sirketler/{company}/uyeler/{userRole}/askiya-al', [MembershipController::class, 'suspend'])
                 ->middleware('permission:membership.manage,company')
