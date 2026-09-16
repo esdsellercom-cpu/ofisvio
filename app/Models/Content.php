@@ -26,6 +26,7 @@ class Content extends Model
         'status' => ContentStatus::class,
         'requires_approval' => 'boolean',
         'noindex' => 'boolean',
+        'show_in_nav' => 'boolean',
         'reading_minutes' => 'integer',
         'scheduled_for' => 'datetime',
         'published_at' => 'datetime',

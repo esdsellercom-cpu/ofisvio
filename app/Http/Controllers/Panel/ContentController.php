@@ -6,6 +6,7 @@ use App\Enums\ContentKind;
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreContentRequest;
+use App\Http\Requests\UpdateNavigationRequest;
 use App\Models\Content;
 use App\Models\Website;
 use App\Services\AuthorizationService;
@@ -82,6 +83,27 @@ class ContentController extends Controller
             'pipeline' => $this->contents->pipeline($website),
             'today' => CarbonImmutable::now(config('app.timezone'))->format('Y-m-d'),
         ]);
+    }
+
+    /** Site menüsü (faz 10): ?website=<id>. */
+    public function menu(Request $request): View
+    {
+        $website = $this->selectedWebsite($request);
+
+        return view('panel.content.menu', [
+            'website' => $website,
+            'pages' => $this->contents->pagesFor($website),
+            'formAction' => route('panel.content.menu.update', $website),
+            'backUrl' => route('panel.content.index', ['website' => $website->id]),
+            'backLabel' => 'İçerik',
+        ]);
+    }
+
+    public function saveMenu(UpdateNavigationRequest $request, Website $website): RedirectResponse
+    {
+        $this->contents->updateNavigation($website, $request->layout());
+
+        return redirect()->route('panel.content.menu', ['website' => $website->id])->with('status', 'Menü kaydedildi.');
     }
 
     public function create(Request $request): View

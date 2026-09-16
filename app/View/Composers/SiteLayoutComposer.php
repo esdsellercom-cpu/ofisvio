@@ -56,7 +56,8 @@ class SiteLayoutComposer
         $view->with([
             'siteLayout' => $tenant ? 'layouts.tenant' : 'layouts.site',
             'currentWebsite' => $site,
-            'tenantNav' => $tenant ? $this->contents->livePages($site) : collect(),
+            'tenantNav' => $tenant ? $this->contents->navigation($site) : collect(),
+            'tenantHasPosts' => $tenant && $this->contents->livePosts($site, 1)->isNotEmpty(),
             'seo' => $seo,
         ]);
     }

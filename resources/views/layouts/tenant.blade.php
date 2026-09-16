@@ -29,7 +29,7 @@
                 @foreach ($tenantNav as $page)
                     <a href="{{ route('site.page', $page->slug) }}">{{ $page->title }}</a>
                 @endforeach
-                <a href="{{ route('site.posts') }}">Yazılar</a>
+                @if ($tenantHasPosts ?? false)<a href="{{ route('site.posts') }}">Yazılar</a>@endif
             </nav>
         </div>
     </header>

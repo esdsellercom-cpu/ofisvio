@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **193/193** (Unit 10 · Feature 177 · Architecture 6) |
+| `php artisan test` | ✅ **195/195** (Unit 10 · Feature 179 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -113,8 +113,14 @@ Yeni sayfa açma ve doğrudan yayın personelde (`/panel/icerik`, site seçici).
 ayarlar + içerik denetimi + sitemap; `seo.edit` başlık son eki / varsayılan
 açıklama / dil; `seo.publish` (yalnız owner) indeksleme anahtarı — kapatınca
 robots.txt Disallow, her sayfa noindex, sitemap boş. Yabancı site 404.
-Eksik: tema/şablon seçimi, menü yönetimi, vitrin bloklarının (çözümler,
-planlar) CMS'e taşınması.
+**Menü yönetimi:** `contents.show_in_nav` + `nav_order`; menü = yayındaki,
+gösterilen sayfalar sırayla (`ContentService::navigation`, önbellekli);
+"Yazılar" bağlantısı yalnız yayında yazı varsa. Müşteri
+`/site/menu/{website}` (`content.edit`, company), personel `/panel/icerik/menu`
+— aynı ekran, aynı servis; yabancı sayfa id'si atlanır. Menü yapısal alandır:
+akış/revizyon dışı, `updateNavigation` dışında yazılmaz.
+Eksik: tema/şablon seçimi, sayfa dışı menü bağlantısı, vitrin bloklarının
+(çözümler, planlar) CMS'e taşınması.
 
 ---
 
@@ -219,7 +225,7 @@ Temeller hazır; sıra değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 10 kalanı** — menü/tema, vitrin bloklarının CMS'e taşınması.
+2. **Faz 10 kalanı** — tema seçimi, vitrin bloklarının CMS'e taşınması.
    11+ (GEO/Performance) müşteri sitesi için `website_id` üzerinde açılabilir.
 3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
    `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da

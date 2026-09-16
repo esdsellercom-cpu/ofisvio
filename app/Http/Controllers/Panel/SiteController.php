@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Panel;
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreContentRequest;
+use App\Http\Requests\UpdateNavigationRequest;
 use App\Models\Company;
 use App\Models\Content;
 use App\Services\ContentService;
@@ -71,6 +72,33 @@ class SiteController extends Controller
             'websites' => $this->websites->forOrganization($organizationId),
             'items' => $this->contents->listForOrganization($organizationId),
         ]);
+    }
+
+    /** Site menüsü: organizasyonun sitesi ({website} int, süzülür). */
+    public function menu(Request $request, Company $company, int $website): View
+    {
+        $site = $this->websites->findForOrganization($this->organizationId($request, $company), $website);
+
+        abort_if($site === null, 404);
+
+        return view('panel.content.menu', [
+            'website' => $site,
+            'pages' => $this->contents->pagesFor($site),
+            'formAction' => route('panel.companies.site.menu.update', [$company, $site->id]),
+            'backUrl' => route('panel.companies.site.index', $company),
+            'backLabel' => 'Web sitesi',
+        ]);
+    }
+
+    public function saveMenu(UpdateNavigationRequest $request, Company $company, int $website): RedirectResponse
+    {
+        $site = $this->websites->findForOrganization($this->organizationId($request, $company), $website);
+
+        abort_if($site === null, 404);
+
+        $this->contents->updateNavigation($site, $request->layout());
+
+        return redirect()->route('panel.companies.site.menu', [$company, $site->id])->with('status', 'Menü kaydedildi.');
     }
 
     public function show(Request $request, Company $company, int $content): View

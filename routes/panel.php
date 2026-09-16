@@ -70,6 +70,8 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/', [ContentController::class, 'store'])->middleware('permission:content.create')->name('store');
             // Takvim (faz 24): /{content}'ten ÖNCE — aksi halde 'takvim' model anahtarı sanılır.
             Route::get('/takvim', [ContentController::class, 'calendar'])->middleware($canSee)->name('calendar');
+            Route::get('/menu', [ContentController::class, 'menu'])->middleware('permission:content.edit')->name('menu');
+            Route::put('/menu/{website}', [ContentController::class, 'saveMenu'])->middleware('permission:content.edit')->name('menu.update');
             Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');
             Route::get('/{content}/duzenle', [ContentController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
             Route::put('/{content}', [ContentController::class, 'update'])->middleware('permission:content.edit')->name('update');
@@ -225,6 +227,8 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 Route::get('/', [SiteController::class, 'index'])->middleware($canSee)->name('index');
 
                 // SEO (faz 15, müşteri): {website} int, organizasyona süzülür.
+                Route::get('/menu/{website}', [SiteController::class, 'menu'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('menu');
+                Route::put('/menu/{website}', [SiteController::class, 'saveMenu'])->where('website', '[0-9]+')->middleware('permission:content.edit,company')->name('menu.update');
                 Route::get('/seo', [SiteSeoController::class, 'index'])->middleware('permission:seo.view,company')->name('seo.index');
                 Route::put('/seo/{website}', [SiteSeoController::class, 'update'])->where('website', '[0-9]+')->middleware('permission:seo.edit,company')->name('seo.update');
                 Route::put('/seo/{website}/indeksleme', [SiteSeoController::class, 'indexing'])->where('website', '[0-9]+')->middleware('permission:seo.publish,company')->name('seo.indexing');

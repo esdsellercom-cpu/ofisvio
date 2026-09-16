@@ -90,6 +90,69 @@ class ContentService
             ->get());
     }
 
+    /**
+     * Site menüsü (faz 10): yayındaki, menüde gösterilen sayfalar; nav_order
+     * sonra başlık. Önbellekli (livePages ile aynı sürüm sayacı).
+     *
+     * @return Collection<int, Content>
+     */
+    public function navigation(?Website $website): Collection
+    {
+        if ($website === null) {
+            return new Collection;
+        }
+
+        return $this->rememberModels($website, 'nav', fn () => Content::query()
+            ->where('website_id', $website->id)
+            ->where('kind', ContentKind::PAGE->value)
+            ->live()
+            ->where('show_in_nav', true)
+            ->orderByRaw('nav_order IS NULL, nav_order')
+            ->orderBy('title')
+            ->get());
+    }
+
+    /**
+     * Menü düzenleme listesi: sitenin TÜM sayfaları (taslak dahil), menü sırasıyla.
+     *
+     * @return Collection<int, Content>
+     */
+    public function pagesFor(Website $website): Collection
+    {
+        return Content::query()
+            ->where('website_id', $website->id)
+            ->where('kind', ContentKind::PAGE->value)
+            ->orderByRaw('nav_order IS NULL, nav_order')
+            ->orderBy('title')
+            ->get();
+    }
+
+    /**
+     * Menü düzeni: sayfa id => [order, show]. Yalnızca verilen sitenin sayfaları
+     * güncellenir (yabancı id sessizce atlanır — tenant sınırı çağıranda çizildi,
+     * burada ikinci savunma). Menü yapısal alandır: içerik akışından ve
+     * revizyondan bağımsız; durumu değiştirmez.
+     *
+     * @param  array<int, array{order: int|null, show: bool}>  $layout
+     */
+    public function updateNavigation(Website $website, array $layout): void
+    {
+        $pages = Content::query()
+            ->where('website_id', $website->id)
+            ->where('kind', ContentKind::PAGE->value)
+            ->whereIn('id', array_keys($layout))
+            ->get();
+
+        DB::transaction(function () use ($pages, $layout) {
+            foreach ($pages as $page) {
+                $row = $layout[$page->id];
+                $page->forceFill(['nav_order' => $row['order'], 'show_in_nav' => $row['show']])->save();
+            }
+        });
+
+        $this->cache->invalidate($website);
+    }
+
     /** @return Collection<int, Content> */
     public function livePages(?Website $website): Collection
     {

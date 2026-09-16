@@ -24,6 +24,9 @@
                 <a href="{{ route('panel.companies.site.seo.index', $company) }}" class="btn btn--ghost">SEO</a>
             @endcan
             @foreach ($websites as $site)
+                @can('content.edit', $company)
+                    <a href="{{ route('panel.companies.site.menu', [$company, $site->id]) }}" class="btn btn--ghost">Menü{{ $websites->count() > 1 ? ' · '.$site->name : '' }}</a>
+                @endcan
                 <a href="{{ $site->baseUrl() }}" class="btn btn--ghost" target="_blank" rel="noopener">{{ $site->domain ?: $site->name }} ↗</a>
             @endforeach
         </div>

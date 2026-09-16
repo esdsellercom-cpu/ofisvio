@@ -21,6 +21,9 @@
         </div>
         <div class="panel-head__actions">
             <a href="{{ route('panel.content.calendar', ['website' => $website->id]) }}" class="btn btn--ghost">Takvim</a>
+            @can('content.edit')
+                <a href="{{ route('panel.content.menu', ['website' => $website->id]) }}" class="btn btn--ghost">Menü</a>
+            @endcan
             @can('content.create')
                 <a href="{{ route('panel.content.create', ['kind' => 'post', 'website' => $website->id]) }}" class="btn btn--brand">Yeni yazı</a>
                 <a href="{{ route('panel.content.create', ['kind' => 'page', 'website' => $website->id]) }}" class="btn btn--ghost">Yeni sayfa</a>
