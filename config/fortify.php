@@ -168,14 +168,18 @@ return [
     | Serbest kayıt, hiçbir organizasyona bağlı olmayan "sahipsiz" hesaplar
     | üretir; tenant zinciri (auth -> tenant -> permission) bunlara yer vermez.
     |
-    | 2FA ve passkey, P0 güvenlik altyapısı fazında (ROADMAP faz 5) açılacak;
-    | özellik açılırken migration'ları da eklenmeli.
+    | 2FA (TOTP): kurulum doğrulama kodu ister (confirm) ve yakın zamanda
+    | şifre onayı gerektirir (confirmPassword). Passkey daha sonra.
     */
     'features' => [
         Features::resetPasswords(),
         // Features::emailVerification(),
         Features::updateProfileInformation(),
         Features::updatePasswords(),
+        Features::twoFactorAuthentication([
+            'confirm' => true,
+            'confirmPassword' => true,
+        ]),
     ],
 
 ];

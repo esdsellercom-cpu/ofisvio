@@ -12,6 +12,7 @@
  *   2) auth + tenant       : geri kalan her şey.
  */
 
+use App\Http\Controllers\Panel\AccountController;
 use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
@@ -24,7 +25,14 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
 
     // --- Context'siz ekranlar -------------------------------------------
     Route::get('/organizasyon', [ContextController::class, 'select'])->name('context.select');
-    Route::post('/organizasyon', [ContextController::class, 'switch'])->name('context.switch');
+    Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:30,1')->name('context.switch');
+
+    // Hesap: profil/şifre formları Fortify route'larına gider. Güvenlik sayfası
+    // password.confirm ister; Fortify'ın 2FA POST'ları da aynı onayı kullanır.
+    Route::get('/hesap', [AccountController::class, 'show'])->name('account');
+    Route::get('/hesap/guvenlik', [AccountController::class, 'security'])
+        ->middleware('password.confirm')
+        ->name('account.security');
 
     // Müşteri organizasyonu açma — personel (user.manage global). Tenant
     // middleware'i yok: açılacak organizasyon henüz mevcut değil.
@@ -32,7 +40,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         ->middleware('permission:user.manage')
         ->name('onboarding.create');
     Route::post('/yeni-musteri', [OnboardingController::class, 'store'])
-        ->middleware('permission:user.manage')
+        ->middleware(['permission:user.manage', 'throttle:20,1'])
         ->name('onboarding.store');
 
     // --- Tenant context'li ekranlar ---------------------------------------
@@ -58,7 +66,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             ->middleware('permission:kyc.view|kyc.view_status,company')
             ->name('companies.kyc.show');
         Route::post('/sirketler/{company}/kyc', [KycController::class, 'upload'])
-            ->middleware('permission:kyc.upload,company')
+            ->middleware(['permission:kyc.upload,company', 'throttle:20,1'])
             ->name('companies.kyc.upload');
 
         // Belge İÇERİĞİ: müşteri kyc.view ile JIT'siz, personel kyc.view_document
@@ -73,7 +81,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         // kapısından geçip grant açar. Grant'in kendisi allows() ile değil
         // can() ile doğrulanır — aksi halde kimse ilk grant'i açamazdı.
         Route::post('/sirketler/{company}/kyc/{kycDocument}/jit', [KycController::class, 'requestJit'])
-            ->middleware('permission:kyc.view_status,company')
+            ->middleware(['permission:kyc.view_status,company', 'throttle:10,1'])
             ->scopeBindings()
             ->name('companies.kyc.jit');
 
@@ -96,7 +104,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             ->middleware('permission:membership.manage,company')
             ->name('companies.members.index');
         Route::post('/sirketler/{company}/uyeler', [MembershipController::class, 'store'])
-            ->middleware('permission:membership.manage,company')
+            ->middleware(['permission:membership.manage,company', 'throttle:20,1'])
             ->name('companies.members.store');
         Route::post('/sirketler/{company}/uyeler/{userRole}/askiya-al', [MembershipController::class, 'suspend'])
             ->middleware('permission:membership.manage,company')

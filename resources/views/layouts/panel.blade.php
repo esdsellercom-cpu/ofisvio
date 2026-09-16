@@ -37,7 +37,7 @@
         </nav>
 
         <div class="panel-user">
-            <span><strong>{{ auth()->user()->name }}</strong><br><span class="muted">{{ auth()->user()->email }}</span></span>
+            <a href="{{ route('panel.account') }}"><strong>{{ auth()->user()->name }}</strong><br><span class="muted">{{ auth()->user()->email }}</span></a>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit">Çıkış yap</button>
@@ -47,9 +47,10 @@
 
     <main id="main" class="panel-main">
         @if (session('status'))
+            {{-- Fortify anahtar döner ('password-updated'); kendi controller'larımız cümle. --}}
             <div class="notice" role="status" style="margin-bottom:22px">
                 <span class="notice__dot" aria-hidden="true"></span>
-                <div>{{ session('status') }}</div>
+                <div>{{ Lang::has('status.'.session('status')) ? __('status.'.session('status')) : session('status') }}</div>
             </div>
         @endif
 

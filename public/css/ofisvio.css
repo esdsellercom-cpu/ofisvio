@@ -303,6 +303,8 @@ table.compare td:first-child { font-size: 15px; font-weight: 500; color: var(--i
 .panel-context__name { color: var(--dark-ink); font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
 .panel-context a { color: var(--brand-light); font-size: 13px; }
 .panel-user { margin-top: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13.5px; }
+.panel-user a { color: var(--dark-ink-soft); }
+.panel-user a:hover strong { color: var(--brand-light); }
 .panel-user strong { color: var(--dark-ink); font-weight: 600; }
 .panel-user form { margin: 0; }
 .panel-user button { background: none; border: 0; padding: 0; color: var(--dark-ink-mute); cursor: pointer; font-size: 13.5px; }
