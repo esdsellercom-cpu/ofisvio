@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **195/195** (Unit 10 · Feature 179 · Architecture 6) |
+| `php artisan test` | ✅ **198/198** (Unit 10 · Feature 182 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -223,8 +223,11 @@ Temeller hazır; sıra değişmedi.
 
 ## SIRADAKİ ADIMLAR
 
-1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
-   gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
+1. **Üretime alma** — kontrol listesi ve adımlar `DEPLOY.md`'de;
+   `php artisan ofisvio:doctor` kapıdır (üretimde hata → çıkış 1: APP_DEBUG,
+   https, clamd canlı tarama, önbellek/oturum sürücüsü, e-posta, migrasyon,
+   zamanlayıcı kalp atışı, RBAC/site seed, personel hesabı). Kalan: gerçek
+   sunucu, alan adı, sertifika, clamd — sen sağlarsın, doctor doğrular.
 2. **Faz 10 kalanı** — tema seçimi, vitrin bloklarının CMS'e taşınması.
    11+ (GEO/Performance) müşteri sitesi için `website_id` üzerinde açılabilir.
 3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;

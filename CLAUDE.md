@@ -44,4 +44,4 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 PowerShell 5.1: `Get-Content -Raw` ANSI okur — UTF-8 dosyaları `[IO.File]::ReadAllText($f, [Text.Encoding]::UTF8)` ile oku, BOM'suz yaz.
 Vendor binary'leri `.\vendor\bin\pint.bat`, `.\vendor\bin\phpstan.bat`.
 
-Yol haritası: `ROADMAP.md`. Yeni modül kalıbı: `routes/BOOTSTRAP.md`.
+Yol haritası: `ROADMAP.md`. Yeni modül kalıbı: `routes/BOOTSTRAP.md`. Üretime alma: `DEPLOY.md` + `php artisan ofisvio:doctor` (üretimde hata → çıkış 1). `DatabaseSeeder` yalnız referans veri çağırır; kullanıcı seed'i eklenmez.

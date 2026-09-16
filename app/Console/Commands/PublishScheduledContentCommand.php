@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\ContentService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Zamanı gelen içerikleri yayınlar. routes/console.php dakikada bir çalıştırır;
@@ -17,6 +18,9 @@ class PublishScheduledContentCommand extends Command
 
     public function handle(ContentService $contents): int
     {
+        // Kalp atışı: ofisvio:doctor cron'un çalıştığını buradan anlar.
+        Cache::put(DoctorCommand::HEARTBEAT_KEY, now()->toIso8601String(), now()->addDay());
+
         $count = $contents->publishScheduled();
 
         $this->info($count > 0 ? "{$count} içerik yayınlandı." : 'Zamanı gelen içerik yok.');

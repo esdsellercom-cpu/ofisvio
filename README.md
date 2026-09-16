@@ -51,3 +51,13 @@ CI aynı komutları çalıştırır: `.github/workflows/quality-gate.yml`.
 | `public/css/ofisvio.css` | Tasarım sistemi (derlenmez) |
 
 Kurallar: `CLAUDE.md`. Yol haritası: `ROADMAP.md`. Yeni modül kalıbı: `routes/BOOTSTRAP.md`.
+
+## Üretime alma
+
+Adımlar `DEPLOY.md`'de. Trafik açmadan önce:
+
+```bash
+php artisan ofisvio:doctor
+```
+
+Üretimde (`APP_ENV=production`) tek hata bile çıkış kodu 1 döner.
