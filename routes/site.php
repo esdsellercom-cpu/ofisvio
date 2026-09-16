@@ -16,7 +16,8 @@ use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', HomeController::class)->name('site.home');
+// public.cache: misafire public+ETag, oturum açmışa private/no-store (faz 12).
+Route::get('/', HomeController::class)->middleware('public.cache')->name('site.home');
 
 // Form gönderimleri: throttle ile korunur. Bot tuzağı (website alanı)
 // StoreLeadRequest içinde; captcha eklenene kadar ilk savunma bu ikisi.
@@ -36,6 +37,6 @@ Route::redirect('/giris', '/login', 301);
  * tanımlı tüm route'lar eşleşir; slug regex'i /panel, /login gibi yolları
  * zaten dışlar (küçük harf-rakam-tire).
  */
-Route::get('/blog', [ContentController::class, 'posts'])->name('site.posts');
-Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->name('site.post');
-Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|up$)[a-z0-9-]+')->name('site.page');
+Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cache')->name('site.posts');
+Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
+Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

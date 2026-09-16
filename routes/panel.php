@@ -15,6 +15,7 @@
  */
 
 use App\Http\Controllers\Panel\AccountController;
+use App\Http\Controllers\Panel\CacheController;
 use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContextController;
@@ -83,6 +84,20 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/', [WebsiteController::class, 'store'])->middleware('permission:website.manage')->name('store');
             Route::get('/{website}/duzenle', [WebsiteController::class, 'edit'])->middleware('permission:website.manage')->name('edit');
             Route::put('/{website}', [WebsiteController::class, 'update'])->middleware('permission:website.manage')->name('update');
+        });
+
+        // --- Önbellek (faz 12-14) — personel, tenant context'siz -----------------
+        // Geçersizleme JIT ister (matris: "global purge yıkıcı"); kaynak = website id,
+        // global purge için sabit 0. JIT talebi cache.view kapısından açılır.
+        Route::prefix('onbellek')->name('cache.')->group(function () {
+            Route::get('/', [CacheController::class, 'index'])->middleware('permission:cache.view')->name('index');
+            Route::post('/{website}/isit', [CacheController::class, 'warm'])->middleware('permission:cache.warm')->name('warm');
+            Route::post('/{website}/gecersiz-kil', [CacheController::class, 'purge'])
+                ->middleware('permission:cache.invalidate,,cache,website')->name('purge');
+            Route::post('/tumu/bosalt', [CacheController::class, 'purgeAll'])
+                ->middleware('permission:cache.invalidate,,cache,=0')->name('purge-all');
+            Route::post('/{website}/jit', [CacheController::class, 'requestJit'])
+                ->where('website', '[0-9]+')->middleware(['permission:cache.view', 'throttle:jit-request'])->name('jit');
         });
 
         // --- Tenant context'li ekranlar -----------------------------------

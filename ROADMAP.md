@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **165/165** (Unit 10 · Feature 149 · Architecture 6) |
+| `php artisan test` | ✅ **170/170** (Unit 10 · Feature 154 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -43,7 +43,7 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-165 test; "izin verilmemeli" senaryoları her modülde var.
+170 test; "izin verilmemeli" senaryoları her modülde var.
 
 ### 4. CI/CD Pipeline ✅
 GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
@@ -117,8 +117,21 @@ kapalı), `PanelLayoutComposer` parçalarda çalışmaz, `KycService::statusSumm
 tek sorgu. Sonuç: dashboard **11**, KYC **14**, vitrin 5, içerik 6.
 Eksik: süre/bellek baseline artefaktı, HTTP önbellek başlıkları (faz 12).
 
-### ⛔ 12–28 (Cache, SEO/GEO, Content, AI, Command Center'lar)
-`website_id` ve sorgu bütçesi hazır; sıra ve önkoşullar değişmedi.
+### 12–14. Cache Engine · Tenant İzolasyonu · Gözlem 🟡 (v1 ✅)
+`ContentCache`: website başına SÜRÜMLÜ anahtar (`site:{id}:v{n}:{ad}`) —
+geçersizleme sürümü artırır, başka sitenin anahtarına dokunmaz; etiket
+gerektirmez (database/Redis). CMS okumaları (yazı listesi, sayfalar, slug)
+önbellekte; yayın akışı ve zamanlanmış yayın kendiliğinden geçersiz kılar.
+Vitrin HTTP başlıkları: misafire `public, max-age=60, s-maxage=300` + ETag/304;
+oturum açmışa `private, no-store`. Panel `/panel/onbellek`: sürüm, isabet/
+ıskalama/oran, ısıtma (`cache.warm`), geçersizleme JIT'li (`cache.invalidate`,
+kaynak = website id; global purge kaynak 0, yıkıcı). `EnsurePermission` boş
+kapsam ve sabit kaynak id (`=0`) destekler.
+Eksik: `cache.inspect` (anahtar içeriği), `cache.settings`, Redis etiketli
+genişletme, CDN purge entegrasyonu.
+
+### ⛔ 15–28 (SEO/GEO, Content, AI, Command Center'lar)
+`website_id`, sorgu bütçesi ve önbellek hazır; sıra ve önkoşullar değişmedi.
 
 ---
 
@@ -143,8 +156,8 @@ Eksik: süre/bellek baseline artefaktı, HTTP önbellek başlıkları (faz 12).
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 12** — Advanced Cache Engine: yayındaki içerik/vitrin için HTTP
-   önbellek başlıkları + uygulama önbelleği, tenant başına anahtar (faz 13).
+2. **Faz 15 SEO Engine** — `contents.meta_*` var; sitemap (faz 21), canonical,
+   robots, JSON-LD; `seo.*` izinleri matriste hazır.
 3. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
    (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
    vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık

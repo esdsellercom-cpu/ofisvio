@@ -29,6 +29,8 @@ class ContentService
 {
     private const WORDS_PER_MINUTE = 200;
 
+    public function __construct(private readonly ContentCache $cache) {}
+
     // -----------------------------------------------------------------
     // Okuma (vitrin)
     // -----------------------------------------------------------------
@@ -75,13 +77,14 @@ class ContentService
             return new Collection;
         }
 
-        return Content::query()
+        // Önbellek: yayın/geçersizleme sürümü artırır (bkz. ContentCache).
+        return $this->cache->remember($website, "posts:{$limit}", fn () => Content::query()
             ->where('website_id', $website->id)
             ->where('kind', ContentKind::POST->value)
             ->live()
             ->orderByDesc('published_at')
             ->limit($limit)
-            ->get();
+            ->get());
     }
 
     /** @return Collection<int, Content> */
@@ -91,12 +94,12 @@ class ContentService
             return new Collection;
         }
 
-        return Content::query()
+        return $this->cache->remember($website, 'pages', fn () => Content::query()
             ->where('website_id', $website->id)
             ->where('kind', ContentKind::PAGE->value)
             ->live()
             ->orderBy('title')
-            ->get();
+            ->get());
     }
 
     public function findLive(?Website $website, ContentKind $kind, string $slug): ?Content
@@ -105,12 +108,13 @@ class ContentService
             return null;
         }
 
-        return Content::query()
+        // Slug dışarıdan gelir: anahtara ham değil hash'lenmiş girer.
+        return $this->cache->remember($website, "content:{$kind->value}:".sha1($slug), fn () => Content::query()
             ->where('website_id', $website->id)
             ->where('kind', $kind->value)
             ->where('slug', $slug)
             ->live()
-            ->first();
+            ->first());
     }
 
     // -----------------------------------------------------------------
@@ -154,6 +158,7 @@ class ContentService
             ]);
 
             $this->snapshot($content, $author);
+            $this->cache->invalidate($website);
 
             return $content;
         });
@@ -191,6 +196,7 @@ class ContentService
             $content->save();
 
             $this->snapshot($content, $editor);
+            $this->cache->invalidate($content->website);
 
             return $content;
         });
@@ -265,6 +271,7 @@ class ContentService
             }
 
             $content->save();
+            $this->cache->invalidate($content->website);
 
             return $content;
         });
@@ -290,6 +297,7 @@ class ContentService
                 $content->published_by = $content->reviewed_by;
                 $content->scheduled_for = null;
                 $content->save();
+                $this->cache->invalidate($content->website);
             });
         }
 

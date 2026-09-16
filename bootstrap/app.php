@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureStaffTwoFactor;
 use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\PerRequestCaches;
+use App\Http\Middleware\PublicCacheHeaders;
 use App\Http\Middleware\ResolveWebsite;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -22,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [ResolveWebsite::class, PerRequestCaches::class]);
 
         $middleware->alias([
+            'public.cache' => PublicCacheHeaders::class,
             'tenant' => EnsureTenantContext::class,
             'permission' => EnsurePermission::class,
             'staff.2fa' => EnsureStaffTwoFactor::class,

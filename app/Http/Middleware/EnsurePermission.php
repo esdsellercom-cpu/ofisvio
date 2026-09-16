@@ -14,6 +14,8 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Kullanım (route tanımında):
  *   ->middleware('permission:kyc.upload,company')
+ *   ->middleware('permission:cache.invalidate,,cache,website')   // kapsamsız, kaynaklı
+ *   ->middleware('permission:cache.invalidate,,cache,=0')        // sabit kaynak id
  *   ->middleware('permission:visitor.view,location')
  *   ->middleware('permission:kyc.view|kyc.view_document,company,kyc_document,document')
  *
@@ -52,6 +54,12 @@ class EnsurePermission
             throw TenantContextException::noActiveContext();
         }
 
+        // Kapsam yok ama kaynak var: permission:cache.invalidate,,cache,website
+        // biçiminde ikinci parametre boş gelir; null ile aynı anlamdadır.
+        if ($scopeParam === '') {
+            $scopeParam = null;
+        }
+
         $companyId = null;
         $locationId = null;
 
@@ -81,7 +89,13 @@ class EnsurePermission
             ? []
             : $this->context->toArray($user, $companyId, $locationId);
 
-        $resourceId = $resourceParam !== null ? $this->routeId($request, $resourceParam) : null;
+        // Kaynak id route parametresinden gelir; '=N' biçimi sabit id'dir
+        // (ör. global purge için '=0' — route'ta parametre yok).
+        $resourceId = match (true) {
+            $resourceParam === null => null,
+            str_starts_with($resourceParam, '=') => (int) substr($resourceParam, 1),
+            default => $this->routeId($request, $resourceParam),
+        };
 
         $permissions = array_filter(array_map('trim', explode('|', $permission)));
 
