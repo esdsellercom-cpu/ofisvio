@@ -192,6 +192,29 @@
                             </form>
                         @endif
 
+                        {{-- Zamanlama: IN_REVIEW (onaysız) ya da APPROVED — zamanı gelince birleşir --}}
+                        @if ($can['schedule'] && (($draft->status === ContentStatus::IN_REVIEW && ! $content->requires_approval) || $draft->status === ContentStatus::APPROVED))
+                            <form method="POST" action="{{ route('panel.content.draft.schedule', $content) }}" class="inline-form">@csrf
+                                <label class="field"><span class="label">Birleştirme zamanı</span>
+                                    <input class="control" type="datetime-local" name="scheduled_for" required>
+                                </label>
+                                <button type="submit" class="btn btn--ghost">Zamanla</button>
+                            </form>
+                        @endif
+
+                        @if ($draft->status === ContentStatus::SCHEDULED)
+                            <p class="small muted" style="margin:0">Birleşme: {{ $draft->scheduled_for?->format('d.m.Y H:i') }}</p>
+                            @if ($can['publish'])
+                                <form method="POST" action="{{ route('panel.content.draft.publish', $content) }}">@csrf
+                                    <button type="submit" class="btn btn--brand btn--block">Şimdi birleştir</button>
+                                </form>
+                            @endif
+                            @if ($can['schedule'] || $can['edit'])
+                                <form method="POST" action="{{ route('panel.content.draft.restore', $content) }}">@csrf
+                                    <button type="submit" class="btn btn--ghost btn--block">Zamanlamayı iptal et (taslağa al)</button>
+                                </form>
+                            @endif
+                        @endif
                         @if ($can['edit'])
                             <form method="POST" action="{{ route('panel.content.draft.discard', $content) }}">@csrf @method('DELETE')
                                 <button type="submit" class="btn btn--ghost btn--block" style="color:var(--danger);border-color:#E9C4BC">Taslağı sil</button>

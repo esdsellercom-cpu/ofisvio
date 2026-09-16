@@ -20,6 +20,7 @@ class ContentDraft extends Model
     protected $casts = [
         'status' => ContentStatus::class,
         'noindex' => 'boolean',
+        'scheduled_for' => 'datetime',
     ];
 
     /** @return BelongsTo<Content, $this> */

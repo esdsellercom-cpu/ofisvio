@@ -148,11 +148,28 @@ class ContentEngineTest extends TestCase
         $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak/yayinla")->assertRedirect();
         $this->assertSame('Aydınlatma metni v2', $content->fresh()->title);
 
+        // Onaylı taslak zamanlanabilir; onay korunur ve zamanlayıcı birleştirir. Onaysız zamanlama reddedilir.
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak")->assertRedirect();
+        $this->actingAs($admin)->put("/panel/icerik/{$content->id}/taslak", ['title' => 'Aydınlatma metni v3', 'body' => 'Üçüncü sürüm.'])->assertRedirect();
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak/incelemeye-gonder")->assertRedirect();
+        $this->actingAs($admin)->from("/panel/icerik/{$content->id}")
+            ->post("/panel/icerik/{$content->id}/taslak/zamanla", ['scheduled_for' => now()->addDay()->format('Y-m-d H:i')])
+            ->assertSessionHasErrors('status');
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak/onayla")->assertRedirect();
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak/zamanla", ['scheduled_for' => now()->addDay()->format('Y-m-d H:i')])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(ContentStatus::SCHEDULED, $content->fresh()->draft?->status);
+        $this->assertSame($admin->id, (int) $content->fresh()->draft?->approved_by);
+        $this->travel(25)->hours();
+        $this->artisan('content:publish-scheduled')->assertSuccessful();
+        $this->travelBack();
+        $this->assertNull($content->fresh()->draft);
+        $this->assertSame('Aydınlatma metni v3', $content->fresh()->title);
+
         // Taslak silme canlıyı etkilemez; taslak olmayan içerik için taslak açılmaz.
         $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak")->assertRedirect();
         $this->actingAs($admin)->delete("/panel/icerik/{$content->id}/taslak")->assertRedirect("/panel/icerik/{$content->id}");
         $this->assertNull($content->fresh()->draft);
-        $this->assertSame('Aydınlatma metni v2', $content->fresh()->title);
+        $this->assertSame('Aydınlatma metni v3', $content->fresh()->title);
 
         $plainDraft = Content::create(['website_id' => $this->website->id, 'kind' => 'post', 'slug' => 'taslak', 'title' => 'Taslak yazı']);
         $this->actingAs($admin)->from("/panel/icerik/{$plainDraft->id}")

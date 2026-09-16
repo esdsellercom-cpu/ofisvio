@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **188/188** (Unit 10 · Feature 172 · Architecture 6) |
+| `php artisan test` | ✅ **191/191** (Unit 10 · Feature 175 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -99,9 +99,19 @@ siteleri (owner:company `content.edit`) faz 10 ile gelir.
 üretmez). Müşteri sitesi kendi iskeletiyle (`layouts.tenant`: site adı +
 yayındaki sayfa menüsü) kendi sayfa/yazılarını gösterir; içerik siteler arası
 sızmaz. Personel `/panel/websiteler` ile site açar (ad, alan adı, organizasyon —
-§66), editörde site seçer. Eksik: tema/şablon seçimi, menü yönetimi, müşteri
-kullanıcılarının kendi sitesini yönetmesi (company kapsamlı `content.*`),
-vitrin bloklarının (çözümler, planlar) CMS'e taşınması.
+§66), editörde site seçer.
+**Müşteri sitesi yönetimi (v2 ✅):** `/panel/sirketler/{company}/site` — şirket
+kapsamlı `content.edit / review / schedule` (matris: owner üçünü, company_admin
+yalnız edit taşır). Müşteri sayfasını düzenler, incelemeye gönderir ve
+**zamanlar**; yayın = zamanlama (`content.publish` personelde kalır; onay
+gerektiren metin Ofisvio onayı bekler). Yayındaki sayfa için çalışma taslağı
+açar, taslak da zamanlanır; `content:publish-scheduled` zamanı gelince
+birleştirir. Tenant sınırı: `{content}` model binding DEĞİL, servis
+organizasyonun sitelerine süzer, yabancı içerik 404; yabancı şirket 404.
+Yeni sayfa açma ve doğrudan yayın personelde (`/panel/icerik`, site seçici).
+Eksik: tema/şablon seçimi, menü yönetimi, vitrin bloklarının (çözümler,
+planlar) CMS'e taşınması, müşteri için SEO alanı düzenleme (`seo.edit`
+company kapsamlı ama ekranı yok).
 
 ---
 
@@ -176,7 +186,7 @@ alınmışsa `-2`). Eksik: otomatik iç bağlantı önerisi, etiketler.
 zamanlanmış → `scheduled_for`, yayında → `published_at`), yan panelde iş
 hattı (taslak / incelemede / onaylı / çalışma taslakları) ve **gecikmiş
 zamanlama** uyarısı (zamanı geçmiş SCHEDULED = `content:publish-scheduled`
-çalışmıyor sinyali). Sorgu bütçesi: kayıt sayısından bağımsız (12 sorgu üst
+çalışmıyor sinyali). Zamanlanmış çalışma taslakları (↻) birleşme gününde. Sorgu bütçesi: kayıt sayısından bağımsız (12 sorgu üst
 sınır); yazı sayfası da bütçede (ilgili yazılar önbellekli listeden).
 Eksik: sürükle-bırak yeniden zamanlama, editör bazlı iş yükü, haftalık görünüm.
 
@@ -206,10 +216,9 @@ Temeller hazır; sıra değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
-   (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
-   vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık
-   `website_id` üzerinde açılabilir.
+2. **Faz 10 kalanı** — menü/tema, vitrin bloklarının CMS'e taşınması,
+   müşteri paneline SEO alanları (`seo.edit`, company). 11+ (SEO/GEO/
+   Performance) artık `website_id` üzerinde açılabilir.
 3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
    `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
    bloklara taşınır.

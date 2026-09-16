@@ -1,0 +1,262 @@
+<?php
+
+namespace App\Http\Controllers\Panel;
+
+use App\Enums\ContentStatus;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreContentRequest;
+use App\Models\Company;
+use App\Models\Content;
+use App\Services\ContentService;
+use App\Services\TenantContext;
+use DomainException;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+
+/**
+ * Müşteri sitesi (faz 10): organizasyonun web sitesindeki içerik, müşteri
+ * panelinden. Matris müşteri rollerine yalnızca company kapsamlı
+ * content.edit / content.review / content.schedule verir — oluşturma, doğrudan
+ * yayın, onay ve arşiv personelde kalır. Müşteri için yayın = ZAMANLAMA
+ * (content:publish-scheduled zamanı gelince yayınlar/birleştirir).
+ *
+ * Tenant sınırı: {company} permission middleware'inde aktif organizasyona
+ * karşı doğrulanır; içerik ContentService::findForOrganization ile o
+ * organizasyonun sitelerine süzülür — başka organizasyonun içeriği 404.
+ * {content} model binding DEĞİLDİR (int); yalnızca süzülmüş yoldan çözülür.
+ */
+class SiteController extends Controller
+{
+    public function __construct(
+        private readonly ContentService $contents,
+        private readonly TenantContext $context,
+    ) {}
+
+    private function organizationId(Request $request, Company $company): int
+    {
+        return (int) $this->context->toArray($request->user(), $company->id)['organization_id'];
+    }
+
+    private function find(Request $request, Company $company, int $id): Content
+    {
+        $content = $this->contents->findForOrganization($this->organizationId($request, $company), $id);
+
+        abort_if($content === null, 404);
+
+        return $content;
+    }
+
+    /** @return array<string, bool> */
+    private function abilities(Request $request, Company $company): array
+    {
+        $user = $request->user();
+
+        return [
+            'edit' => $user->can('content.edit', $company),
+            'review' => $user->can('content.review', $company),
+            'schedule' => $user->can('content.schedule', $company),
+        ];
+    }
+
+    public function index(Request $request, Company $company): View
+    {
+        $organizationId = $this->organizationId($request, $company);
+
+        return view('panel.site.index', [
+            'company' => $company,
+            'websites' => $this->contents->websitesOf($organizationId),
+            'items' => $this->contents->listForOrganization($organizationId),
+        ]);
+    }
+
+    public function show(Request $request, Company $company, int $content): View
+    {
+        $model = $this->find($request, $company, $content);
+
+        return view('panel.site.show', [
+            'company' => $company,
+            'content' => $model,
+            'draft' => $model->draft,
+            'revisions' => $this->contents->revisionsOf($model),
+            'can' => $this->abilities($request, $company),
+        ]);
+    }
+
+    public function edit(Request $request, Company $company, int $content): View|RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+
+        if ($model->status !== ContentStatus::DRAFT) {
+            return redirect()->route('panel.companies.site.show', [$company, $model->id])
+                ->withErrors(['status' => 'Yalnızca taslak düzenlenir; yayındaki sayfa için çalışma taslağı açın.']);
+        }
+
+        return view('panel.content.form', [
+            'content' => $model,
+            'website' => $model->website,
+            'kind' => $model->kind,
+            'formAction' => route('panel.companies.site.update', [$company, $model->id]),
+            'indexUrl' => route('panel.companies.site.index', $company),
+            'cancelUrl' => route('panel.companies.site.show', [$company, $model->id]),
+        ]);
+    }
+
+    public function update(StoreContentRequest $request, Company $company, int $content): RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+
+        try {
+            $this->contents->update($request->user(), $model, $request->validated());
+        } catch (DomainException $e) {
+            return back()->withErrors(['title' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('panel.companies.site.show', [$company, $model->id])->with('status', 'Kaydedildi (yeni revizyon).');
+    }
+
+    public function submit(Request $request, Company $company, int $content): RedirectResponse
+    {
+        return $this->move($request, $company, $content, ContentStatus::IN_REVIEW, 'İncelemeye gönderildi.');
+    }
+
+    public function reject(Request $request, Company $company, int $content): RedirectResponse
+    {
+        $request->validate(['note' => ['required', 'string', 'max:2000']]);
+
+        return $this->move($request, $company, $content, ContentStatus::DRAFT, 'Taslağa geri gönderildi.');
+    }
+
+    public function schedule(Request $request, Company $company, int $content): RedirectResponse
+    {
+        $validated = $request->validate(['scheduled_for' => ['required', 'date', 'after:now']]);
+
+        return $this->move($request, $company, $content, ContentStatus::SCHEDULED, 'Zamanlandı; zamanı gelince yayınlanır.', Carbon::parse($validated['scheduled_for'], config('app.timezone')));
+    }
+
+    public function restore(Request $request, Company $company, int $content): RedirectResponse
+    {
+        return $this->move($request, $company, $content, ContentStatus::DRAFT, 'Taslağa alındı.');
+    }
+
+    // --- Çalışma taslağı (yayındaki sayfa) ---------------------------------
+
+    public function openDraft(Request $request, Company $company, int $content): RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+
+        try {
+            $this->contents->openDraft($request->user(), $model);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('panel.companies.site.draft.edit', [$company, $model->id])->with('status', 'Çalışma taslağı açıldı; yayındaki sayfa değişmedi.');
+    }
+
+    public function editDraft(Request $request, Company $company, int $content): View|RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+        $draft = $model->draft;
+
+        if ($draft === null || $draft->status !== ContentStatus::DRAFT) {
+            return redirect()->route('panel.companies.site.show', [$company, $model->id])
+                ->withErrors(['status' => $draft === null ? 'Bu sayfanın çalışma taslağı yok.' : 'Taslak incelemede; düzenlemek için önce geri alın.']);
+        }
+
+        return view('panel.content.form', [
+            'content' => $model,
+            'draft' => $draft,
+            'website' => $model->website,
+            'kind' => $model->kind,
+            'formAction' => route('panel.companies.site.draft.update', [$company, $model->id]),
+            'indexUrl' => route('panel.companies.site.index', $company),
+            'cancelUrl' => route('panel.companies.site.show', [$company, $model->id]),
+        ]);
+    }
+
+    public function updateDraft(StoreContentRequest $request, Company $company, int $content): RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+        $draft = $model->draft;
+
+        if ($draft === null) {
+            return redirect()->route('panel.companies.site.show', [$company, $model->id])->withErrors(['status' => 'Bu sayfanın çalışma taslağı yok.']);
+        }
+
+        try {
+            $this->contents->updateDraft($request->user(), $draft, $request->validated());
+        } catch (DomainException $e) {
+            return back()->withErrors(['title' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('panel.companies.site.show', [$company, $model->id])->with('status', 'Çalışma taslağı kaydedildi.');
+    }
+
+    public function submitDraft(Request $request, Company $company, int $content): RedirectResponse
+    {
+        return $this->moveDraft($request, $company, $content, ContentStatus::IN_REVIEW, 'Taslak incelemeye gönderildi.');
+    }
+
+    public function rejectDraft(Request $request, Company $company, int $content): RedirectResponse
+    {
+        $request->validate(['note' => ['required', 'string', 'max:2000']]);
+
+        return $this->moveDraft($request, $company, $content, ContentStatus::DRAFT, 'Taslak geri gönderildi.');
+    }
+
+    public function scheduleDraft(Request $request, Company $company, int $content): RedirectResponse
+    {
+        $validated = $request->validate(['scheduled_for' => ['required', 'date', 'after:now']]);
+
+        return $this->moveDraft($request, $company, $content, ContentStatus::SCHEDULED, 'Taslak zamanlandı; zamanı gelince yayındaki sayfayla birleşir.', Carbon::parse($validated['scheduled_for'], config('app.timezone')));
+    }
+
+    public function restoreDraft(Request $request, Company $company, int $content): RedirectResponse
+    {
+        return $this->moveDraft($request, $company, $content, ContentStatus::DRAFT, 'Taslak düzenlenebilir duruma alındı.');
+    }
+
+    public function discardDraft(Request $request, Company $company, int $content): RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+
+        if ($model->draft !== null) {
+            $this->contents->discardDraft($model->draft);
+        }
+
+        return redirect()->route('panel.companies.site.show', [$company, $model->id])->with('status', 'Çalışma taslağı silindi; yayındaki sayfa olduğu gibi kaldı.');
+    }
+
+    private function move(Request $request, Company $company, int $content, ContentStatus $target, string $message, ?Carbon $scheduledFor = null): RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+
+        try {
+            $this->contents->transition($request->user(), $model, $target, $request->input('note'), $scheduledFor);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('panel.companies.site.show', [$company, $model->id])->with('status', $message);
+    }
+
+    private function moveDraft(Request $request, Company $company, int $content, ContentStatus $target, string $message, ?Carbon $scheduledFor = null): RedirectResponse
+    {
+        $model = $this->find($request, $company, $content);
+        $draft = $model->draft;
+
+        if ($draft === null) {
+            return back()->withErrors(['status' => 'Bu sayfanın çalışma taslağı yok.']);
+        }
+
+        try {
+            $this->contents->transitionDraft($request->user(), $draft, $target, $request->input('note'), $scheduledFor);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('panel.companies.site.show', [$company, $model->id])->with('status', $message);
+    }
+}

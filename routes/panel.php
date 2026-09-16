@@ -26,6 +26,7 @@ use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\SeoController;
+use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -90,6 +91,8 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 Route::post('/geri-gonder', [ContentDraftController::class, 'reject'])->middleware('permission:content.review')->name('reject');
                 Route::post('/onayla', [ContentDraftController::class, 'approve'])->middleware('permission:content.approve')->name('approve');
                 Route::post('/yayinla', [ContentDraftController::class, 'publish'])->middleware('permission:content.publish')->name('publish');
+                Route::post('/zamanla', [ContentDraftController::class, 'schedule'])->middleware('permission:content.schedule')->name('schedule');
+                Route::post('/taslaga-al', [ContentDraftController::class, 'restore'])->middleware('permission:content.edit|content.schedule')->name('restore');
                 Route::delete('/', [ContentDraftController::class, 'discard'])->middleware('permission:content.edit')->name('discard');
             });
         });
@@ -212,6 +215,32 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 ->name('companies.members.reactivate');
 
             // Personel kuyruğu — aktif organizasyon içinde.
+            // Müşteri sitesi (faz 10) — organizasyonun web sitesi, şirket kapsamlı content.*.
+            // Matris: owner edit/review/schedule, company_admin edit; yayın = zamanlama.
+            // {content} int'tir (model binding yok): SiteController organizasyona süzerek çözer, aksi 404.
+            Route::prefix('/sirketler/{company}/site')->name('companies.site.')->where(['content' => '[0-9]+'])->group(function () {
+                $canSee = 'permission:content.edit|content.review|content.schedule,company';
+
+                Route::get('/', [SiteController::class, 'index'])->middleware($canSee)->name('index');
+                Route::get('/{content}', [SiteController::class, 'show'])->middleware($canSee)->name('show');
+                Route::get('/{content}/duzenle', [SiteController::class, 'edit'])->middleware('permission:content.edit,company')->name('edit');
+                Route::put('/{content}', [SiteController::class, 'update'])->middleware('permission:content.edit,company')->name('update');
+                Route::post('/{content}/incelemeye-gonder', [SiteController::class, 'submit'])->middleware('permission:content.edit,company')->name('submit');
+                Route::post('/{content}/geri-gonder', [SiteController::class, 'reject'])->middleware('permission:content.review,company')->name('reject');
+                Route::post('/{content}/zamanla', [SiteController::class, 'schedule'])->middleware('permission:content.schedule,company')->name('schedule');
+                Route::post('/{content}/taslaga-al', [SiteController::class, 'restore'])->middleware('permission:content.edit|content.schedule,company')->name('restore');
+
+                Route::prefix('/{content}/taslak')->name('draft.')->group(function () {
+                    Route::post('/', [SiteController::class, 'openDraft'])->middleware('permission:content.edit,company')->name('open');
+                    Route::get('/duzenle', [SiteController::class, 'editDraft'])->middleware('permission:content.edit,company')->name('edit');
+                    Route::put('/', [SiteController::class, 'updateDraft'])->middleware('permission:content.edit,company')->name('update');
+                    Route::post('/incelemeye-gonder', [SiteController::class, 'submitDraft'])->middleware('permission:content.edit,company')->name('submit');
+                    Route::post('/geri-gonder', [SiteController::class, 'rejectDraft'])->middleware('permission:content.review,company')->name('reject');
+                    Route::post('/zamanla', [SiteController::class, 'scheduleDraft'])->middleware('permission:content.schedule,company')->name('schedule');
+                    Route::post('/taslaga-al', [SiteController::class, 'restoreDraft'])->middleware('permission:content.edit|content.schedule,company')->name('restore');
+                    Route::delete('/', [SiteController::class, 'discardDraft'])->middleware('permission:content.edit,company')->name('discard');
+                });
+            });
             Route::get('/kyc-kuyrugu', [KycController::class, 'queue'])
                 ->middleware('permission:kyc.view_status')
                 ->name('kyc.queue');

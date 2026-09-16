@@ -332,7 +332,70 @@ class ContentService
             });
         }
 
-        return $due->count();
+        // Zamanlanmış çalışma taslakları: zamanı gelince canlı içeriğe birleşir.
+        // Aktör = zamanlayan (author_id). Birleşemeyen taslak (içerik yayından
+        // düşmüş, yazar silinmiş) bekler ve takvimde gecikmiş olarak görünür.
+        $dueDrafts = ContentDraft::query()
+            ->with(['content', 'author'])
+            ->where('status', ContentStatus::SCHEDULED->value)
+            ->whereNotNull('scheduled_for')
+            ->where('scheduled_for', '<=', now())
+            ->get();
+
+        $merged = 0;
+
+        foreach ($dueDrafts as $draft) {
+            $actor = $draft->author;
+
+            if ($actor === null) {
+                continue;
+            }
+
+            try {
+                $this->publishDraft($actor, $draft);
+                $merged++;
+            } catch (DomainException) {
+                // taslak bekler
+            }
+        }
+
+        return $due->count() + $merged;
+    }
+
+    // -----------------------------------------------------------------
+    // Müşteri sitesi (faz 10): organizasyonun siteleri ve içeriği
+    // -----------------------------------------------------------------
+
+    /**
+     * Organizasyonun siteleri. Tenant sınırı BURADA çizilir: çağıran, doğrulanmış
+     * TenantContext'ten gelen organizasyon id'sini geçer.
+     *
+     * @return Collection<int, Website>
+     */
+    public function websitesOf(int $organizationId): Collection
+    {
+        return Website::query()->where('organization_id', $organizationId)->orderBy('name')->get();
+    }
+
+    /** @return Collection<int, Content> */
+    public function listForOrganization(int $organizationId): Collection
+    {
+        return Content::query()
+            ->with(['author', 'website', 'draft'])
+            ->whereHas('website', fn ($q) => $q->where('organization_id', $organizationId))
+            ->orderBy('kind')
+            ->orderByDesc('updated_at')
+            ->get();
+    }
+
+    /** Başka organizasyonun içeriği null döner (çağıran 404 verir; 403 varlığı sızdırır). */
+    public function findForOrganization(int $organizationId, int $contentId): ?Content
+    {
+        return Content::query()
+            ->with(['website', 'draft'])
+            ->whereKey($contentId)
+            ->whereHas('website', fn ($q) => $q->where('organization_id', $organizationId))
+            ->first();
     }
 
     // -----------------------------------------------------------------
@@ -476,37 +539,47 @@ class ContentService
     /**
      * Taslak akışı: DRAFT -> IN_REVIEW -> DRAFT (geri) | APPROVED. Yayın = publishDraft().
      */
-    public function transitionDraft(User $actor, ContentDraft $draft, ContentStatus $target, ?string $note = null): ContentDraft
+    public function transitionDraft(User $actor, ContentDraft $draft, ContentStatus $target, ?string $note = null, ?Carbon $scheduledFor = null): ContentDraft
     {
-        if (! in_array($target, [ContentStatus::DRAFT, ContentStatus::IN_REVIEW, ContentStatus::APPROVED], true)) {
-            throw new DomainException('Çalışma taslağı yalnızca taslak/inceleme/onay durumlarını alır; yayın birleştirme ile yapılır.');
+        if (! in_array($target, [ContentStatus::DRAFT, ContentStatus::IN_REVIEW, ContentStatus::APPROVED, ContentStatus::SCHEDULED], true)) {
+            throw new DomainException('Çalışma taslağı yalnızca taslak/inceleme/onay/zamanlanmış durumlarını alır; yayın birleştirme ile yapılır.');
         }
 
         if (! $draft->status->canTransitionTo($target)) {
             throw new DomainException("Geçersiz taslak geçişi: {$draft->status->value} -> {$target->value}");
         }
 
+        if ($target === ContentStatus::SCHEDULED) {
+            $this->assertDraftMergeable($draft);
+
+            if ($scheduledFor === null || $scheduledFor->isPast()) {
+                throw new DomainException('Zamanlama için gelecekte bir tarih gerekir.');
+            }
+        }
+
         $draft->status = $target;
         $draft->review_note = $target === ContentStatus::IN_REVIEW ? null : $note;
-        $draft->approved_by = $target === ContentStatus::APPROVED ? $actor->id : null;
+        $draft->approved_by = $target === ContentStatus::APPROVED ? $actor->id : ($target === ContentStatus::SCHEDULED ? $draft->approved_by : null);
+        $draft->scheduled_for = $target === ContentStatus::SCHEDULED ? $scheduledFor : null;
         $draft->save();
 
         return $draft;
     }
 
     /**
-     * Taslağı canlı içeriğe birleştirir: içerik yayında KALIR, alanları güncellenir,
-     * revizyon düşer, önbellek geçersiz kılınır, taslak silinir.
+     * Birleştirme ön koşulları (yayınla ve zamanla için ortak). Onay gerektiren
+     * içerikte taslak APPROVED'dan geçmiş olmalı (approved_by dolu); zamanlanmış
+     * taslak onayını korur.
      */
-    public function publishDraft(User $actor, ContentDraft $draft): Content
+    private function assertDraftMergeable(ContentDraft $draft): void
     {
         $content = $draft->content;
 
-        if (! in_array($draft->status, [ContentStatus::IN_REVIEW, ContentStatus::APPROVED], true)) {
+        if (! in_array($draft->status, [ContentStatus::IN_REVIEW, ContentStatus::APPROVED, ContentStatus::SCHEDULED], true)) {
             throw new DomainException('Taslak incelemeye gönderilmeden yayınlanamaz.');
         }
 
-        if ($content->requires_approval && $draft->status !== ContentStatus::APPROVED) {
+        if ($content->requires_approval && $draft->approved_by === null) {
             throw new DomainException('Bu içerik onay gerektirir: taslak önce onaylanmalı.');
         }
 
@@ -517,6 +590,16 @@ class ContentService
         if ($content->status !== ContentStatus::PUBLISHED) {
             throw new DomainException('İçerik artık yayında değil; taslağı silip içeriği doğrudan düzenleyin.');
         }
+    }
+
+    /**
+     * Taslağı canlı içeriğe birleştirir: içerik yayında KALIR, alanları güncellenir,
+     * revizyon düşer, önbellek geçersiz kılınır, taslak silinir.
+     */
+    public function publishDraft(User $actor, ContentDraft $draft): Content
+    {
+        $content = $draft->content;
+        $this->assertDraftMergeable($draft);
 
         return DB::transaction(function () use ($actor, $draft, $content) {
             $payload = $draft->payload();
@@ -547,7 +630,9 @@ class ContentService
      * Aylık takvim: gün (Y-m-d) => içerikler. Zamanlanmış içerik scheduled_for,
      * yayındaki içerik published_at gününe düşer; başka durumlar takvimde yoktur.
      *
-     * @return array<string, Collection<int, Content>>
+     * Zamanlanmış çalışma taslakları da (ContentDraft) birleşme gününe düşer.
+     *
+     * @return array<string, Collection<int, Content|ContentDraft>>
      */
     public function calendar(Website $website, CarbonImmutable $month): array
     {
@@ -579,6 +664,25 @@ class ContentService
             $days[$key]->push($item);
         }
 
+        $drafts = ContentDraft::query()
+            ->with(['content', 'author'])
+            ->where('status', ContentStatus::SCHEDULED->value)
+            ->whereBetween('scheduled_for', [$start, $end])
+            ->whereHas('content', fn ($q) => $q->where('website_id', $website->id))
+            ->orderBy('scheduled_for')
+            ->get();
+
+        foreach ($drafts as $draft) {
+            $key = $draft->scheduled_for?->format('Y-m-d');
+
+            if ($key === null) {
+                continue;
+            }
+
+            $days[$key] ??= new Collection;
+            $days[$key]->push($draft);
+        }
+
         ksort($days);
 
         return $days;
@@ -590,7 +694,7 @@ class ContentService
      * Gecikmiş = SCHEDULED ama zamanı geçmiş: zamanlayıcı (content:publish-scheduled)
      * çalışmıyor demektir; takvimde uyarı olarak gösterilir.
      *
-     * @return array{draft: Collection<int, Content>, in_review: Collection<int, Content>, approved: Collection<int, Content>, working: Collection<int, ContentDraft>, overdue: Collection<int, Content>}
+     * @return array{draft: Collection<int, Content>, in_review: Collection<int, Content>, approved: Collection<int, Content>, working: Collection<int, ContentDraft>, overdue: Collection<int, Content|ContentDraft>}
      */
     public function pipeline(Website $website): array
     {
@@ -612,7 +716,10 @@ class ContentService
             'in_review' => $pending->where('status', ContentStatus::IN_REVIEW)->values(),
             'approved' => $pending->where('status', ContentStatus::APPROVED)->values(),
             'working' => $working,
-            'overdue' => $pending->filter(fn (Content $c) => $c->status === ContentStatus::SCHEDULED && $c->scheduled_for !== null && $c->scheduled_for->isPast())->values(),
+            'overdue' => $pending
+                ->filter(fn (Content $c) => $c->status === ContentStatus::SCHEDULED && $c->scheduled_for !== null && $c->scheduled_for->isPast())
+                ->concat($working->filter(fn (ContentDraft $d) => $d->status === ContentStatus::SCHEDULED && $d->scheduled_for !== null && $d->scheduled_for->isPast()))
+                ->values(),
         ];
     }
 

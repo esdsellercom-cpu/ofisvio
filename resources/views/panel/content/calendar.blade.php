@@ -4,12 +4,15 @@
 
 @php
     use App\Enums\ContentStatus;
+    use App\Models\ContentDraft;
+    // Takvimde ve gecikmiş listesinde Content ya da zamanlanmış ContentDraft (çalışma taslağı) bulunur.
+    $target = fn ($x) => $x instanceof ContentDraft ? $x->content : $x;
     $prev = $month->subMonth()->format('Y-m');
     $next = $month->addMonth()->format('Y-m');
     // Izgara pazartesiden başlar; ay öncesi/sonrası boş hücrelerle tamamlanır.
     $firstCell = $month->startOfMonth()->startOfWeek();
     $lastCell = $month->endOfMonth()->endOfWeek();
-    $overdueIds = $pipeline['overdue']->pluck('id')->all();
+    $overdueKeys = $pipeline['overdue']->map(fn ($x) => ($x instanceof ContentDraft ? 'd' : 'c').$x->id)->all();
     $inMonth = collect($days)->flatten(1);
 @endphp
 
@@ -47,7 +50,7 @@
                 <strong>Gecikmiş zamanlama:</strong> {{ $pipeline['overdue']->count() }} içeriğin yayın zamanı geçti ama yayınlanmadı.
                 Zamanlayıcı çalışmıyor olabilir (<code>php artisan schedule:run</code> / <code>content:publish-scheduled</code>).
                 @foreach ($pipeline['overdue'] as $c)
-                    <div class="small"><a href="{{ route('panel.content.show', $c) }}">{{ $c->title }}</a> · {{ $c->scheduled_for?->format('d.m.Y H:i') }}</div>
+                    <div class="small"><a href="{{ route('panel.content.show', $target($c)) }}">{{ $c->title }}</a>{{ $c instanceof ContentDraft ? ' (çalışma taslağı)' : '' }} · {{ $c->scheduled_for?->format('d.m.Y H:i') }}</div>
                 @endforeach
             </div>
         </div>
@@ -65,10 +68,11 @@
                     <div class="calendar__day{{ $cell->month !== $month->month ? ' is-outside' : '' }}{{ $key === $today ? ' is-today' : '' }}" role="gridcell" aria-label="{{ $cell->translatedFormat('j F') }}">
                         <div class="calendar__num mono small">{{ $cell->day }}</div>
                         @foreach ($items as $item)
-                            @php($isOverdue = in_array($item->id, $overdueIds, true))
-                            <a href="{{ route('panel.content.show', $item) }}" class="calendar__item badge badge--{{ $isOverdue ? 'danger' : ($item->status === ContentStatus::SCHEDULED ? 'warn' : 'ok') }}" title="{{ $item->title }} · {{ $item->status->label() }}{{ $isOverdue ? ' · gecikmiş' : '' }}">
+                            @php($isDraft = $item instanceof ContentDraft)
+                            @php($isOverdue = in_array(($isDraft ? 'd' : 'c').$item->id, $overdueKeys, true))
+                            <a href="{{ route('panel.content.show', $target($item)) }}" class="calendar__item badge badge--{{ $isOverdue ? 'danger' : ($item->status === ContentStatus::SCHEDULED ? 'warn' : 'ok') }}" title="{{ $item->title }} · {{ $item->status->label() }}{{ $isDraft ? ' · çalışma taslağı (birleşme)' : '' }}{{ $isOverdue ? ' · gecikmiş' : '' }}">
                                 <span class="mono">{{ ($item->status === ContentStatus::SCHEDULED ? $item->scheduled_for : $item->published_at)?->format('H:i') }}</span>
-                                {{ $item->title }}
+                                {{ $isDraft ? '↻ ' : '' }}{{ $item->title }}
                             </a>
                         @endforeach
                     </div>
@@ -117,7 +121,7 @@
                         @foreach ($pipeline['working'] as $d)
                             <li>
                                 <a href="{{ route('panel.content.show', $d->content) }}" style="font-weight:600">{{ $d->title }}</a>
-                                <div class="small muted">{{ $d->status->label() }} · {{ $d->author?->name ?? '—' }} · {{ $d->updated_at?->diffForHumans() }}</div>
+                                <div class="small muted">{{ $d->status->label() }}@if ($d->scheduled_for) · birleşme {{ $d->scheduled_for->format('d.m.Y H:i') }}@endif · {{ $d->author?->name ?? '—' }} · {{ $d->updated_at?->diffForHumans() }}</div>
                             </li>
                         @endforeach
                     </ul>

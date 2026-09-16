@@ -16,6 +16,9 @@
             @can('membership.manage', $company)
                 <a href="{{ route('panel.companies.members.index', $company) }}" class="btn btn--ghost">Üyeler</a>
             @endcan
+            @canany(['content.edit', 'content.review', 'content.schedule'], $company)
+                <a href="{{ route('panel.companies.site.index', $company) }}" class="btn btn--ghost">Web sitesi</a>
+            @endcanany
             @canany(['kyc.view', 'kyc.view_status'], $company)
                 <a href="{{ route('panel.companies.kyc.show', $company) }}" class="btn btn--brand">KYC belgeleri</a>
             @endcanany

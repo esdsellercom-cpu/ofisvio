@@ -11,6 +11,7 @@ use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 /**
  * Çalışma taslağı (faz 18): yayındaki içerik canlıda kalırken kopyası
@@ -22,6 +23,8 @@ use Illuminate\Http\Request;
  *   reject   IN_REVIEW -> DRAFT (not zorunlu)     content.review
  *   approve  IN_REVIEW -> APPROVED                content.approve
  *   publish  birleştir + revizyon + önbellek      content.publish
+ *   schedule zamanla (zamanı gelince birleşir)    content.schedule
+ *   restore  SCHEDULED/IN_REVIEW -> DRAFT         content.edit | content.schedule
  *   discard  taslağı sil                          content.edit
  *
  * Taslak içerikle bire birdir ({content} üzerinden erişilir); controller'da DB sorgusu yok.
@@ -109,6 +112,19 @@ class ContentDraftController extends Controller
         return redirect()->route('panel.content.show', $content)->with('status', 'Taslak yayındaki metinle birleştirildi.');
     }
 
+    public function schedule(Request $request, Content $content): RedirectResponse
+    {
+        $validated = $request->validate(['scheduled_for' => ['required', 'date', 'after:now']]);
+
+        return $this->move($request, $content, ContentStatus::SCHEDULED, 'Taslak zamanlandı; zamanı gelince yayındaki metinle birleşir.', Carbon::parse($validated['scheduled_for'], config('app.timezone')));
+    }
+
+    /** Zamanlamayı iptal et ya da incelemedeki taslağı geri al: taslak durumuna döner. */
+    public function restore(Request $request, Content $content): RedirectResponse
+    {
+        return $this->move($request, $content, ContentStatus::DRAFT, 'Taslak düzenlenebilir duruma alındı.');
+    }
+
     public function discard(Content $content): RedirectResponse
     {
         $draft = $content->draft;
@@ -120,7 +136,7 @@ class ContentDraftController extends Controller
         return redirect()->route('panel.content.show', $content)->with('status', 'Çalışma taslağı silindi; yayındaki metin olduğu gibi kaldı.');
     }
 
-    private function move(Request $request, Content $content, ContentStatus $target, string $message): RedirectResponse
+    private function move(Request $request, Content $content, ContentStatus $target, string $message, ?Carbon $scheduledFor = null): RedirectResponse
     {
         $draft = $content->draft;
 
@@ -129,7 +145,7 @@ class ContentDraftController extends Controller
         }
 
         try {
-            $this->contents->transitionDraft($request->user(), $draft, $target, $request->input('note'));
+            $this->contents->transitionDraft($request->user(), $draft, $target, $request->input('note'), $scheduledFor);
         } catch (DomainException $e) {
             return back()->withErrors(['status' => $e->getMessage()]);
         }

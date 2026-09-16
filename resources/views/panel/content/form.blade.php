@@ -5,17 +5,21 @@
 {{-- $draft (faz 18): yayındaki içeriğin çalışma taslağı; alanlar taslaktan, form draft.update'e gider. --}}
 @php($draft = $draft ?? null)
 @php($src = $draft ?? $content)
+{{-- Müşteri paneli (faz 10) aynı formu kendi rotalarıyla kullanır: $formAction / $indexUrl / $cancelUrl. --}}
+@php($formAction = $formAction ?? ($draft ? route('panel.content.draft.update', $content) : ($content ? route('panel.content.update', $content) : route('panel.content.store'))))
+@php($indexUrl = $indexUrl ?? route('panel.content.index', ['website' => $website->id]))
+@php($cancelUrl = $cancelUrl ?? ($content ? route('panel.content.show', $content) : route('panel.content.index')))
 
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.content.index', ['website' => $website->id]) }}">İçerik</a> · {{ $website->name }} · {{ $kind->label() }}</p>
+            <p class="eyebrow"><a href="{{ $indexUrl }}">İçerik</a> · {{ $website->name }} · {{ $kind->label() }}</p>
             <h1 class="h2">{{ $draft ? 'Çalışma taslağını düzenle' : ($content ? 'Taslağı düzenle' : 'Yeni '.mb_strtolower($kind->label())) }}</h1>
             @if ($draft)<p class="small muted" style="margin:6px 0 0">Yayındaki metin değişmez; taslak akıştan geçip yayınlanınca birleşir.</p>@endif
         </div>
     </div>
 
-    <form method="POST" action="{{ $draft ? route('panel.content.draft.update', $content) : ($content ? route('panel.content.update', $content) : route('panel.content.store')) }}"
+    <form method="POST" action="{{ $formAction }}"
           class="grid-auto" style="--min:320px;--gap:20px;align-items:start">
         @csrf
         @if ($content) @method('PUT') @else <input type="hidden" name="kind" value="{{ $kind->value }}"><input type="hidden" name="website_id" value="{{ $website->id }}"> @endif
@@ -88,7 +92,7 @@
 
             <div style="display:flex;gap:10px;flex-wrap:wrap">
                 <button type="submit" class="btn btn--brand">{{ $content ? 'Kaydet' : 'Taslak oluştur' }}</button>
-                <a href="{{ $content ? route('panel.content.show', $content) : route('panel.content.index') }}" class="btn btn--ghost">Vazgeç</a>
+                <a href="{{ $cancelUrl }}" class="btn btn--ghost">Vazgeç</a>
             </div>
         </div>
     </form>

@@ -29,6 +29,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 - İç içe route'larda `->scopeBindings()` zorunlu; çocuk parametre adı ebeveynin **çoğul ilişki metoduyla** eşleşmeli
   (`{kycDocument}` → `Company::kycDocuments()`, `{userRole}` → `Company::userRoles()`).
 - Tenant sınırı ihlali **404** döner (403 kaydın varlığını sızdırır); context yoksa 409 → tarayıcıda seçim ekranı.
+- Tenant scope taşımayan modele (Content, Website) tenant rotasından erişim: parametre **int** kalır (model binding yok), servis organizasyona süzer (`ContentService::findForOrganization`), null → 404. Bkz. `SiteController`.
 - `Gate::before` yasak ("Super Admin != Root"); JIT izinleri (`requires_jit`) `allows()` ile, rolde-var-mı sorusu `can()` ile.
 - Sahte ticari veri yasak: seeder yalnızca referans veri (roller, lokasyonlar). Kullanıcı/şifre seed edilmez; ilk personel `php artisan ofisvio:make-admin`.
 
