@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', $currentWebsite->name)</title>
-    <meta name="description" content="@yield('description', '')">
+    @include('site.partials.seo-head')
+    @empty($seo)
+        <title>@yield('title', $currentWebsite->name)</title>
+    @endempty
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

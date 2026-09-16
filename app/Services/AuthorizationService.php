@@ -43,7 +43,7 @@ class AuthorizationService
      * Bir panel sayfası aynı kullanıcı için onlarca can() çağırır (liste satırı
      * başına 3-4). Her çağrı 2-3 sorgu yaparsa liste N+1 olur (dashboard 8
      * şirkette 126 sorgu). Önbellek yalnızca HTTP isteği içinde açıktır
-     * (CacheAuthorizationForRequest middleware\u0027i): istek başında açılır, sonunda
+     * (PerRequestCaches middleware'i): istek başında açılır, sonunda
      * boşaltılır. Konsolda ve doğrudan servis çağrılarında kapalıdır — rol
      * değişikliği anında görünür. İstek içinde rol değişip aynı istekte
      * yeniden sorulmaz (davet/rol atamaları redirect ile biter).

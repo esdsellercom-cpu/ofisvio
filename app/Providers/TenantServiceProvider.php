@@ -14,6 +14,7 @@ use App\Services\KycService;
 use App\Services\LeadService;
 use App\Services\MembershipService;
 use App\Services\OrganizationOnboardingService;
+use App\Services\SeoService;
 use App\Services\TenantContext;
 use App\View\Composers\PanelLayoutComposer;
 use App\View\Composers\SiteFooterComposer;
@@ -56,8 +57,9 @@ class TenantServiceProvider extends ServiceProvider
         $this->app->singleton(KycQueueService::class);
         $this->app->singleton(MembershipService::class);
         $this->app->singleton(ContentService::class);
+        $this->app->singleton(SeoService::class);
 
-        // İstek başına tek örnek (Octane\u0027da da istek sonunda sıfırlanır).
+        // İstek başına tek örnek (Octane'da da istek sonunda sıfırlanır).
         $this->app->scoped(CurrentWebsite::class);
     }
 
@@ -72,6 +74,6 @@ class TenantServiceProvider extends ServiceProvider
         View::composer('site.partials.footer', SiteFooterComposer::class);
 
         // Vitrin görünümleri: Ofisvio mu müşteri sitesi mi -> iskelet + menü.
-        View::composer(['site.content', 'site.posts', 'site.tenant-home', 'layouts.tenant'], SiteLayoutComposer::class);
+        View::composer(['site.content', 'site.posts', 'site.tenant-home', 'layouts.tenant', 'layouts.site'], SiteLayoutComposer::class);
     }
 }

@@ -20,9 +20,18 @@ class Website extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['organization_id', 'name', 'slug', 'domain', 'is_default'];
+    protected $fillable = [
+        'organization_id', 'name', 'slug', 'domain', 'is_default',
+        'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
+    ];
 
-    protected $casts = ['is_default' => 'boolean'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean'];
+
+    /** Sitenin mutlak kök adresi: alan adı varsa https ile, yoksa uygulama adresi. */
+    public function baseUrl(): string
+    {
+        return $this->domain ? 'https://'.$this->domain : rtrim((string) config('app.url'), '/');
+    }
 
     /** @return BelongsTo<Organization, $this> */
     public function organization(): BelongsTo

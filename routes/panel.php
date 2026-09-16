@@ -23,6 +23,7 @@ use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
+use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -98,6 +99,17 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 ->middleware('permission:cache.invalidate,,cache,=0')->name('purge-all');
             Route::post('/{website}/jit', [CacheController::class, 'requestJit'])
                 ->where('website', '[0-9]+')->middleware(['permission:cache.view', 'throttle:jit-request'])->name('jit');
+        });
+
+        // --- SEO (faz 15) — personel, tenant context'siz ----------------------
+        // Ayar değişikliği JIT ister (matris: robots/canonical tüm siteyi deindeksleyebilir).
+        Route::prefix('seo')->name('seo.')->group(function () {
+            Route::get('/', [SeoController::class, 'index'])->middleware('permission:seo.view')->name('index');
+            Route::get('/{website}/denetim', [SeoController::class, 'audit'])->middleware('permission:seo.audit')->name('audit');
+            Route::put('/{website}/ayarlar', [SeoController::class, 'settings'])
+                ->middleware('permission:seo.settings,,seo_settings,website')->name('settings');
+            Route::post('/{website}/jit', [SeoController::class, 'requestJit'])
+                ->middleware(['permission:seo.view', 'throttle:jit-request'])->name('jit');
         });
 
         // --- Tenant context'li ekranlar -----------------------------------

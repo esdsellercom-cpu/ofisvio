@@ -14,6 +14,7 @@
 use App\Http\Controllers\Site\ContentController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadController;
+use App\Http\Controllers\Site\SeoController;
 use Illuminate\Support\Facades\Route;
 
 // public.cache: misafire public+ETag, oturum açmışa private/no-store (faz 12).
@@ -37,6 +38,10 @@ Route::redirect('/giris', '/login', 301);
  * tanımlı tüm route'lar eşleşir; slug regex'i /panel, /login gibi yolları
  * zaten dışlar (küçük harf-rakam-tire).
  */
+// SEO Engine (faz 15/21): geçerli website'e göre robots.txt ve sitemap.xml.
+Route::get('/robots.txt', [SeoController::class, 'robots'])->middleware('public.cache')->name('site.robots');
+Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->middleware('public.cache')->name('site.sitemap');
+
 Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cache')->name('site.posts');
 Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
 Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

@@ -27,6 +27,7 @@ class StoreContentRequest extends FormRequest
             'body' => ['nullable', 'string', 'max:200000'],
             'category' => ['nullable', 'string', 'max:80'],
             'requires_approval' => ['sometimes', 'boolean'],
+            'noindex' => ['sometimes', 'boolean'],
             'meta_title' => ['nullable', 'string', 'max:70'],
             'meta_description' => ['nullable', 'string', 'max:160'],
         ];

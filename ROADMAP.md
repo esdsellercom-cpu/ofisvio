@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **171/171** (Unit 10 · Feature 155 · Architecture 6) |
+| `php artisan test` | ✅ **176/176** (Unit 10 · Feature 160 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -43,7 +43,7 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-171 test; "izin verilmemeli" senaryoları her modülde var.
+176 test; "izin verilmemeli" senaryoları her modülde var.
 
 ### 4. CI/CD Pipeline ✅
 GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
@@ -130,8 +130,20 @@ kapsam ve sabit kaynak id (`=0`) destekler.
 Eksik: `cache.inspect` (anahtar içeriği), `cache.settings`, Redis etiketli
 genişletme, CDN purge entegrasyonu.
 
-### ⛔ 15–28 (SEO/GEO, Content, AI, Command Center'lar)
-`website_id`, sorgu bütçesi ve önbellek hazır; sıra ve önkoşullar değişmedi.
+### 15 · 21. SEO Engine · Sitemap 🟡 (v1 ✅)
+`SeoService`: website başına ayar (`seo_title_suffix`, `seo_default_description`,
+`robots_index`, `seo_locale`), içerik başına `noindex`. Her vitrin sayfası
+`<head>`: title (çekirdek + son ek), description, canonical (site alan adı),
+robots, Open Graph, JSON-LD (WebSite / Article / WebPage). `/robots.txt` ve
+`/sitemap.xml` geçerli siteye göre (noindex ve taslak dışarıda; `robots_index`
+kapalıysa Disallow: / + boş sitemap). Panel `/panel/seo`: ayarlar JIT'li
+(`seo.settings`, kaynak website), `seo.audit` deterministik içerik denetimi
+(başlık/açıklama uzunluğu, H1, kısa gövde, noindex). F8 v1.
+Eksik: hreflang, breadcrumb şeması, Search Console/analytics entegrasyonu
+(faz 20), `seo.edit` ile içerik-dışı SEO alanları.
+
+### ⛔ 16–28 (GEO, Content, AI, Command Center'lar)
+`website_id`, sorgu bütçesi, önbellek ve SEO temeli hazır; sıra değişmedi.
 
 ---
 
@@ -147,8 +159,8 @@ genişletme, CDN purge entegrasyonu.
 | F5 | Admin KYC inceleme kuyruğu + JIT talep ekranı | ✅ |
 | F6 | Şirket aktivasyon takip ekranı | ✅ şirket detayında (adımlar + geçmiş) |
 | F7 | CMS editörü | ✅ liste/süzgeç, form (markdown), akış eylemleri, revizyonlar |
-| F8 | SEO/GEO Command Center | ⛔ |
-| F9 | Performance + Cache Command Center | ⛔ |
+| F8 | SEO/GEO Command Center | 🟡 SEO v1 (`/panel/seo`); GEO ⛔ |
+| F9 | Performance + Cache Command Center | 🟡 Cache v1 (`/panel/onbellek`); performans paneli ⛔ |
 
 ---
 
@@ -156,8 +168,8 @@ genişletme, CDN purge entegrasyonu.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 15 SEO Engine** — `contents.meta_*` var; sitemap (faz 21), canonical,
-   robots, JSON-LD; `seo.*` izinleri matriste hazır.
+2. **Faz 16-17 GEO / Entity** — `geo.*` izinleri hazır; lokasyon sayfaları
+   (`/lokasyon/{slug}`) + LocalBusiness şeması doğal başlangıç.
 3. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
    (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
    vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık

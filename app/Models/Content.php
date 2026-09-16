@@ -17,13 +17,14 @@ class Content extends Model
 
     protected $fillable = [
         'website_id', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'reading_minutes',
-        'requires_approval', 'meta_title', 'meta_description', 'author_id',
+        'requires_approval', 'meta_title', 'meta_description', 'noindex', 'author_id',
     ];
 
     protected $casts = [
         'kind' => ContentKind::class,
         'status' => ContentStatus::class,
         'requires_approval' => 'boolean',
+        'noindex' => 'boolean',
         'reading_minutes' => 'integer',
         'scheduled_for' => 'datetime',
         'published_at' => 'datetime',
@@ -71,6 +72,12 @@ class Content extends Model
             'allow_unsafe_links' => false,
             'max_nesting_level' => 20,
         ]);
+    }
+
+    /** Sitedeki göreli yol: /blog/{slug} ya da /{slug}. */
+    public function path(): string
+    {
+        return ($this->kind === ContentKind::POST ? '/blog/' : '/').$this->slug;
     }
 
     public function getRouteKeyName(): string

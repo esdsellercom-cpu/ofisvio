@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>@yield('title', config('ofisvio.brand.name').' — şirketinizin adresi bugün hazır olsun')</title>
-    <meta name="description" content="@yield('description', 'Sanal ofis, hazır ofis ve coworking. Tescil adresi, çağrı ve kargo karşılama, saatlik toplantı odası.')">
+    @include('site.partials.seo-head')
+    @empty($seo)
+        <title>@yield('title', config('ofisvio.brand.name').' — şirketinizin adresi bugün hazır olsun')</title>
+        <meta name="description" content="@yield('description', 'Sanal ofis, hazır ofis ve coworking. Tescil adresi, çağrı ve kargo karşılama, saatlik toplantı odası.')">
+    @endempty
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

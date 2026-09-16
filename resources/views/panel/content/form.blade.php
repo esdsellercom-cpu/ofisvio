@@ -67,6 +67,10 @@
                     <span class="label">Meta başlık (≤ 70)</span>
                     <input class="control" type="text" name="meta_title" value="{{ old('meta_title', $content?->meta_title) }}" maxlength="70">
                 </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" name="noindex" value="1" @checked(old('noindex', $content?->noindex))>
+                    <span><strong>noindex</strong> — arama motorları bu sayfayı listelemez (teşekkür sayfası, kampanya kopyası vb.).</span>
+                </label>
                 <label class="field">
                     <span class="label">Meta açıklama (≤ 160)</span>
                     <textarea class="control" name="meta_description" maxlength="160" style="min-height:64px">{{ old('meta_description', $content?->meta_description) }}</textarea>

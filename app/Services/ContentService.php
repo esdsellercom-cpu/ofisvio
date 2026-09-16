@@ -155,7 +155,7 @@ class ContentService
     }
 
     /**
-     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null}  $data
+     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function create(User $author, Website $website, array $data): Content
     {
@@ -175,6 +175,7 @@ class ContentService
                 'requires_approval' => (bool) ($data['requires_approval'] ?? false),
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
+                'noindex' => (bool) ($data['noindex'] ?? false),
                 'author_id' => $author->id,
             ]);
 
@@ -186,7 +187,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function update(User $editor, Content $content, array $data): Content
     {
@@ -213,6 +214,7 @@ class ContentService
                 'requires_approval' => $content->requires_approval || (bool) ($data['requires_approval'] ?? false),
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
+                'noindex' => (bool) ($data['noindex'] ?? false),
             ]);
             $content->save();
 

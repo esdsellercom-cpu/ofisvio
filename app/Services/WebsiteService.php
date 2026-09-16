@@ -62,6 +62,19 @@ class WebsiteService
         return $website;
     }
 
+    /**
+     * SEO ayarları (faz 15). Yetki route'ta: seo.settings + JIT.
+     *
+     * @param  array{seo_title_suffix: string|null, seo_default_description: string|null, robots_index: bool, seo_locale: string}  $data
+     */
+    public function updateSeo(Website $website, array $data): Website
+    {
+        $website->fill($data);
+        $website->save();
+
+        return $website;
+    }
+
     private function normalizeDomain(?string $domain): ?string
     {
         $domain = strtolower(trim((string) $domain));
