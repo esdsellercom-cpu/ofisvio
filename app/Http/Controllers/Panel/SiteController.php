@@ -148,6 +148,7 @@ class SiteController extends Controller
             'content' => $model,
             'draft' => $model->draft,
             'revisions' => $this->contents->revisionsOf($model),
+            'suggestions' => $this->contents->linkSuggestions($model),
             'can' => $this->abilities($request, $company),
         ]);
     }

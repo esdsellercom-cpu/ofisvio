@@ -17,7 +17,7 @@ class Content extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'website_id', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'reading_minutes',
+        'website_id', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
         'requires_approval', 'meta_title', 'meta_description', 'noindex', 'author_id',
     ];
 
@@ -27,6 +27,7 @@ class Content extends Model
         'requires_approval' => 'boolean',
         'noindex' => 'boolean',
         'show_in_nav' => 'boolean',
+        'tags' => 'array',
         'reading_minutes' => 'integer',
         'scheduled_for' => 'datetime',
         'published_at' => 'datetime',

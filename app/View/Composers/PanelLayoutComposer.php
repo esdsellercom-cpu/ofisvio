@@ -27,9 +27,9 @@ class PanelLayoutComposer
 
     public function compose(View $view): void
     {
-        // 'panel.*' deseni parçaları da (panel.partials.*) yakalar; onlar değişkenleri
-        // ebeveynden miras alır. Satır başına yeniden hesaplamak N+1 üretiyordu.
-        if (str_starts_with($view->name(), 'panel.partials.')) {
+        // 'panel.*' deseni parçaları da (panel.partials.*, panel.<modül>.partials.*) yakalar;
+        // onlar değişkenleri ebeveynden miras alır. Satır başına yeniden hesaplamak N+1 üretiyordu.
+        if (str_contains($view->name(), '.partials.')) {
             return;
         }
 

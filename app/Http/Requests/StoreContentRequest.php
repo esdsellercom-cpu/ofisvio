@@ -26,6 +26,7 @@ class StoreContentRequest extends FormRequest
             'excerpt' => ['nullable', 'string', 'max:500'],
             'body' => ['nullable', 'string', 'max:200000'],
             'category' => ['nullable', 'string', 'max:80'],
+            'tags' => ['nullable', 'string', 'max:300'], // virgülle ayrılmış; serviste normalize edilir
             'requires_approval' => ['sometimes', 'boolean'],
             'noindex' => ['sometimes', 'boolean'],
             'meta_title' => ['nullable', 'string', 'max:70'],
@@ -48,7 +49,7 @@ class StoreContentRequest extends FormRequest
     {
         return [
             'website_id' => 'Site', 'kind' => 'İçerik türü', 'title' => 'Başlık', 'slug' => 'Slug', 'excerpt' => 'Özet',
-            'body' => 'Gövde', 'category' => 'Kategori', 'meta_title' => 'SEO başlığı',
+            'body' => 'Gövde', 'category' => 'Kategori', 'tags' => 'Etiketler', 'meta_title' => 'SEO başlığı',
             'meta_description' => 'SEO açıklaması', 'requires_approval' => 'Onay gerekli',
         ];
     }

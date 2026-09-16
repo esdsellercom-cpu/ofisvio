@@ -75,18 +75,33 @@ class ContentController extends Controller
     public function calendar(Request $request): View
     {
         $website = $this->selectedWebsite($request);
+        $tz = config('app.timezone');
         $ay = (string) $request->query('ay', '');
+        $hafta = (string) $request->query('hafta', '');
         $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ay) === 1
-            ? CarbonImmutable::parse($ay.'-01', config('app.timezone'))->startOfMonth()
-            : CarbonImmutable::now(config('app.timezone'))->startOfMonth();
+            ? CarbonImmutable::parse($ay.'-01', $tz)->startOfMonth()
+            : CarbonImmutable::now($tz)->startOfMonth();
+
+        // Haftalık görünüm: ?hafta=YYYY-MM-DD (haftanın herhangi bir günü); bozuk değer aylık görünüme düşer.
+        $week = preg_match('/^\d{4}-\d{2}-\d{2}$/', $hafta) === 1 && strtotime($hafta) !== false
+            ? CarbonImmutable::parse($hafta, $tz)->startOfWeek()
+            : null;
+
+        if ($week !== null) {
+            $month = $week->startOfMonth();
+        }
 
         return view('panel.content.calendar', [
             'website' => $website,
             'websites' => $this->contents->allWebsites(),
             'month' => $month,
-            'days' => $this->contents->calendar($website, $month),
+            'week' => $week,
+            'days' => $week !== null
+                ? $this->contents->calendarRange($website, $week, $week->endOfWeek())
+                : $this->contents->calendar($website, $month),
             'pipeline' => $this->contents->pipeline($website),
-            'today' => CarbonImmutable::now(config('app.timezone'))->format('Y-m-d'),
+            'workload' => $this->contents->workload($website),
+            'today' => CarbonImmutable::now($tz)->format('Y-m-d'),
         ]);
     }
 
@@ -166,6 +181,7 @@ class ContentController extends Controller
         return view('panel.content.show', [
             'content' => $content,
             'revisions' => $this->contents->revisionsOf($content),
+            'suggestions' => $this->contents->linkSuggestions($content),
             'can' => [
                 'edit' => $this->authorization->can($user, 'content.edit'),
                 'review' => $this->authorization->can($user, 'content.review'),

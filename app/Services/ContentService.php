@@ -226,7 +226,7 @@ class ContentService
     }
 
     /**
-     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function create(User $author, Website $website, array $data): Content
     {
@@ -242,6 +242,7 @@ class ContentService
                 'excerpt' => $data['excerpt'] ?? null,
                 'body' => $data['body'] ?? null,
                 'category' => $data['category'] ?? null,
+                'tags' => self::normalizeTags($data['tags'] ?? null),
                 'reading_minutes' => $this->readingMinutes($data['body'] ?? null),
                 'requires_approval' => (bool) ($data['requires_approval'] ?? false),
                 'meta_title' => $data['meta_title'] ?? null,
@@ -258,7 +259,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function update(User $editor, Content $content, array $data): Content
     {
@@ -279,6 +280,7 @@ class ContentService
                 'excerpt' => $data['excerpt'] ?? null,
                 'body' => $data['body'] ?? null,
                 'category' => $data['category'] ?? null,
+                'tags' => self::normalizeTags($data['tags'] ?? null),
                 'reading_minutes' => $this->readingMinutes($data['body'] ?? null),
                 // requires_approval yalnızca yükseltilebilir: bir kez "yasal içerik"
                 // işaretlenen metin düzenlemeyle onaysız hale getirilemez.
@@ -455,6 +457,143 @@ class ContentService
     // -----------------------------------------------------------------
 
     /**
+     * Etiket normalizasyonu: virgülle ayrılmış metin ya da dizi -> küçük harf,
+     * kırpılmış, tekil, en fazla 10, her biri ≤ 40 karakter. Boş -> null.
+     *
+     * @param  string|array<int, string>|null  $input
+     * @return array<int, string>|null
+     */
+    public static function normalizeTags(string|array|null $input): ?array
+    {
+        $raw = is_array($input) ? $input : explode(',', (string) $input);
+        $tags = [];
+
+        foreach ($raw as $tag) {
+            $tag = mb_substr(trim(mb_strtolower((string) $tag)), 0, 40);
+
+            if ($tag !== '' && ! in_array($tag, $tags, true)) {
+                $tags[] = $tag;
+            }
+
+            if (count($tags) === 10) {
+                break;
+            }
+        }
+
+        return $tags === [] ? null : $tags;
+    }
+
+    /**
+     * Yayındaki yazıların etiketleri: slug => [name, count]. Önbellekli.
+     *
+     * @return array<string, array{name: string, count: int}>
+     */
+    public function tags(?Website $website): array
+    {
+        if ($website === null) {
+            return [];
+        }
+
+        $rows = $this->cache->remember($website, 'tags', function () use ($website) {
+            $out = [];
+
+            foreach ($this->livePosts($website, 1000) as $post) {
+                foreach ($post->tags ?? [] as $tag) {
+                    $slug = Str::slug($tag);
+
+                    if ($slug === '') {
+                        continue;
+                    }
+
+                    $out[$slug] ??= ['name' => $tag, 'count' => 0];
+                    $out[$slug]['count']++;
+                }
+            }
+
+            ksort($out);
+
+            return $out;
+        });
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /** @return Collection<int, Content> */
+    public function livePostsWithTag(?Website $website, string $tagSlug): Collection
+    {
+        if ($website === null) {
+            return new Collection;
+        }
+
+        return $this->livePosts($website, 1000)
+            ->filter(fn (Content $post) => in_array($tagSlug, array_map(fn ($t) => Str::slug((string) $t), $post->tags ?? []), true))
+            ->values();
+    }
+
+    /**
+     * İç bağlantı önerisi (faz 18/23): aynı sitedeki yayındaki içerikler,
+     * puan = ortak etiket ×3 + aynı kategori ×2 + başlık kelime kesişimi ×1.
+     * Editör panelde görür; kopyalanacak markdown bağlantısı hazırdır.
+     *
+     * @return array<int, array{content: Content, score: int, reasons: array<int, string>}>
+     */
+    public function linkSuggestions(Content $content, int $limit = 5): array
+    {
+        $website = $content->website;
+        $pool = $this->livePosts($website, 1000)->concat($this->livePages($website))
+            ->reject(fn (Content $c) => $c->id === $content->id);
+
+        $myTags = array_map('mb_strtolower', $content->tags ?? []);
+        $myWords = self::titleWords($content->title);
+        $out = [];
+
+        foreach ($pool as $candidate) {
+            $score = 0;
+            $reasons = [];
+
+            $shared = array_intersect($myTags, array_map('mb_strtolower', $candidate->tags ?? []));
+
+            if ($shared !== []) {
+                $score += 3 * count($shared);
+                $reasons[] = 'ortak etiket: '.implode(', ', $shared);
+            }
+
+            if ($content->category !== null && $content->category === $candidate->category) {
+                $score += 2;
+                $reasons[] = 'aynı kategori';
+            }
+
+            $words = array_intersect($myWords, self::titleWords($candidate->title));
+
+            if ($words !== []) {
+                $score += count($words);
+                $reasons[] = 'başlıkta: '.implode(', ', $words);
+            }
+
+            if ($score > 0) {
+                $out[] = ['content' => $candidate, 'score' => $score, 'reasons' => $reasons];
+            }
+        }
+
+        usort($out, fn (array $a, array $b) => $b['score'] <=> $a['score'] ?: strcmp($a['content']->title, $b['content']->title));
+
+        return array_slice($out, 0, $limit);
+    }
+
+    /**
+     * Başlığın anlamlı kelimeleri (≥ 4 harf, sık bağlaçlar hariç).
+     *
+     * @return array<int, string>
+     */
+    private static function titleWords(string $title): array
+    {
+        $stop = ['için', 'ile', 'veya', 'nasıl', 'nedir', 'olan', 'olarak', 'daha', 'kadar', 'gibi', 'sonra', 'önce', 'hakkında'];
+        $words = preg_split('/[^\p{L}\p{N}]+/u', mb_strtolower($title)) ?: [];
+
+        return array_values(array_unique(array_filter($words, fn (string $w) => mb_strlen($w) >= 4 && ! in_array($w, $stop, true))));
+    }
+
+    /**
      * Yayındaki yazıların kategorileri: slug => [name, count]. Önbellekli.
      *
      * @return array<string, array{name: string, count: int}>
@@ -551,6 +690,7 @@ class ContentService
             'excerpt' => $content->excerpt,
             'body' => $content->body,
             'category' => $content->category,
+            'tags' => $content->tags,
             'meta_title' => $content->meta_title,
             'meta_description' => $content->meta_description,
             'noindex' => $content->noindex,
@@ -559,7 +699,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
      */
     public function updateDraft(User $editor, ContentDraft $draft, array $data): ContentDraft
     {
@@ -578,6 +718,7 @@ class ContentService
             'excerpt' => $data['excerpt'] ?? null,
             'body' => $data['body'] ?? null,
             'category' => $data['category'] ?? null,
+            'tags' => self::normalizeTags($data['tags'] ?? null),
             'meta_title' => $data['meta_title'] ?? null,
             'meta_description' => $data['meta_description'] ?? null,
             'noindex' => (bool) ($data['noindex'] ?? false),
@@ -688,8 +829,16 @@ class ContentService
      */
     public function calendar(Website $website, CarbonImmutable $month): array
     {
-        $start = $month->startOfMonth();
-        $end = $month->endOfMonth();
+        return $this->calendarRange($website, $month->startOfMonth(), $month->endOfMonth());
+    }
+
+    /**
+     * Tarih aralığı için takvim (haftalık görünüm de bunu kullanır).
+     *
+     * @return array<string, Collection<int, Content|ContentDraft>>
+     */
+    public function calendarRange(Website $website, CarbonImmutable $start, CarbonImmutable $end): array
+    {
 
         $items = Content::query()
             ->with('author')
@@ -748,6 +897,54 @@ class ContentService
      *
      * @return array{draft: Collection<int, Content>, in_review: Collection<int, Content>, approved: Collection<int, Content>, working: Collection<int, ContentDraft>, overdue: Collection<int, Content|ContentDraft>}
      */
+    /**
+     * Editör iş yükü (faz 24): yazar başına yayın öncesi içerik + çalışma taslağı sayıları.
+     *
+     * @return array<int, array{name: string, draft: int, in_review: int, approved: int, scheduled: int, working: int, total: int}>
+     */
+    public function workload(Website $website): array
+    {
+        $pipeline = $this->pipeline($website);
+
+        // [yazar id => [kova => içerik listesi]] — pipeline SCHEDULED'ı 'overdue' dışında tutmaz, ayrıca sorulur.
+        $items = [];
+
+        foreach (['draft', 'in_review', 'approved'] as $bucket) {
+            foreach ($pipeline[$bucket] as $content) {
+                $items[] = [$content->author, $bucket];
+            }
+        }
+
+        foreach ($pipeline['working'] as $draft) {
+            $items[] = [$draft->author, 'working'];
+        }
+
+        $scheduled = Content::query()->with('author')->where('website_id', $website->id)->where('status', ContentStatus::SCHEDULED->value)->get();
+
+        foreach ($scheduled as $content) {
+            $items[] = [$content->author, 'scheduled'];
+        }
+
+        /** @var array<int, array{name: string, draft: int, in_review: int, approved: int, scheduled: int, working: int, total: int}> $rows */
+        $rows = [];
+
+        foreach ($items as [$author, $bucket]) {
+            $key = $author instanceof User ? $author->id : 0;
+
+            if (! isset($rows[$key])) {
+                $rows[$key] = ['name' => $author instanceof User ? $author->name : '— (yazar yok)', 'draft' => 0, 'in_review' => 0, 'approved' => 0, 'scheduled' => 0, 'working' => 0, 'total' => 0];
+            }
+
+            $rows[$key][$bucket]++;
+            $rows[$key]['total']++;
+        }
+
+        $list = array_values($rows);
+        usort($list, fn (array $a, array $b) => $b['total'] <=> $a['total'] ?: strcmp($a['name'], $b['name']));
+
+        return $list;
+    }
+
     public function pipeline(Website $website): array
     {
         $pending = Content::query()

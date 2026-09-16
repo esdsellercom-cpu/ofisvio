@@ -30,6 +30,14 @@
 
         {{-- renderedBody() markdown'ı süzülmüş HTML'e çevirir (ham HTML strip, güvensiz link yok). --}}
         <div class="prose" style="margin-top:36px">{!! $content->renderedBody() !!}</div>
+
+        @if ($isPost && ! empty($content->tags))
+            <p class="row-actions" style="margin:28px 0 0;flex-wrap:wrap;gap:8px" aria-label="Etiketler">
+                @foreach ($content->tags as $tag)
+                    <a href="{{ route('site.tag', \Illuminate\Support\Str::slug($tag)) }}" class="tag">#{{ $tag }}</a>
+                @endforeach
+            </p>
+        @endif
     </article>
 
     {{-- İlgili yazılar (faz 23 iç bağlantı): önce aynı kategori, sonra en yeni. --}}

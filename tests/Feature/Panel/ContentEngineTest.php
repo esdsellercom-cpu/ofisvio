@@ -8,6 +8,7 @@ use App\Models\ContentDraft;
 use App\Models\ContentRevision;
 use App\Models\Website;
 use App\Services\ContentCache;
+use App\Services\ContentService;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -179,6 +180,47 @@ class ContentEngineTest extends TestCase
         // Müşteri kullanıcısı taslak akışına giremez.
         $owner = $this->owner($this->organization('Acme'));
         $this->actingAs($owner)->post("/panel/icerik/{$content->id}/taslak")->assertForbidden();
+    }
+
+    #[Test]
+    public function etiketler_normalize_edilir_etiket_sayfasi_ve_ic_baglanti_onerisi(): void
+    {
+        $admin = $this->staff('system_admin');
+
+        // Etiketler: küçük harf, kırpılmış, tekil, en fazla 10.
+        $this->actingAs($admin)->post('/panel/icerik', [
+            'website_id' => $this->website->id, 'kind' => 'post', 'title' => 'Sanal ofis ile KDV avantajı',
+            'body' => 'Gövde.', 'category' => 'Mevzuat', 'tags' => ' Sanal Ofis, KDV ,kdv, , Tescil',
+        ])->assertRedirect();
+        $post = Content::where('title', 'Sanal ofis ile KDV avantajı')->firstOrFail();
+        $this->assertSame(['sanal ofis', 'kdv', 'tescil'], $post->tags);
+        $this->assertNull(ContentService::normalizeTags(' , '));
+        $this->assertCount(10, ContentService::normalizeTags(implode(',', range(1, 15))) ?? []);
+
+        $post->forceFill(['status' => ContentStatus::PUBLISHED, 'published_at' => now()->subDay()])->save();
+        $other = $this->published('Tescil adresi nasıl alınır', 'Sanal Ofis', ['tags' => ['tescil', 'adres']]);
+        $far = $this->published('Hibrit çalışma rehberi', 'Kültür');
+        app(ContentCache::class)->invalidate($this->website);
+
+        // Etiket sayfası + sitemap + yazı altı etiketleri.
+        $this->get('/blog/etiket/tescil')->assertOk()->assertSee('#tescil')->assertSee('Sanal ofis ile KDV avantajı')->assertSee('Tescil adresi nasıl alınır')->assertDontSee('Hibrit çalışma rehberi');
+        $this->get('/blog/etiket/yok')->assertNotFound();
+        $this->get('/sitemap.xml')->assertSee('<loc>'.config('app.url').'/blog/etiket/kdv</loc>', false);
+        $this->get('/blog/'.$post->slug)->assertOk()->assertSee('href="'.route('site.tag', 'sanal-ofis').'"', false);
+
+        // İç bağlantı önerisi: ortak etiket (tescil) ×3 + başlık kelimesi; uzak yazı önerilmez.
+        $html = $this->actingAs($admin)->get("/panel/icerik/{$post->id}")->assertOk()->getContent();
+        $this->assertStringContainsString('İç bağlantı önerileri', $html);
+        $this->assertStringContainsString('ortak etiket: tescil', $html);
+        $this->assertStringContainsString('[Tescil adresi nasıl alınır](/blog/'.$other->slug.')', $html);
+        $this->assertStringNotContainsString('Hibrit çalışma rehberi', $html);
+
+        // Çalışma taslağı etiketleri taşır ve birleştirince yazar.
+        $this->actingAs($admin)->post("/panel/icerik/{$post->id}/taslak")->assertRedirect();
+        $this->actingAs($admin)->put("/panel/icerik/{$post->id}/taslak", ['title' => $post->title, 'body' => 'Gövde.', 'tags' => 'kdv, muhasebe'])->assertRedirect();
+        $this->actingAs($admin)->post("/panel/icerik/{$post->id}/taslak/incelemeye-gonder")->assertRedirect();
+        $this->actingAs($admin)->post("/panel/icerik/{$post->id}/taslak/yayinla")->assertRedirect();
+        $this->assertSame(['kdv', 'muhasebe'], $post->fresh()->tags);
     }
 
     #[Test]

@@ -179,6 +179,8 @@
                 @endif
             </div>
 
+            @include('panel.content.partials.link-suggestions')
+
             <div class="panel">
                 <p class="eyebrow">Revizyonlar</p>
                 <table class="data">

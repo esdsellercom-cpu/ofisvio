@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **205/205** (Unit 10 · Feature 189 · Architecture 6) |
+| `php artisan test` | ✅ **207/207** (Unit 10 · Feature 191 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -204,7 +204,7 @@ sayfasında OpenStreetMap gömme, yalnız "Haritayı göster" tıklanınca yükl
 (üçüncü taraf isteği ziyaretçi seçimi; JS kapalıyken bağlantı). hreflang: tek
 dil (bkz. faz 15).
 
-### 18 · 23. Content Engine · Internal Linking 🟡 (v1 ✅)
+### 18 · 23. Content Engine · Internal Linking ✅
 **Çalışma taslağı** (`content_drafts`, içerikle bire bir): yayındaki içerik
 canlıda kalırken kopyası düzenlenir, aynı akıştan geçer (DRAFT → IN_REVIEW →
 [APPROVED] → birleştirme), yayınlanınca `publishDraft()` alanları içeriğe
@@ -218,16 +218,24 @@ yazı sayfasında (önce aynı kategori, sonra en yeni; önbellekli listeden,
 ek sorgu yok). Düzeltme: iskelet composer'ı liste sayfalarının SEO başlığını
 eziyordu (`/blog` canonical ana sayfa çıkıyordu).
 Birleştirme anında slug tekilliği yeniden çözülür (taslak beklerken slug
-alınmışsa `-2`). Eksik: otomatik iç bağlantı önerisi, etiketler.
+alınmışsa `-2`). **Etiketler:** `contents.tags` / `content_drafts.tags`
+(virgülle girilir, küçük harf, tekil, ≤ 10), `/blog/etiket/{slug}` sayfası,
+yazı altında etiket bağlantıları, sitemap'te. **İç bağlantı önerisi:** içerik
+sayfasında (personel + müşteri paneli) aynı sitedeki yayındaki içerikler,
+puan = ortak etiket ×3 + aynı kategori ×2 + başlık kelimesi ×1, kopyalanacak
+markdown bağlantısıyla.
 
-### 24. İçerik Takvimi 🟡 (v1 ✅)
+### 24. İçerik Takvimi ✅
 `/panel/icerik/takvim?ay=YYYY-MM`: aylık ızgara (pazartesi başlangıç;
 zamanlanmış → `scheduled_for`, yayında → `published_at`), yan panelde iş
 hattı (taslak / incelemede / onaylı / çalışma taslakları) ve **gecikmiş
 zamanlama** uyarısı (zamanı geçmiş SCHEDULED = `content:publish-scheduled`
 çalışmıyor sinyali). Zamanlanmış çalışma taslakları (↻) birleşme gününde. Sorgu bütçesi: kayıt sayısından bağımsız (12 sorgu üst
 sınır); yazı sayfası da bütçede (ilgili yazılar önbellekli listeden).
-Eksik: sürükle-bırak yeniden zamanlama, editör bazlı iş yükü, haftalık görünüm.
+**Haftalık görünüm:** `?hafta=YYYY-MM-DD` (önceki/sonraki hafta, aylığa dön);
+**editör iş yükü:** yazar başına taslak/inceleme/onaylı/zamanlanmış/çalışma
+taslağı sayıları. Sürükle-bırak yeniden zamanlama bilinçli olarak yok: JS'siz
+çalışma ilkesi; zamanlama içerik sayfasındaki formdan.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
@@ -258,11 +266,10 @@ Temeller hazır; sıra değişmedi.
    https, clamd canlı tarama, önbellek/oturum sürücüsü, e-posta, migrasyon,
    zamanlayıcı kalp atışı, RBAC/site seed, personel hesabı). Kalan: gerçek
    sunucu, alan adı, sertifika, clamd — sen sağlarsın, doctor doğrular.
-2. **Kalan 🟡 fazların eksikleri sırayla** — 11 (baseline artefaktı),
-   12–14 (cache.inspect/settings), 15 (breadcrumb şeması), 16–17 (FAQ/Service
-   şeması, geo.publish), 18 (etiketler, iç bağlantı önerisi), 24 (haftalık
-   görünüm). Dış servis isteyenler (19–22, faz 5 entegrasyon kalemleri)
-   kimlik bilgisi gelince.
+2. **Dış servis isteyen kalemler** — faz 19–22 (AI, Search Console, analytics),
+   faz 5 entegrasyon kalemleri (Integration Gateway, Secret Management, SSRF,
+   Webhook Security), Redis etiket / CDN purge: kimlik bilgisi ve altyapı
+   gelince. Kod tarafında 🟡 faz kalmadı.
 3. **İçerik** — editör panelden yazıları, yasal sayfaları ve vitrin bloklarını
    yayınlar.
 

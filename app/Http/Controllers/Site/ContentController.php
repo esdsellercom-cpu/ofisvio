@@ -45,6 +45,22 @@ class ContentController extends Controller
         ]);
     }
 
+    /** Etiket sayfası (faz 18). */
+    public function tag(string $tag): View
+    {
+        $website = $this->website->get();
+        $tags = $this->contents->tags($website);
+
+        abort_unless(isset($tags[$tag]), 404);
+
+        return view('site.tag', [
+            'tagSlug' => $tag,
+            'tagName' => $tags[$tag]['name'],
+            'tags' => $tags,
+            'posts' => $this->contents->livePostsWithTag($website, $tag),
+        ]);
+    }
+
     public function post(string $slug): View
     {
         $content = $this->contents->findLive($this->website->get(), ContentKind::POST, $slug);

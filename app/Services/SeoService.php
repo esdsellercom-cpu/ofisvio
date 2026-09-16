@@ -326,6 +326,10 @@ class SeoService
             $entries[] = ['loc' => $base.'/blog/kategori/'.$categorySlug, 'lastmod' => null, 'changefreq' => 'weekly', 'priority' => '0.5'];
         }
 
+        foreach (array_keys($this->contents->tags($website)) as $tagSlug) {
+            $entries[] = ['loc' => $base.'/blog/etiket/'.$tagSlug, 'lastmod' => null, 'changefreq' => 'weekly', 'priority' => '0.4'];
+        }
+
         foreach ($posts as $post) {
             if (! $post->noindex) {
                 $entries[] = ['loc' => $base.$post->path(), 'lastmod' => $post->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.6'];

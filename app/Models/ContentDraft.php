@@ -13,13 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ContentDraft extends Model
 {
     protected $fillable = [
-        'content_id', 'title', 'slug', 'excerpt', 'body', 'category',
+        'content_id', 'title', 'slug', 'excerpt', 'body', 'category', 'tags',
         'meta_title', 'meta_description', 'noindex', 'author_id',
     ];
 
     protected $casts = [
         'status' => ContentStatus::class,
         'noindex' => 'boolean',
+        'tags' => 'array',
         'scheduled_for' => 'datetime',
     ];
 
@@ -44,6 +45,7 @@ class ContentDraft extends Model
             'excerpt' => $this->excerpt,
             'body' => $this->body,
             'category' => $this->category,
+            'tags' => $this->tags,
             'meta_title' => $this->meta_title,
             'meta_description' => $this->meta_description,
             'noindex' => $this->noindex,

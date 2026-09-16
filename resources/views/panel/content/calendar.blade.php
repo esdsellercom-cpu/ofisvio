@@ -1,6 +1,6 @@
 @extends('layouts.panel')
 
-@section('title', 'İçerik takvimi — '.$month->translatedFormat('F Y'))
+@section('title', 'İçerik takvimi — '.($week ? $week->translatedFormat('j M').' – '.$week->endOfWeek()->translatedFormat('j M Y') : $month->translatedFormat('F Y')))
 
 @php
     use App\Enums\ContentStatus;
@@ -10,8 +10,8 @@
     $prev = $month->subMonth()->format('Y-m');
     $next = $month->addMonth()->format('Y-m');
     // Izgara pazartesiden başlar; ay öncesi/sonrası boş hücrelerle tamamlanır.
-    $firstCell = $month->startOfMonth()->startOfWeek();
-    $lastCell = $month->endOfMonth()->endOfWeek();
+    $firstCell = $week ? $week : $month->startOfMonth()->startOfWeek();
+    $lastCell = $week ? $week->endOfWeek() : $month->endOfMonth()->endOfWeek();
     $overdueKeys = $pipeline['overdue']->map(fn ($x) => ($x instanceof ContentDraft ? 'd' : 'c').$x->id)->all();
     $inMonth = collect($days)->flatten(1);
 @endphp
@@ -20,12 +20,20 @@
     <div class="panel-head">
         <div>
             <p class="eyebrow"><a href="{{ route('panel.content.index', ['website' => $website->id]) }}">İçerik</a> · {{ $website->name }}</p>
-            <h1 class="h2">Takvim — {{ $month->translatedFormat('F Y') }}</h1>
+            <h1 class="h2">Takvim — {{ $week ? $week->translatedFormat('j F').' – '.$week->endOfWeek()->translatedFormat('j F Y') : $month->translatedFormat('F Y') }}</h1>
         </div>
         <div class="panel-head__actions">
-            <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'ay' => $prev]) }}" class="btn btn--ghost btn--pill" rel="prev">‹ {{ $month->subMonth()->translatedFormat('M') }}</a>
-            <a href="{{ route('panel.content.calendar', ['website' => $website->id]) }}" class="btn btn--ghost btn--pill">Bugün</a>
-            <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'ay' => $next]) }}" class="btn btn--ghost btn--pill" rel="next">{{ $month->addMonth()->translatedFormat('M') }} ›</a>
+            @if ($week)
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'hafta' => $week->subWeek()->format('Y-m-d')]) }}" class="btn btn--ghost btn--pill" rel="prev">‹ Önceki hafta</a>
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'hafta' => $today]) }}" class="btn btn--ghost btn--pill">Bu hafta</a>
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'hafta' => $week->addWeek()->format('Y-m-d')]) }}" class="btn btn--ghost btn--pill" rel="next">Sonraki hafta ›</a>
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'ay' => $month->format('Y-m')]) }}" class="btn btn--ghost btn--pill">Aylık</a>
+            @else
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'ay' => $prev]) }}" class="btn btn--ghost btn--pill" rel="prev">‹ {{ $month->subMonth()->translatedFormat('M') }}</a>
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id]) }}" class="btn btn--ghost btn--pill">Bugün</a>
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'ay' => $next]) }}" class="btn btn--ghost btn--pill" rel="next">{{ $month->addMonth()->translatedFormat('M') }} ›</a>
+                <a href="{{ route('panel.content.calendar', ['website' => $website->id, 'hafta' => $today]) }}" class="btn btn--ghost btn--pill">Haftalık</a>
+            @endif
         </div>
     </div>
 
@@ -65,7 +73,7 @@
                 @for ($cell = $firstCell; $cell->lte($lastCell); $cell = $cell->addDay())
                     @php($key = $cell->format('Y-m-d'))
                     @php($items = $days[$key] ?? collect())
-                    <div class="calendar__day{{ $cell->month !== $month->month ? ' is-outside' : '' }}{{ $key === $today ? ' is-today' : '' }}" role="gridcell" aria-label="{{ $cell->translatedFormat('j F') }}">
+                    <div class="calendar__day{{ $week ? ' is-week' : '' }}{{ ! $week && $cell->month !== $month->month ? ' is-outside' : '' }}{{ $key === $today ? ' is-today' : '' }}" role="gridcell" aria-label="{{ $cell->translatedFormat('j F') }}">
                         <div class="calendar__num mono small">{{ $cell->day }}</div>
                         @foreach ($items as $item)
                             @php($isDraft = $item instanceof ContentDraft)
@@ -80,7 +88,7 @@
             </div>
             <p class="small muted" style="margin:12px 0 0">
                 <span class="badge badge--ok">yayında</span> <span class="badge badge--warn">zamanlandı</span> <span class="badge badge--danger">gecikmiş</span>
-                · Bu ay {{ $inMonth->count() }} kayıt.
+                · {{ $week ? 'Bu hafta' : 'Bu ay' }} {{ $inMonth->count() }} kayıt.
             </p>
         </div>
 
@@ -113,6 +121,28 @@
                     </div>
                 @endif
             @endforeach
+
+            @if ($workload !== [])
+                <div class="panel">
+                    <p class="eyebrow">Editör iş yükü</p>
+                    <table class="data">
+                        <thead><tr><th>Yazar</th><th class="num" title="Taslak">T</th><th class="num" title="İncelemede">İ</th><th class="num" title="Onaylı">O</th><th class="num" title="Zamanlanmış">Z</th><th class="num" title="Çalışma taslağı">Ç</th><th class="num">Σ</th></tr></thead>
+                        <tbody>
+                            @foreach ($workload as $w)
+                                <tr>
+                                    <td class="small">{{ $w['name'] }}</td>
+                                    <td class="num mono">{{ $w['draft'] }}</td>
+                                    <td class="num mono">{{ $w['in_review'] }}</td>
+                                    <td class="num mono">{{ $w['approved'] }}</td>
+                                    <td class="num mono">{{ $w['scheduled'] }}</td>
+                                    <td class="num mono">{{ $w['working'] }}</td>
+                                    <td class="num mono"><strong>{{ $w['total'] }}</strong></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
 
             @if ($pipeline['working']->isNotEmpty())
                 <div class="panel">

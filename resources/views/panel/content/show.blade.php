@@ -51,6 +51,7 @@
             <dl class="dl" style="margin-bottom:18px">
                 <dt>URL</dt><dd class="mono small">{{ $publicUrl }}</dd>
                 @if ($content->category)<dt>Kategori</dt><dd>{{ $content->category }}</dd>@endif
+                @if (! empty($content->tags))<dt>Etiketler</dt><dd>{{ implode(', ', $content->tags) }}</dd>@endif
                 @if ($content->reading_minutes)<dt>Okuma</dt><dd>{{ $content->reading_minutes }} dk</dd>@endif
                 <dt>Yazar</dt><dd>{{ $content->author?->name ?? '—' }}</dd>
                 @if ($content->scheduled_for)<dt>Zamanlandı</dt><dd>{{ $content->scheduled_for->format('d.m.Y H:i') }}</dd>@endif
@@ -243,6 +244,8 @@
                     </form>
                 @endif
             </div>
+
+            @include('panel.content.partials.link-suggestions')
 
             <div class="panel">
                 <p class="eyebrow">Revizyonlar</p>

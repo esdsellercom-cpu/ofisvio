@@ -80,6 +80,35 @@ class ContentCalendarTest extends TestCase
     }
 
     #[Test]
+    public function haftalik_gorunum_ve_editor_is_yuku(): void
+    {
+        $admin = $this->staff('system_admin');
+        $editor = $this->staff('operations_admin');
+
+        $this->content('Bu hafta', ContentStatus::SCHEDULED, ['scheduled_for' => '2026-09-18 09:00:00']); // Cuma (16'sı Çarşamba)
+        $this->content('Gelecek hafta', ContentStatus::SCHEDULED, ['scheduled_for' => '2026-09-23 09:00:00']);
+        $this->content('Editörün taslağı', ContentStatus::DRAFT, ['author_id' => $editor->id]);
+        $this->content('Editörün ikinci taslağı', ContentStatus::IN_REVIEW, ['author_id' => $editor->id]);
+
+        $html = $this->actingAs($admin)->get('/panel/icerik/takvim?hafta=2026-09-16')->assertOk()->getContent();
+        $this->assertStringContainsString('14 Eylül – 20 Eylül 2026', $html);
+        $this->assertStringContainsString('Bu hafta', $html);
+        $this->assertStringNotContainsString('Gelecek hafta</a>', $html);
+        $this->assertStringContainsString('Sonraki hafta', $html);
+        $this->assertStringContainsString('is-week', $html);
+        $this->assertStringContainsString('Bu hafta 1 kayıt', $html);
+
+        // Sonraki hafta bağlantısı ve bozuk parametre aylık görünüme düşer.
+        $this->actingAs($admin)->get('/panel/icerik/takvim?hafta=2026-09-23')->assertOk()->assertSee('Gelecek hafta')->assertDontSee('Bu hafta</a>');
+        $this->actingAs($admin)->get('/panel/icerik/takvim?hafta=bozuk')->assertOk()->assertSee('Takvim — Eylül 2026');
+
+        // Editör iş yükü: yazar başına sayılar; toplam sıralı.
+        $html = $this->actingAs($admin)->get('/panel/icerik/takvim')->assertOk()->getContent();
+        $this->assertStringContainsString('Editör iş yükü', $html);
+        $this->assertMatchesRegularExpression('/'.preg_quote($editor->name, '/').'<\/td>\s*<td class="num mono">1<\/td>\s*<td class="num mono">1<\/td>/', $html);
+    }
+
+    #[Test]
     public function gecikmis_zamanlama_uyarilir_ve_komut_calisinca_kaybolur(): void
     {
         $admin = $this->staff('system_admin');

@@ -57,6 +57,10 @@
                         <span class="label">Kategori</span>
                         <input class="control" type="text" name="category" value="{{ old('category', $src?->category) }}" maxlength="80" placeholder="Sanal Ofis, Mevzuat, Hibrit Çalışma…">
                     </label>
+                    <label class="field">
+                        <span class="label">Etiketler (virgülle, en fazla 10)</span>
+                        <input class="control" type="text" name="tags" value="{{ old('tags', implode(', ', $src?->tags ?? [])) }}" maxlength="300" placeholder="sanal ofis, tescil, kdv">
+                    </label>
                 @endif
                 @if ($draft)
                     <p class="small muted" style="margin:0">Onay bayrağı yayındaki içeriğe aittir{{ $content?->requires_approval ? ' (onay gerekli)' : '' }}.</p>
