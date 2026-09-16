@@ -10,6 +10,7 @@ use App\Models\Content;
 use App\Models\Website;
 use App\Services\AuthorizationService;
 use App\Services\ContentService;
+use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -61,6 +62,25 @@ class ContentController extends Controller
             'status' => $status,
             'kinds' => ContentKind::cases(),
             'statuses' => ContentStatus::cases(),
+        ]);
+    }
+
+    /** İçerik takvimi (faz 24): ?ay=YYYY-MM, varsayılan bu ay. */
+    public function calendar(Request $request): View
+    {
+        $website = $this->selectedWebsite($request);
+        $ay = (string) $request->query('ay', '');
+        $month = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $ay) === 1
+            ? CarbonImmutable::parse($ay.'-01', config('app.timezone'))->startOfMonth()
+            : CarbonImmutable::now(config('app.timezone'))->startOfMonth();
+
+        return view('panel.content.calendar', [
+            'website' => $website,
+            'websites' => $this->contents->allWebsites(),
+            'month' => $month,
+            'days' => $this->contents->calendar($website, $month),
+            'pipeline' => $this->contents->pipeline($website),
+            'today' => CarbonImmutable::now(config('app.timezone'))->format('Y-m-d'),
         ]);
     }
 

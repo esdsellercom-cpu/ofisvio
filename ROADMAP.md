@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **184/184** (Unit 10 · Feature 168 · Architecture 6) |
+| `php artisan test` | ✅ **188/188** (Unit 10 · Feature 172 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -168,9 +168,19 @@ eşlemesi; yalnız yayındaki yazılardan türer; sitemap'te). **İlgili yazıla
 yazı sayfasında (önce aynı kategori, sonra en yeni; önbellekli listeden,
 ek sorgu yok). Düzeltme: iskelet composer'ı liste sayfalarının SEO başlığını
 eziyordu (`/blog` canonical ana sayfa çıkıyordu).
-Eksik: içerik takvimi (faz 24), otomatik iç bağlantı önerisi, etiketler.
+Birleştirme anında slug tekilliği yeniden çözülür (taslak beklerken slug
+alınmışsa `-2`). Eksik: otomatik iç bağlantı önerisi, etiketler.
 
-### ⛔ 19–22 · 24–28 (AI, Search Console, Schema, Takvim, Command Center'lar)
+### 24. İçerik Takvimi 🟡 (v1 ✅)
+`/panel/icerik/takvim?ay=YYYY-MM`: aylık ızgara (pazartesi başlangıç;
+zamanlanmış → `scheduled_for`, yayında → `published_at`), yan panelde iş
+hattı (taslak / incelemede / onaylı / çalışma taslakları) ve **gecikmiş
+zamanlama** uyarısı (zamanı geçmiş SCHEDULED = `content:publish-scheduled`
+çalışmıyor sinyali). Sorgu bütçesi: kayıt sayısından bağımsız (12 sorgu üst
+sınır); yazı sayfası da bütçede (ilgili yazılar önbellekli listeden).
+Eksik: sürükle-bırak yeniden zamanlama, editör bazlı iş yükü, haftalık görünüm.
+
+### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 
 ---
@@ -196,13 +206,11 @@ Temeller hazır; sıra değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 24 içerik takvimi** — zamanlanmış/yayındaki içeriğin takvim görünümü,
-   editör iş yükü; faz 18 v1 (taslak, kategori, ilgili yazılar) tamam.
-3. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
+2. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
    (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
    vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık
    `website_id` üzerinde açılabilir.
-4. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
+3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
    `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
    bloklara taşınır.
 

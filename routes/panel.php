@@ -66,6 +66,8 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/', [ContentController::class, 'index'])->middleware($canSee)->name('index');
             Route::get('/yeni', [ContentController::class, 'create'])->middleware('permission:content.create')->name('create');
             Route::post('/', [ContentController::class, 'store'])->middleware('permission:content.create')->name('store');
+            // Takvim (faz 24): /{content}'ten ÖNCE — aksi halde 'takvim' model anahtarı sanılır.
+            Route::get('/takvim', [ContentController::class, 'calendar'])->middleware($canSee)->name('calendar');
             Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');
             Route::get('/{content}/duzenle', [ContentController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
             Route::put('/{content}', [ContentController::class, 'update'])->middleware('permission:content.edit')->name('update');

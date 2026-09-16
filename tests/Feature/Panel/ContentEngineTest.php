@@ -101,8 +101,18 @@ class ContentEngineTest extends TestCase
         $this->assertSame($revisionsBefore + 1, ContentRevision::where('content_id', $content->id)->count());
         $this->assertNull($content->fresh()->draft);
 
+        // Slug çakışması: taslak beklerken slug'ı başka içerik almışsa birleştirme tekil slug üretir.
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak")->assertRedirect();
+        $this->actingAs($admin)->put("/panel/icerik/{$content->id}/taslak", ['title' => 'Sanal ofis rehberi (güncel)', 'slug' => 'yeni-slug', 'body' => 'Gövde.'])->assertRedirect();
+        Content::create(['website_id' => $this->website->id, 'kind' => 'post', 'slug' => 'yeni-slug', 'title' => 'Araya giren']);
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak/incelemeye-gonder")->assertRedirect();
+        $this->actingAs($admin)->post("/panel/icerik/{$content->id}/taslak/yayinla")->assertRedirect("/panel/icerik/{$content->id}")->assertSessionHasNoErrors();
+        $this->assertSame('yeni-slug-2', $content->fresh()->slug);
+        $this->assertSame('Gövde.', $content->fresh()->body);
+
         // Önbellek geçersiz kılındı: vitrin yeni metni gösterir.
-        $this->get('http://localhost/blog/'.$content->slug)->assertOk()->assertSee('Yeni gövde metni.')->assertDontSee('Yayındaki gövde.');
+        $this->get('http://localhost/blog/yeni-slug-2')->assertOk()->assertSee('Gövde.')->assertDontSee('Yayındaki gövde.');
+        $this->get('http://localhost/blog/sanal-ofis-rehberi')->assertNotFound();
     }
 
     #[Test]

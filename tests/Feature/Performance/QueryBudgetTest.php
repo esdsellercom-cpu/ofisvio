@@ -2,10 +2,14 @@
 
 namespace Tests\Feature\Performance;
 
+use App\Enums\ContentStatus;
 use App\Enums\KycDocumentType;
+use App\Models\Content;
 use App\Models\KycDocument;
 use App\Models\Organization;
 use App\Models\User;
+use App\Models\Website;
+use App\Services\ContentCache;
 use App\Services\TenantContext;
 use Database\Seeders\LocationSeeder;
 use Database\Seeders\WebsiteSeeder;
@@ -42,6 +46,8 @@ class QueryBudgetTest extends TestCase
         'panel.companies' => 14,
         'panel.kyc' => 18,
         'panel.content' => 8,
+        'panel.calendar' => 12,
+        'site.post' => 8,
     ];
 
     protected function setUp(): void
@@ -147,5 +153,36 @@ class QueryBudgetTest extends TestCase
         $n = $this->countQueries(fn () => $this->actingAs($admin)->get('/panel/icerik')->assertOk());
 
         $this->assertLessThanOrEqual(self::BUDGET['panel.content'], $n, "İçerik listesi {$n} sorgu çalıştırdı.");
+    }
+
+    #[Test]
+    public function takvim_ve_yazi_sayfasi_kayit_sayisindan_bagimsiz(): void
+    {
+        $admin = $this->staff('system_admin');
+        $site = Website::query()->default()->firstOrFail();
+
+        $make = function (int $i) use ($site): Content {
+            $c = Content::create(['website_id' => $site->id, 'kind' => 'post', 'slug' => "yazi-{$i}", 'title' => "Yazı {$i}", 'body' => 'Gövde.', 'category' => $i % 2 ? 'A' : 'B']);
+            $c->forceFill(['status' => ContentStatus::PUBLISHED, 'published_at' => now()->subDays($i)])->save();
+
+            return $c;
+        };
+
+        $first = $make(1);
+        $c1 = $this->countQueries(fn () => $this->actingAs($admin)->get('/panel/icerik/takvim')->assertOk());
+        $p1 = $this->countQueries(fn () => $this->get('/blog/yazi-1')->assertOk());
+
+        foreach (range(2, 12) as $i) {
+            $make($i);
+        }
+        app(ContentCache::class)->invalidate($site);
+
+        $c12 = $this->countQueries(fn () => $this->actingAs($admin)->get('/panel/icerik/takvim')->assertOk());
+        $p12 = $this->countQueries(fn () => $this->get('http://localhost/blog/'.$first->slug)->assertOk()->assertSee('İlgili yazılar'));
+
+        $this->assertSame($c1, $c12, "Takvim: 1 içerikte {$c1}, 12 içerikte {$c12} sorgu — N+1.");
+        $this->assertSame($p1, $p12, "Yazı sayfası: 1 yazıda {$p1}, 12 yazıda {$p12} sorgu — N+1.");
+        $this->assertLessThanOrEqual(self::BUDGET['panel.calendar'], $c12, "Takvim {$c12} sorgu çalıştırdı.");
+        $this->assertLessThanOrEqual(self::BUDGET['site.post'], $p12, "Yazı sayfası {$p12} sorgu çalıştırdı.");
     }
 }

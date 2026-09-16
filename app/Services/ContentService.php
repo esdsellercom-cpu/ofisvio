@@ -9,6 +9,7 @@ use App\Models\ContentDraft;
 use App\Models\ContentRevision;
 use App\Models\User;
 use App\Models\Website;
+use Carbon\CarbonImmutable;
 use Closure;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
@@ -518,7 +519,10 @@ class ContentService
         }
 
         return DB::transaction(function () use ($actor, $draft, $content) {
-            $content->fill($draft->payload());
+            $payload = $draft->payload();
+            // Taslak beklerken slug başka içerikçe alınmış olabilir; tekillik burada yeniden çözülür.
+            $payload['slug'] = $this->uniqueSlug($content->website, $content->kind, $payload['slug'], $payload['title'], $content->id);
+            $content->fill($payload);
             $content->reading_minutes = $this->readingMinutes($content->body);
             $content->save();
 
@@ -533,6 +537,83 @@ class ContentService
     public function discardDraft(ContentDraft $draft): void
     {
         $draft->delete();
+    }
+
+    // -----------------------------------------------------------------
+    // İçerik takvimi (faz 24)
+    // -----------------------------------------------------------------
+
+    /**
+     * Aylık takvim: gün (Y-m-d) => içerikler. Zamanlanmış içerik scheduled_for,
+     * yayındaki içerik published_at gününe düşer; başka durumlar takvimde yoktur.
+     *
+     * @return array<string, Collection<int, Content>>
+     */
+    public function calendar(Website $website, CarbonImmutable $month): array
+    {
+        $start = $month->startOfMonth();
+        $end = $month->endOfMonth();
+
+        $items = Content::query()
+            ->with('author')
+            ->where('website_id', $website->id)
+            ->where(function ($q) use ($start, $end) {
+                $q->where(fn ($s) => $s->where('status', ContentStatus::SCHEDULED->value)->whereBetween('scheduled_for', [$start, $end]))
+                    ->orWhere(fn ($p) => $p->where('status', ContentStatus::PUBLISHED->value)->whereBetween('published_at', [$start, $end]));
+            })
+            ->orderBy('scheduled_for')
+            ->orderBy('published_at')
+            ->get();
+
+        $days = [];
+
+        foreach ($items as $item) {
+            $at = $item->status === ContentStatus::SCHEDULED ? $item->scheduled_for : $item->published_at;
+            $key = $at?->format('Y-m-d');
+
+            if ($key === null) {
+                continue;
+            }
+
+            $days[$key] ??= new Collection;
+            $days[$key]->push($item);
+        }
+
+        ksort($days);
+
+        return $days;
+    }
+
+    /**
+     * İş hattı: yayın öncesi bekleyenler + çalışma taslakları + gecikmiş zamanlama.
+     *
+     * Gecikmiş = SCHEDULED ama zamanı geçmiş: zamanlayıcı (content:publish-scheduled)
+     * çalışmıyor demektir; takvimde uyarı olarak gösterilir.
+     *
+     * @return array{draft: Collection<int, Content>, in_review: Collection<int, Content>, approved: Collection<int, Content>, working: Collection<int, ContentDraft>, overdue: Collection<int, Content>}
+     */
+    public function pipeline(Website $website): array
+    {
+        $pending = Content::query()
+            ->with('author')
+            ->where('website_id', $website->id)
+            ->whereIn('status', [ContentStatus::DRAFT->value, ContentStatus::IN_REVIEW->value, ContentStatus::APPROVED->value, ContentStatus::SCHEDULED->value])
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $working = ContentDraft::query()
+            ->with(['content', 'author'])
+            ->whereHas('content', fn ($q) => $q->where('website_id', $website->id))
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return [
+            'draft' => $pending->where('status', ContentStatus::DRAFT)->values(),
+            'in_review' => $pending->where('status', ContentStatus::IN_REVIEW)->values(),
+            'approved' => $pending->where('status', ContentStatus::APPROVED)->values(),
+            'working' => $working,
+            'overdue' => $pending->filter(fn (Content $c) => $c->status === ContentStatus::SCHEDULED && $c->scheduled_for !== null && $c->scheduled_for->isPast())->values(),
+        ];
     }
 
     /** @return Collection<int, ContentRevision> */
