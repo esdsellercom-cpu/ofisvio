@@ -25,6 +25,23 @@ class ContentController extends Controller
 
         return view('site.posts', [
             'posts' => $this->contents->livePosts($website, 50),
+            'categories' => $this->contents->categories($website),
+        ]);
+    }
+
+    /** Kategori sayfası (faz 18): kategori serbest metin, eşleme slug ile. */
+    public function category(string $category): View
+    {
+        $website = $this->website->get();
+        $categories = $this->contents->categories($website);
+
+        abort_unless(isset($categories[$category]), 404);
+
+        return view('site.category', [
+            'categorySlug' => $category,
+            'categoryName' => $categories[$category]['name'],
+            'categories' => $categories,
+            'posts' => $this->contents->livePostsInCategory($website, $category),
         ]);
     }
 
@@ -34,7 +51,11 @@ class ContentController extends Controller
 
         abort_if($content === null, 404);
 
-        return view('site.content', ['content' => $content, 'isPost' => true]);
+        return view('site.content', [
+            'content' => $content,
+            'isPost' => true,
+            'related' => $this->contents->relatedPosts($content),
+        ]);
     }
 
     public function page(string $slug): View

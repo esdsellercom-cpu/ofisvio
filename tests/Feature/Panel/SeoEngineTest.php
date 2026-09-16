@@ -59,6 +59,11 @@ class SeoEngineTest extends TestCase
         $this->assertStringContainsString('"@type":"Article"', $html);
         $this->assertStringContainsString('"headline":"Sanal ofis rehberi"', $html);
 
+        // Liste sayfalarının başlığı iskelet composer'ında ezilmez (faz 18 düzeltmesi).
+        $list = $this->get('/blog')->assertOk()->getContent();
+        $this->assertStringContainsString('<title>Yazılar — Ofisvio</title>', $list);
+        $this->assertStringContainsString('<link rel="canonical" href="'.config('app.url').'/blog">', $list);
+
         // Sayfa: WebPage + meta_title öncelikli, noindex sayfa başına.
         $this->publish('page', 'gizli', 'Gizli sayfa', ['meta_title' => 'Özel başlık', 'noindex' => true]);
         $html = $this->get('/gizli')->assertOk()->getContent();

@@ -18,6 +18,7 @@ use App\Http\Controllers\Panel\AccountController;
 use App\Http\Controllers\Panel\CacheController;
 use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContentController;
+use App\Http\Controllers\Panel\ContentDraftController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\GeoController;
@@ -77,6 +78,18 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/{content}/zamanla', [ContentController::class, 'schedule'])->middleware('permission:content.schedule')->name('schedule');
             Route::post('/{content}/arsivle', [ContentController::class, 'archive'])->middleware('permission:content.archive')->name('archive');
             Route::post('/{content}/taslaga-al', [ContentController::class, 'restore'])->middleware('permission:content.edit')->name('restore');
+
+            // Çalışma taslağı (faz 18): yayındaki içeriği düşürmeden düzenle; aynı akış, yayın = birleştirme.
+            Route::prefix('/{content}/taslak')->name('draft.')->group(function () {
+                Route::post('/', [ContentDraftController::class, 'open'])->middleware('permission:content.edit')->name('open');
+                Route::get('/duzenle', [ContentDraftController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
+                Route::put('/', [ContentDraftController::class, 'update'])->middleware('permission:content.edit')->name('update');
+                Route::post('/incelemeye-gonder', [ContentDraftController::class, 'submit'])->middleware('permission:content.edit')->name('submit');
+                Route::post('/geri-gonder', [ContentDraftController::class, 'reject'])->middleware('permission:content.review')->name('reject');
+                Route::post('/onayla', [ContentDraftController::class, 'approve'])->middleware('permission:content.approve')->name('approve');
+                Route::post('/yayinla', [ContentDraftController::class, 'publish'])->middleware('permission:content.publish')->name('publish');
+                Route::delete('/', [ContentDraftController::class, 'discard'])->middleware('permission:content.edit')->name('discard');
+            });
         });
 
         // --- Websiteler (faz 10) — personel, tenant context'siz ----------------

@@ -148,6 +148,7 @@ input, select, button, textarea { font-family: inherit; font-size: inherit; colo
 .btn--ghost { background: transparent; border-color: var(--line-strong); color: var(--ink); }
 .btn--ghost:hover { border-color: var(--brand); color: var(--brand); }
 .btn--pill { border-radius: var(--r-pill); padding: 11px 20px; font-size: 14.5px; }
+.btn--ghost.is-active { border-color: var(--brand); color: var(--brand); background: color-mix(in srgb, var(--brand) 8%, transparent); }
 .btn--block { width: 100%; }
 
 /* ---------- alanlar ---------- */

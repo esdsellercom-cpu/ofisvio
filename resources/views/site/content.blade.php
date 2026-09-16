@@ -8,7 +8,7 @@
         @if ($isPost)
             <p class="eyebrow">
                 <a href="{{ route('site.posts') }}">Günlük</a>
-                @if ($content->category) · {{ $content->category }} @endif
+                @if ($content->category) · <a href="{{ route('site.category', \Illuminate\Support\Str::slug($content->category)) }}">{{ $content->category }}</a> @endif
                 @if ($content->reading_minutes) · {{ $content->reading_minutes }} dk @endif
             </p>
         @else
@@ -31,4 +31,19 @@
         {{-- renderedBody() markdown'ı süzülmüş HTML'e çevirir (ham HTML strip, güvensiz link yok). --}}
         <div class="prose" style="margin-top:36px">{!! $content->renderedBody() !!}</div>
     </article>
-@endsection
+
+    {{-- İlgili yazılar (faz 23 iç bağlantı): önce aynı kategori, sonra en yeni. --}}
+    @if ($isPost && isset($related) && $related->isNotEmpty())
+        <section class="wrap section" style="padding-top:0;max-width:760px" aria-labelledby="related-heading">
+            <p class="eyebrow">Devamında</p>
+            <h2 class="h3" id="related-heading">İlgili yazılar</h2>
+            <ul class="stack" style="gap:14px;margin:18px 0 0;padding:0;list-style:none">
+                @foreach ($related as $post)
+                    <li>
+                        <a href="{{ route('site.post', $post->slug) }}" style="font-weight:600">{{ $post->title }}</a>
+                        <div class="small muted">{{ $post->category }}@if ($post->reading_minutes) · {{ $post->reading_minutes }} dk @endif</div>
+                    </li>
+                @endforeach
+            </ul>
+        </section>
+    @endif@endsection

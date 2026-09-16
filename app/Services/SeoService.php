@@ -177,6 +177,11 @@ class SeoService
             $entries[] = ['loc' => $base.'/blog', 'lastmod' => $posts->first()->published_at?->toAtomString(), 'changefreq' => 'weekly', 'priority' => '0.8'];
         }
 
+        // Kategori sayfaları (faz 18): yalnız yayındaki yazılardan türeyenler.
+        foreach (array_keys($this->contents->categories($website)) as $categorySlug) {
+            $entries[] = ['loc' => $base.'/blog/kategori/'.$categorySlug, 'lastmod' => null, 'changefreq' => 'weekly', 'priority' => '0.5'];
+        }
+
         foreach ($posts as $post) {
             if (! $post->noindex) {
                 $entries[] = ['loc' => $base.$post->path(), 'lastmod' => $post->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.6'];

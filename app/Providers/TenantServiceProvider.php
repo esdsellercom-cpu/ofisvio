@@ -76,6 +76,6 @@ class TenantServiceProvider extends ServiceProvider
         View::composer('site.partials.footer', SiteFooterComposer::class);
 
         // Vitrin görünümleri: Ofisvio mu müşteri sitesi mi -> iskelet + menü.
-        View::composer(['site.content', 'site.posts', 'site.locations', 'site.location', 'site.tenant-home', 'layouts.tenant', 'layouts.site'], SiteLayoutComposer::class);
+        View::composer(['site.content', 'site.posts', 'site.category', 'site.locations', 'site.location', 'site.tenant-home', 'layouts.tenant', 'layouts.site'], SiteLayoutComposer::class);
     }
 }

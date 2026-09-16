@@ -138,12 +138,72 @@
                     @endif
                 @endif
 
-                {{-- PUBLISHED --}}
-                @if ($s === ContentStatus::PUBLISHED && $can['publish'])
-                    <form method="POST" action="{{ route('panel.content.unpublish', $content) }}" class="stack" style="gap:8px">@csrf
-                        <p class="small muted" style="margin:0">Düzenlemek için yayından kaldırın; metin akışı yeniden geçer.</p>
-                        <button type="submit" class="btn btn--ghost btn--block">Yayından kaldır (taslağa al)</button>
-                    </form>
+                {{-- PUBLISHED: çalışma taslağı (faz 18) — canlı metin düşmeden düzenleme --}}
+                @if ($s === ContentStatus::PUBLISHED)
+                    @php($draft = $content->draft)
+                    @if ($draft === null)
+                        @if ($can['edit'])
+                            <form method="POST" action="{{ route('panel.content.draft.open', $content) }}" class="stack" style="gap:8px">@csrf
+                                <p class="small muted" style="margin:0">Yayındaki metin yerinde kalır; kopyası akıştan geçip yayınlanınca birleşir.</p>
+                                <button type="submit" class="btn btn--brand btn--block">Çalışma taslağı aç</button>
+                            </form>
+                        @endif
+                    @else
+                        <div class="notice notice--info" role="status" style="margin:0">
+                            <span class="notice__dot" aria-hidden="true"></span>
+                            <div>
+                                <strong>Çalışma taslağı:</strong> {{ $draft->status->label() }}
+                                <span class="small muted">· {{ $draft->author?->name ?? '—' }} · {{ $draft->updated_at?->format('d.m.Y H:i') }}</span>
+                                @if ($draft->title !== $content->title)<div class="small">Yeni başlık: {{ $draft->title }}</div>@endif
+                                @if ($draft->slug !== $content->slug)<div class="small mono">Yeni slug: {{ $draft->slug }}</div>@endif
+                                @if ($draft->review_note && $draft->status === ContentStatus::DRAFT)<div class="small"><strong>İnceleme notu:</strong> {{ $draft->review_note }}</div>@endif
+                            </div>
+                        </div>
+
+                        @if ($draft->status === ContentStatus::DRAFT && $can['edit'])
+                            <a href="{{ route('panel.content.draft.edit', $content) }}" class="btn btn--brand btn--block">Taslağı düzenle</a>
+                            <form method="POST" action="{{ route('panel.content.draft.submit', $content) }}">@csrf
+                                <button type="submit" class="btn btn--ghost btn--block">Taslağı incelemeye gönder</button>
+                            </form>
+                        @endif
+
+                        @if ($draft->status === ContentStatus::IN_REVIEW)
+                            @if ($content->requires_approval && $can['approve'])
+                                <form method="POST" action="{{ route('panel.content.draft.approve', $content) }}" class="stack" style="gap:8px">@csrf
+                                    <input class="control" type="text" name="note" maxlength="2000" placeholder="Onay notu (isteğe bağlı)">
+                                    <button type="submit" class="btn btn--brand btn--block">Taslağı onayla</button>
+                                </form>
+                            @elseif (! $content->requires_approval && $can['publish'])
+                                <form method="POST" action="{{ route('panel.content.draft.publish', $content) }}">@csrf
+                                    <button type="submit" class="btn btn--brand btn--block">Taslağı yayınla (birleştir)</button>
+                                </form>
+                            @endif
+                            @if ($can['review'])
+                                <form method="POST" action="{{ route('panel.content.draft.reject', $content) }}" class="stack" style="gap:8px">@csrf
+                                    <input class="control" type="text" name="note" maxlength="2000" required placeholder="Geri gönderme gerekçesi (zorunlu)">
+                                    <button type="submit" class="btn btn--ghost btn--block">Taslağı geri gönder</button>
+                                </form>
+                            @endif
+                        @endif
+
+                        @if ($draft->status === ContentStatus::APPROVED && $can['publish'])
+                            <form method="POST" action="{{ route('panel.content.draft.publish', $content) }}">@csrf
+                                <button type="submit" class="btn btn--brand btn--block">Taslağı yayınla (birleştir)</button>
+                            </form>
+                        @endif
+
+                        @if ($can['edit'])
+                            <form method="POST" action="{{ route('panel.content.draft.discard', $content) }}">@csrf @method('DELETE')
+                                <button type="submit" class="btn btn--ghost btn--block" style="color:var(--danger);border-color:#E9C4BC">Taslağı sil</button>
+                            </form>
+                        @endif
+                    @endif
+
+                    @if ($can['publish'])
+                        <form method="POST" action="{{ route('panel.content.unpublish', $content) }}">@csrf
+                            <button type="submit" class="btn btn--ghost btn--block">Yayından kaldır (taslağa al)</button>
+                        </form>
+                    @endif
                 @endif
 
                 {{-- ARCHIVED --}}

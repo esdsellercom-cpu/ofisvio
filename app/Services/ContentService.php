@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ContentKind;
 use App\Enums\ContentStatus;
 use App\Models\Content;
+use App\Models\ContentDraft;
 use App\Models\ContentRevision;
 use App\Models\User;
 use App\Models\Website;
@@ -331,6 +332,207 @@ class ContentService
         }
 
         return $due->count();
+    }
+
+    // -----------------------------------------------------------------
+    // Kategori + ilgili yazılar (faz 18 / 23 iç bağlantı)
+    // -----------------------------------------------------------------
+
+    /**
+     * Yayındaki yazıların kategorileri: slug => [name, count]. Önbellekli.
+     *
+     * @return array<string, array{name: string, count: int}>
+     */
+    public function categories(?Website $website): array
+    {
+        if ($website === null) {
+            return [];
+        }
+
+        $rows = $this->cache->remember($website, 'categories', function () use ($website) {
+            $out = [];
+
+            $names = Content::query()
+                ->where('website_id', $website->id)
+                ->where('kind', ContentKind::POST->value)
+                ->live()
+                ->whereNotNull('category')
+                ->pluck('category');
+
+            foreach ($names as $name) {
+                $slug = Str::slug((string) $name);
+
+                if ($slug === '') {
+                    continue;
+                }
+
+                $out[$slug] ??= ['name' => (string) $name, 'count' => 0];
+                $out[$slug]['count']++;
+            }
+
+            ksort($out);
+
+            return $out;
+        });
+
+        return is_array($rows) ? $rows : [];
+    }
+
+    /**
+     * Kategori sayfası: kategori serbest metindir, eşleme slug üzerinden yapılır.
+     *
+     * @return Collection<int, Content>
+     */
+    public function livePostsInCategory(?Website $website, string $categorySlug): Collection
+    {
+        if ($website === null) {
+            return new Collection;
+        }
+
+        return $this->livePosts($website, 1000)
+            ->filter(fn (Content $post) => Str::slug((string) $post->category) === $categorySlug)
+            ->values();
+    }
+
+    /**
+     * İlgili yazılar (faz 23 iç bağlantı): önce aynı kategori, sonra en yeni.
+     *
+     * @return Collection<int, Content>
+     */
+    public function relatedPosts(Content $content, int $limit = 3): Collection
+    {
+        $others = $this->livePosts($content->website, 1000)->reject(fn (Content $p) => $p->id === $content->id);
+        $same = $others->filter(fn (Content $p) => $p->category !== null && $p->category === $content->category);
+        $rest = $others->reject(fn (Content $p) => $same->contains('id', $p->id));
+
+        return $same->concat($rest)->take($limit)->values();
+    }
+
+    // -----------------------------------------------------------------
+    // Çalışma taslağı (faz 18): canlı metni düşürmeden düzenleme
+    // -----------------------------------------------------------------
+
+    /**
+     * Yayındaki içerik için çalışma taslağı açar (zaten varsa onu döner).
+     * Taslak içerik doğrudan update() ile düzenlenir; burada yalnız PUBLISHED.
+     */
+    public function openDraft(User $author, Content $content): ContentDraft
+    {
+        if ($content->status !== ContentStatus::PUBLISHED) {
+            throw new DomainException('Çalışma taslağı yalnızca yayındaki içerik için açılır; taslak içerik doğrudan düzenlenir.');
+        }
+
+        $existing = $content->draft;
+
+        if ($existing !== null) {
+            return $existing;
+        }
+
+        return ContentDraft::create([
+            'content_id' => $content->id,
+            'title' => $content->title,
+            'slug' => $content->slug,
+            'excerpt' => $content->excerpt,
+            'body' => $content->body,
+            'category' => $content->category,
+            'meta_title' => $content->meta_title,
+            'meta_description' => $content->meta_description,
+            'noindex' => $content->noindex,
+            'author_id' => $author->id,
+        ]);
+    }
+
+    /**
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     */
+    public function updateDraft(User $editor, ContentDraft $draft, array $data): ContentDraft
+    {
+        if ($draft->status !== ContentStatus::DRAFT) {
+            throw new DomainException('Taslak "'.$draft->status->label().'" durumunda; düzenlemek için önce geri gönderilmeli.');
+        }
+
+        $content = $draft->content;
+        $slugInput = $data['slug'] ?? null;
+
+        $draft->fill([
+            'title' => trim($data['title']),
+            'slug' => $slugInput !== null && $slugInput !== '' && $slugInput !== $draft->slug
+                ? $this->uniqueSlug($content->website, $content->kind, $slugInput, $data['title'], $content->id)
+                : $draft->slug,
+            'excerpt' => $data['excerpt'] ?? null,
+            'body' => $data['body'] ?? null,
+            'category' => $data['category'] ?? null,
+            'meta_title' => $data['meta_title'] ?? null,
+            'meta_description' => $data['meta_description'] ?? null,
+            'noindex' => (bool) ($data['noindex'] ?? false),
+            'author_id' => $editor->id,
+        ]);
+        $draft->save();
+
+        return $draft;
+    }
+
+    /**
+     * Taslak akışı: DRAFT -> IN_REVIEW -> DRAFT (geri) | APPROVED. Yayın = publishDraft().
+     */
+    public function transitionDraft(User $actor, ContentDraft $draft, ContentStatus $target, ?string $note = null): ContentDraft
+    {
+        if (! in_array($target, [ContentStatus::DRAFT, ContentStatus::IN_REVIEW, ContentStatus::APPROVED], true)) {
+            throw new DomainException('Çalışma taslağı yalnızca taslak/inceleme/onay durumlarını alır; yayın birleştirme ile yapılır.');
+        }
+
+        if (! $draft->status->canTransitionTo($target)) {
+            throw new DomainException("Geçersiz taslak geçişi: {$draft->status->value} -> {$target->value}");
+        }
+
+        $draft->status = $target;
+        $draft->review_note = $target === ContentStatus::IN_REVIEW ? null : $note;
+        $draft->approved_by = $target === ContentStatus::APPROVED ? $actor->id : null;
+        $draft->save();
+
+        return $draft;
+    }
+
+    /**
+     * Taslağı canlı içeriğe birleştirir: içerik yayında KALIR, alanları güncellenir,
+     * revizyon düşer, önbellek geçersiz kılınır, taslak silinir.
+     */
+    public function publishDraft(User $actor, ContentDraft $draft): Content
+    {
+        $content = $draft->content;
+
+        if (! in_array($draft->status, [ContentStatus::IN_REVIEW, ContentStatus::APPROVED], true)) {
+            throw new DomainException('Taslak incelemeye gönderilmeden yayınlanamaz.');
+        }
+
+        if ($content->requires_approval && $draft->status !== ContentStatus::APPROVED) {
+            throw new DomainException('Bu içerik onay gerektirir: taslak önce onaylanmalı.');
+        }
+
+        if ($draft->body === null || trim($draft->body) === '') {
+            throw new DomainException('Boş içerik yayınlanamaz.');
+        }
+
+        if ($content->status !== ContentStatus::PUBLISHED) {
+            throw new DomainException('İçerik artık yayında değil; taslağı silip içeriği doğrudan düzenleyin.');
+        }
+
+        return DB::transaction(function () use ($actor, $draft, $content) {
+            $content->fill($draft->payload());
+            $content->reading_minutes = $this->readingMinutes($content->body);
+            $content->save();
+
+            $this->snapshot($content, $actor);
+            $draft->delete();
+            $this->cache->invalidate($content->website);
+
+            return $content;
+        });
+    }
+
+    public function discardDraft(ContentDraft $draft): void
+    {
+        $draft->delete();
     }
 
     /** @return Collection<int, ContentRevision> */

@@ -48,5 +48,6 @@ Route::get('/lokasyonlar', [LocationController::class, 'index'])->middleware('pu
 Route::get('/lokasyon/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.location');
 
 Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cache')->name('site.posts');
+Route::get('/blog/kategori/{category}', [ContentController::class, 'category'])->where('category', '[a-z0-9-]+')->middleware('public.cache')->name('site.category');
 Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
 Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

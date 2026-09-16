@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **181/181** (Unit 10 · Feature 165 · Architecture 6) |
+| `php artisan test` | ✅ **184/184** (Unit 10 · Feature 168 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -155,7 +155,22 @@ Organization düğümünü `sameAs`/`legalName` ile taşır.
 Eksik: FAQ/Service şemaları, harita gömme, çok dilli hreflang, `geo.publish`
 akışı (lokasyon yayını şu an `is_published` bayrağı).
 
-### ⛔ 18–28 (Content Engine, AI, Search Console, Schema/Internal Linking, Takvim, Command Center'lar)
+### 18 · 23. Content Engine · Internal Linking 🟡 (v1 ✅)
+**Çalışma taslağı** (`content_drafts`, içerikle bire bir): yayındaki içerik
+canlıda kalırken kopyası düzenlenir, aynı akıştan geçer (DRAFT → IN_REVIEW →
+[APPROVED] → birleştirme), yayınlanınca `publishDraft()` alanları içeriğe
+yazar, revizyon düşer, önbelleği geçersiz kılar, taslağı siler. Rotalar
+`/panel/icerik/{content}/taslak/*`, izinler ana akışla aynı (`content.edit /
+review / approve / publish`); onay gerektiren içeriğin taslağı onaysız
+birleşmez. Yayından kaldırma hâlâ mümkün ama artık zorunlu değil.
+**Kategori sayfaları** `/blog/kategori/{slug}` (kategori serbest metin; slug
+eşlemesi; yalnız yayındaki yazılardan türer; sitemap'te). **İlgili yazılar**
+yazı sayfasında (önce aynı kategori, sonra en yeni; önbellekli listeden,
+ek sorgu yok). Düzeltme: iskelet composer'ı liste sayfalarının SEO başlığını
+eziyordu (`/blog` canonical ana sayfa çıkıyordu).
+Eksik: içerik takvimi (faz 24), otomatik iç bağlantı önerisi, etiketler.
+
+### ⛔ 19–22 · 24–28 (AI, Search Console, Schema, Takvim, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 
 ---
@@ -181,9 +196,8 @@ Temeller hazır; sıra değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 18 Content Engine** — içerik takvimi (faz 24) ve iç bağlantı (faz 23)
-   ile birlikte: kategori sayfaları, ilgili yazılar, taslak-kopyası (canlı
-   metni düşürmeden düzenleme).
+2. **Faz 24 içerik takvimi** — zamanlanmış/yayındaki içeriğin takvim görünümü,
+   editör iş yükü; faz 18 v1 (taslak, kategori, ilgili yazılar) tamam.
 3. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
    (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
    vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık

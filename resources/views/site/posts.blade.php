@@ -8,6 +8,13 @@
         <p class="eyebrow">Günlük</p>
         <h1 class="h2">Çalışma kültürü günlüğü</h1>
 
+        @if (! empty($categories))
+            <nav class="row-actions" style="margin-top:18px;flex-wrap:wrap;gap:8px" aria-label="Kategoriler">
+                @foreach ($categories as $slug => $cat)
+                    <a href="{{ route('site.category', $slug) }}" class="btn btn--ghost btn--pill{{ ($activeCategory ?? null) === $slug ? ' is-active' : '' }}">{{ $cat['name'] }} <span class="muted">({{ $cat['count'] }})</span></a>
+                @endforeach
+            </nav>
+        @endif
         @if ($posts->isEmpty())
             <div class="empty-state" style="margin-top:32px">Henüz yayınlanmış yazı yok.</div>
         @else
