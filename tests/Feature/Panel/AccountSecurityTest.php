@@ -143,18 +143,32 @@ class AccountSecurityTest extends TestCase
     }
 
     #[Test]
-    public function personel_hesabinda_2fa_kapaliysa_uyari_gorur(): void
+    public function personel_2fa_kurmadan_panele_giremez(): void
     {
-        $admin = $this->staff('system_admin');
+        $admin = $this->staffWithoutTwoFactor('system_admin');
+        $this->organization('Acme');
 
+        // Hesap sayfası açık (kurulum burada), uyarı görünür.
         $this->actingAs($admin)->get('/panel/hesap')
             ->assertOk()
             ->assertSee('Personel hesabınızda iki adımlı doğrulama kapalı');
 
+        // Geri kalan her şey güvenlik sayfasına yönlenir.
+        foreach (['/panel', '/panel/organizasyon', '/panel/yeni-musteri'] as $url) {
+            $this->actingAs($admin)->get($url)->assertRedirect('/panel/hesap/guvenlik');
+        }
+        $this->actingAs($admin)->post('/panel/yeni-musteri', [
+            'organization_name' => 'Kaçak', 'owner_name' => 'X Y', 'owner_email' => 'x@example.com',
+        ])->assertRedirect('/panel/hesap/guvenlik');
+
+        // Müşteri kullanıcısı için zorunluluk yok.
         $customer = User::factory()->create();
-        $this->actingAs($customer)->get('/panel/hesap')
-            ->assertOk()
-            ->assertDontSee('Personel hesabınızda');
+        $this->actingAs($customer)->get('/panel/hesap')->assertOk()->assertDontSee('Personel hesabınızda');
+        $this->actingAs($customer)->get('/panel/organizasyon')->assertOk();
+
+        // 2FA kurulunca kapı açılır.
+        $confirmed = $this->staff('system_admin');
+        $this->actingAs($confirmed)->get('/panel/organizasyon')->assertOk();
     }
 
     #[Test]

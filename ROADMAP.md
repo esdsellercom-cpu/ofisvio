@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **129/129** (Unit 1 · Feature 122 · Architecture 6) |
+| `php artisan test` | ✅ **135/135** (Unit 1 · Feature 128 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -40,17 +40,20 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-129 test; "izin verilmemeli" senaryoları her modülde var.
+135 test; "izin verilmemeli" senaryoları her modülde var.
 
 ### 4. CI/CD Pipeline ✅ (lokal) · ⬜ (GitHub)
 İlk push'ta doğrulanacak.
 
 ### 5. P0 Security Infrastructure 🟡
 Var: tenant izolasyonu, RBAC+scope, JIT, dual-control, fail-closed, audit
-tabloları, login throttling (5/dk e-posta+IP), session fixation savunması.
-Yok: 2FA/passkey (Fortify özelliği kapalı, migration'ları eklenmedi),
-Integration Gateway, Secret Management, SSRF koruması, File Quarantine
-(ClamAV), Webhook Security, genel rate limiting.
+tabloları, login throttling (5/dk e-posta+IP), session fixation savunması,
+**2FA (TOTP, kurtarma kodları, replay koruması) — personel için zorunlu**
+(`staff.2fa` middleware'i: doğrulanmış 2FA olmadan hesap sayfası dışında
+hiçbir panel ekranı açılmaz), hassas POST'larda throttle (KYC yükleme, JIT,
+davet, context).
+Yok: passkey, Integration Gateway, Secret Management, SSRF koruması, File
+Quarantine (ClamAV), Webhook Security.
 
 ### 6. Auth ✅
 Fortify: login / logout / şifre sıfırlama. **Kayıt kapalı** — hesaplar davetle
@@ -101,9 +104,9 @@ Tamamı 9. ve 10. fazlara bağlı; sıra ve önkoşullar değişmedi.
 
 1. **GitHub'a push** — remote ekle, CI'ın pipeline'da da yeşil olduğunu gör.
    §76 kapısı lokalde değil pipeline'da sayılır.
-2. **Faz 5 tamamlama** — 2FA (Fortify `twoFactorAuthentication` + migration),
-   dosya karantinası (yüklenen KYC belgesi ClamAV'dan geçmeden PENDING'e
-   düşmesin), genel rate limiting.
+2. **Faz 5 tamamlama** — dosya karantinası (yüklenen KYC belgesi ClamAV'dan
+   geçmeden PENDING'e düşmesin; `QUARANTINED` durumu + tarayıcı arayüzü),
+   Secret Management, SSRF koruması (entegrasyonlar gelince).
 3. **Faz 9–10** — CMS Core + Website Engine; `config/ofisvio.php`'deki vitrin
    metinleri ve blog yazıları DB'ye taşınır. 11+ bunu bekler.
 

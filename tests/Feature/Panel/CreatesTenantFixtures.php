@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\TenantContext;
 use Database\Seeders\RolePermissionSeeder;
+use PragmaRX\Google2FA\Google2FA;
 
 /**
  * Panel testlerinin ortak kurulumu. Fixture'lar runAsSystem içinde yaratılır:
@@ -74,8 +75,25 @@ trait CreatesTenantFixtures
         return $user;
     }
 
-    /** Ofisvio personeli: global internal rol, hiçbir organizasyona üye değil. */
+    /**
+     * Ofisvio personeli: global internal rol, hiçbir organizasyona üye değil,
+     * 2FA doğrulanmış (EnsureStaffTwoFactor aksi halde panele sokmaz).
+     */
     protected function staff(string $roleName = 'system_admin'): User
+    {
+        $user = $this->staffWithoutTwoFactor($roleName);
+
+        $user->forceFill([
+            'two_factor_secret' => encrypt(app(Google2FA::class)->generateSecretKey()),
+            'two_factor_recovery_codes' => encrypt(json_encode([])),
+            'two_factor_confirmed_at' => now(),
+        ])->save();
+
+        return $user;
+    }
+
+    /** 2FA kurmamış personel — zorunluluk testleri için. */
+    protected function staffWithoutTwoFactor(string $roleName = 'system_admin'): User
     {
         $user = User::factory()->create();
         $this->grantRole($user, $roleName);
