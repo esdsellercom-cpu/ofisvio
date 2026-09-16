@@ -127,6 +127,7 @@ class ArchitectureTest extends TestCase
             'AuthorizationService.php',     // şirketten organizasyon çözümlemesi
             'BelongsToTenant.php',          // trait'in kendi tanımı
             'KycQueueService.php',          // pendingCounts: yalnızca personel, yalnızca org başına ADET (bkz. sınıf başlığı)
+            'AuditLogService.php',          // denetim kaydı: global audit.view, salt okunur, tüm organizasyonlar tanım gereği (bkz. sınıf başlığı)
         ];
 
         $violations = [];

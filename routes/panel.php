@@ -15,6 +15,7 @@
  */
 
 use App\Http\Controllers\Panel\AccountController;
+use App\Http\Controllers\Panel\AuditController;
 use App\Http\Controllers\Panel\CacheController;
 use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContentController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\MediaController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
+use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteController;
@@ -58,6 +60,16 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/{lead}', [LeadController::class, 'show'])->middleware('permission:lead.view')->name('show');
             Route::put('/{lead}', [LeadController::class, 'update'])->middleware('permission:lead.assign')->name('update');
         });
+
+        // Performans (F9): performance.view görüntüler; performance.audit ölçer/doctor koşar.
+        Route::prefix('performans')->name('performance.')->group(function () {
+            Route::get('/', [PerformanceController::class, 'index'])->middleware('permission:performance.view')->name('index');
+            Route::post('/olc', [PerformanceController::class, 'measure'])->middleware('permission:performance.audit')->name('measure');
+            Route::get('/doctor', [PerformanceController::class, 'doctor'])->middleware('permission:performance.audit')->name('doctor');
+        });
+
+        // Denetim kaydı (audit.view; global, salt okunur).
+        Route::get('/denetim', [AuditController::class, 'index'])->middleware('permission:audit.view')->name('audit.index');
 
         // Kullanıcı yönetimi (faz 29) — personel daveti + global rol; user.manage.
         Route::prefix('kullanicilar')->name('users.')->middleware('permission:user.manage')->group(function () {

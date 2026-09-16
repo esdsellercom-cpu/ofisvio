@@ -56,9 +56,15 @@
     </div>
 @endcan
 
-@canany(['cache.view', 'user.manage'])
+@canany(['cache.view', 'user.manage', 'audit.view', 'performance.view'])
     <div class="panel-nav__group">
         <span class="panel-nav__label">Sistem</span>
+        @can('performance.view')
+            <a href="{{ route('panel.performance.index') }}" {!! $active('panel.performance.*') !!}>Performans</a>
+        @endcan
+        @can('audit.view')
+            <a href="{{ route('panel.audit.index') }}" {!! $active('panel.audit.*') !!}>Denetim kaydı</a>
+        @endcan
         @can('cache.view')
             <a href="{{ route('panel.cache.index') }}" {!! $active('panel.cache.*') !!}>Önbellek</a>
         @endcan

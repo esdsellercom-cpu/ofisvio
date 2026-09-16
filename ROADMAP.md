@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **231/231** (Unit 10 · Feature 208 · Architecture 13) |
+| `php artisan test` | ✅ **233/233** (Unit 10 · Feature 210 · Architecture 13) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -277,6 +277,14 @@ yinelenen engeli) → public disk UUID. Kapak (`contents.cover_media_id` +
 (`websites.hero_media_id`, `website.manage`); vitrin kart/yazı/hero + `og:image`;
 kullanımdaki görsel silinemez; yabancı site 404. `php artisan storage:link` gerekir.
 
+### 31. Sistem ekranları ✅
+**Denetim kaydı** `/panel/denetim` (`audit.view`, salt okunur): JIT erişimleri
+(gerekçe/süre/iptal), personel organizasyon girişleri (IP), şirket durum
+geçişleri (kim/neden); arama + tarih süzgeci. `AuditLogService` allowlist’te
+(global okuma, yazma yok). **Performans** `/panel/performans` (`performance.view`):
+son baseline artefaktı, site önbellek istatistikleri, zamanlayıcı kalp atışı;
+`performance.audit` ile üretim dışı yeniden ölçüm ve doctor kontrol listesi.
+
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 
@@ -295,7 +303,7 @@ Temeller hazır; sıra değişmedi.
 | F6 | Şirket aktivasyon takip ekranı | ✅ şirket detayında (adımlar + geçmiş) |
 | F7 | CMS editörü | ✅ liste/süzgeç, form (markdown), akış eylemleri, revizyonlar |
 | F8 | SEO/GEO Command Center | 🟡 SEO v1 (`/panel/seo`) + GEO v1 (`/panel/geo`) |
-| F9 | Performance + Cache Command Center | 🟡 Cache v1 (`/panel/onbellek`); performans paneli ⛔ |
+| F9 | Performance + Cache Command Center | ✅ Cache v1 (`/panel/onbellek`) + Performans (`/panel/performans`: baseline, önbellek, zamanlayıcı, doctor) |
 
 ---
 

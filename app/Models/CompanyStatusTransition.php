@@ -20,6 +20,12 @@ class CompanyStatusTransition extends Model
         'created_at' => 'datetime',
     ];
 
+    /** @return BelongsTo<User, $this> */
+    public function performer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'performed_by');
+    }
+
     /** @return BelongsTo<Company, $this> */
     public function company(): BelongsTo
     {

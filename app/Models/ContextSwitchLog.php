@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ContextSwitchLog extends Model
 {
@@ -17,4 +18,22 @@ class ContextSwitchLog extends Model
     ];
 
     protected $casts = ['switched_at' => 'datetime'];
+
+    /** @return BelongsTo<User, $this> */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /** @return BelongsTo<Organization, $this> */
+    public function toOrganization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'to_organization_id');
+    }
+
+    /** @return BelongsTo<Organization, $this> */
+    public function fromOrganization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class, 'from_organization_id');
+    }
 }
