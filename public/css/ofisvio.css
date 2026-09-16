@@ -448,3 +448,8 @@ html[data-theme="deniz"] {
   --dark: #14202B; --dark-raised: #1B2A38; --dark-line: #2A3A49; --dark-ink: #F2F6FA; --dark-ink-soft: #C6D1DC; --dark-ink-mute: #8896A4;
   --ok: #1D4E89;
 }
+
+/* ---------- WhatsApp yüzen düğme (site ayarından) ---------- */
+.whatsapp-fab { position: fixed; right: 18px; bottom: 18px; z-index: 40; display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: var(--r-pill); background: #25D366; color: #fff; font-weight: 600; font-size: 14px; box-shadow: 0 10px 30px -12px rgba(0,0,0,.45); }
+.whatsapp-fab:hover { background: #1EBE5A; color: #fff; }
+@media (max-width: 640px) { .whatsapp-fab span { display: none; } .whatsapp-fab { padding: 12px; } }

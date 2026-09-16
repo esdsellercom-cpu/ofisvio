@@ -30,6 +30,7 @@
 
     @include('site.partials.footer')
 
+    @include('site.partials.whatsapp')
     <script src="{{ asset('js/ofisvio.js') }}" defer></script>
 </body>
 </html>

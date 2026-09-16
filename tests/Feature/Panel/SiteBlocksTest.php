@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Panel;
 
+use App\Enums\ContentStatus;
+use App\Models\Content;
 use App\Models\SiteBlock;
 use App\Models\Website;
 use App\Services\ContentCache;
@@ -108,6 +110,57 @@ class SiteBlocksTest extends TestCase
         $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", [])->assertRedirect();
         $this->assertNull($default->fresh()->contact_phone);
         $this->get('http://localhost/')->assertOk()->assertDontSee('tel:+90');
+    }
+
+    #[Test]
+    public function whatsapp_calisma_saatleri_menu_ve_cta_metinleri_panelden_yonetilir(): void
+    {
+        $admin = $this->staff('system_admin');
+        $default = Website::query()->default()->firstOrFail();
+
+        // Ayar yokken: WhatsApp düğmesi basılmaz, KVKK bağlantısı ölü "#" değildir.
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        $this->assertStringNotContainsString('wa.me', $home);
+        $this->assertStringNotContainsString('href="#"', $home);
+
+        // WhatsApp + saatler site ayarı; E.164 dışı reddedilir.
+        $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->put("/panel/websiteler/{$default->id}/ayarlar", ['whatsapp_number' => '0532 000 00 00'])->assertSessionHasErrors('whatsapp_number');
+        $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", ['whatsapp_number' => '+905320000000', 'business_hours' => "Pzt–Cum 08:30–19:00\n\nCmt 09:00–14:00"])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(['Pzt–Cum 08:30–19:00', 'Cmt 09:00–14:00'], $default->fresh()->business_hours);
+
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        $this->assertStringContainsString('https://wa.me/905320000000?text='.rawurlencode(config('ofisvio.texts.whatsapp_message')), $home);
+        $this->assertStringContainsString('class="whatsapp-fab"', $home);
+        $this->assertStringContainsString('Cmt 09:00–14:00', $home);
+
+        // Menü etiketleri, CTA'lar, teklif vaatleri ve WhatsApp mesajı metin bloğundan; boş vaat satırı gizlenir.
+        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Menü: Çözümler')->assertSee('WhatsApp ön yazılı mesaj');
+        $this->actingAs($admin)->put('/panel/icerik/bloklar/metinler', [
+            'nav_solutions' => 'Hizmetler', 'cta_header' => 'Fiyat iste', 'cta_hero' => 'Müsaitlik', 'lead_title' => 'Bize yazın',
+            'lead_claim_2' => '', 'booking_widget_badge' => '2 saat içinde teyit', 'whatsapp_message' => 'Selam Ofisvio',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        foreach (['>Hizmetler<', '>Fiyat iste<', '>Müsaitlik<', 'Bize yazın', '2 saat içinde teyit', 'wa.me/905320000000?text=Selam%20Ofisvio'] as $needle) {
+            $this->assertStringContainsString($needle, $home);
+        }
+        $this->assertStringNotContainsString(config('ofisvio.texts.lead_claim_2'), $home);
+        $this->assertStringNotContainsString('Teklif Al<', $home);
+        $this->assertStringContainsString(config('ofisvio.texts.lead_claim_1'), $home);
+
+        // KVKK bağlantısı yayındaki aydınlatma sayfasına gider.
+        $page = Content::create(['website_id' => $default->id, 'kind' => 'page', 'title' => 'KVKK Aydınlatma Metni', 'slug' => 'kvkk-aydinlatma', 'body' => 'Metin.']);
+        $page->forceFill(['status' => ContentStatus::PUBLISHED, 'published_at' => now()])->save();
+        app(ContentCache::class)->invalidate($default);
+        $this->assertStringContainsString('href="/kvkk-aydinlatma"', $this->get('http://localhost/')->assertOk()->getContent());
+
+        // Müşteri sitesi: kendi WhatsApp'ı; Ofisvio'nunki sızmaz.
+        $acme = $this->organization('Acme');
+        $site = Website::create(['organization_id' => $acme->id, 'name' => 'Acme', 'slug' => 'acme', 'domain' => 'acme.example', 'whatsapp_number' => '+905550001122', 'business_hours' => ['Her gün 09–18']]);
+        $tenantHome = $this->get('http://acme.example/')->assertOk()->getContent();
+        $this->assertStringContainsString('wa.me/905550001122', $tenantHome);
+        $this->assertStringContainsString('Her gün 09–18', $tenantHome);
+        $this->assertStringNotContainsString('905320000000', $tenantHome);
     }
 
     #[Test]

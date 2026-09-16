@@ -196,7 +196,7 @@ class WebsiteService
      * Site genel ayarları (faz 29): iletişim/kimlik. Personel (website.manage)
      * ve müşteri (content.edit, kendi sitesi) aynı yolu kullanır.
      *
-     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null}  $data
+     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null, whatsapp_number?: string|null, business_hours?: string|null}  $data
      */
     public function updateSettings(Website $website, array $data): Website
     {
@@ -206,10 +206,20 @@ class WebsiteService
             'tagline' => $this->blankToNull($data['tagline'] ?? null),
             'address' => $this->blankToNull($data['address'] ?? null),
             'legal_name' => $this->blankToNull($data['legal_name'] ?? $website->legal_name),
+            'whatsapp_number' => $this->blankToNull($data['whatsapp_number'] ?? null),
+            'business_hours' => $this->lines($data['business_hours'] ?? null),
         ]);
         $website->save();
 
         return $website;
+    }
+
+    /** Satır satır metni listeye çevirir (çalışma saatleri); boş -> null. @return array<int, string>|null */
+    private function lines(?string $text): ?array
+    {
+        $rows = array_values(array_filter(array_map('trim', preg_split('/\r?\n/', (string) $text) ?: [])));
+
+        return $rows === [] ? null : array_slice($rows, 0, 7);
     }
 
     private function blankToNull(?string $value): ?string

@@ -6,7 +6,7 @@
 @section('content')
     <section class="wrap section" style="padding-top:64px">
         <p class="eyebrow">Günlük</p>
-        <h1 class="h2">Çalışma kültürü günlüğü</h1>
+        <h1 class="h2">{{ $texts['blog_title'] }}</h1>
 
         @if (! empty($categories))
             <nav class="row-actions" style="margin-top:18px;flex-wrap:wrap;gap:8px" aria-label="Kategoriler">

@@ -35,7 +35,7 @@
                         @endforeach
                     </select>
                 </label>
-                <a href="#lokasyonlar" class="btn btn--ink" style="margin-top:22px" data-filter-apply>Uygunluk gör</a>
+                <a href="#lokasyonlar" class="btn btn--ink" style="margin-top:22px" data-filter-apply>{{ $texts['cta_hero'] }}</a>
             </div>
             <p class="mono" style="margin:14px 0 0;font-size:13px;color:var(--ink-faint)" data-match-line>
                 {{ $locations->count() }} lokasyon · tüm bölgeler

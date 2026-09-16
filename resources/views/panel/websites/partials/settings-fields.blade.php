@@ -14,3 +14,12 @@
 <label class="field"><span class="label">Adres</span>
     <input class="control" type="text" name="address" value="{{ old('address', $site->address) }}" maxlength="300">
 </label>
+<div class="grid-auto" style="--min:220px;--gap:12px">
+    <label class="field"><span class="label">WhatsApp (E.164, +90…)</span>
+        <input class="control mono" type="tel" name="whatsapp_number" value="{{ old('whatsapp_number', $site->whatsapp_number) }}" maxlength="20" placeholder="+905001234567" @error('whatsapp_number') aria-invalid="true" @enderror>
+        @error('whatsapp_number')<span class="small" style="color:var(--danger)">{{ $message }}</span>@enderror
+    </label>
+    <label class="field"><span class="label">Çalışma saatleri (satır başına)</span>
+        <textarea class="control" name="business_hours" style="min-height:64px" placeholder="Pzt–Cum 08:30–19:00&#10;Cmt 09:00–14:00">{{ old('business_hours', implode("\n", $site->business_hours ?? [])) }}</textarea>
+    </label>
+</div>

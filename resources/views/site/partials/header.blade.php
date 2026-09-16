@@ -1,9 +1,9 @@
 @php($navLinks = [
-    ['label' => 'Çözümler', 'href' => '#cozumler'],
-    ['label' => 'Nasıl çalışır', 'href' => '#nasil'],
-    ['label' => 'Lokasyonlar', 'href' => '#lokasyonlar'],
-    ['label' => 'Toplantı & Etkinlik', 'href' => '#toplanti'],
-    ['label' => 'Üyelikler', 'href' => '#uyelik'],
+    ['label' => $texts['nav_solutions'], 'href' => '#cozumler'],
+    ['label' => $texts['nav_journey'], 'href' => '#nasil'],
+    ['label' => $texts['nav_locations'], 'href' => '#lokasyonlar'],
+    ['label' => $texts['nav_meeting'], 'href' => '#toplanti'],
+    ['label' => $texts['nav_pricing'], 'href' => '#uyelik'],
 ])
 
 <header class="site-header">
@@ -30,7 +30,7 @@
             @else
                 <a href="{{ route('login') }}" style="font-size:15px;font-weight:500">Giriş Yap</a>
             @endauth
-            <a href="#teklif" class="btn btn--brand btn--pill">Teklif Al</a>
+            <a href="#teklif" class="btn btn--brand btn--pill">{{ $texts['cta_header'] }}</a>
         </div>
     </div>
 

@@ -2,7 +2,7 @@
 @if ($posts->isNotEmpty())
 <section id="blog" class="wrap section">
     <div class="section-head" style="margin-bottom:30px">
-        <h2 class="h2" style="font-size:clamp(26px,3vw,36px)">Çalışma kültürü günlüğü</h2>
+        <h2 class="h2" style="font-size:clamp(26px,3vw,36px)">{{ $texts['blog_title'] }}</h2>
         <a href="{{ route('site.posts') }}" style="font-size:15px;font-weight:600;color:var(--brand)">Tüm yazılar →</a>
     </div>
     <div class="grid-auto" style="--min:270px;--gap:22px">

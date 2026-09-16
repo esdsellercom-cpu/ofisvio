@@ -30,7 +30,7 @@
                     <p class="body-muted" style="margin:0;flex:1">{{ $item['desc'] }}</p>
                     <div class="card__foot">
                         <span class="mono" style="font-size:13px;color:var(--brand)">{{ $item['price'] }}</span>
-                        <span style="font-size:14px;font-weight:600">Teklif al →</span>
+                        <span style="font-size:14px;font-weight:600">{{ $texts['cta_solution'] }}</span>
                     </div>
                 </div>
             </a>

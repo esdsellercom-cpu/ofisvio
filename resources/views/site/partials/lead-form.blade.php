@@ -4,15 +4,12 @@
     <div style="background:var(--surface-warm);border-radius:var(--r-xl);padding:clamp(28px,4vw,56px);display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:48px;align-items:start">
         <div style="min-width:0">
             <p class="eyebrow">07 — Teklif</p>
-            <h2 class="h2" style="max-width:20ch;font-size:clamp(28px,3.4vw,42px)">Formu bırakın, aynı iş günü içinde fiyat gelsin</h2>
-            <p class="body-muted" style="margin:22px 0 0;font-size:16.5px;max-width:42ch">
-                Ekip büyüklüğünüze göre kat planı, tescil için gereken belge listesi ve net aylık maliyet
-                tek e-postada. Pazarlama listesine eklenmezsiniz.
-            </p>
+            <h2 class="h2" style="max-width:20ch;font-size:clamp(28px,3.4vw,42px)">{{ $texts['lead_title'] }}</h2>
+            <p class="body-muted" style="margin:22px 0 0;font-size:16.5px;max-width:42ch">{{ $texts['lead_lede'] }}</p>
             <div class="stack" style="margin-top:30px;gap:10px;font-size:15px;color:#3C3A32">
-                <span>· Sözleşme öncesi ödeme yok</span>
-                <span>· Sözleşme süresi 1 aydan başlar</span>
-                <span>· Belge inceleme aynı iş günü içinde</span>
+                @foreach (['lead_claim_1', 'lead_claim_2', 'lead_claim_3'] as $claim)
+                    @if ($texts[$claim] !== '')<span>· {{ $texts[$claim] }}</span>@endif
+                @endforeach
             </div>
         </div>
 
@@ -88,7 +85,7 @@
 
                     <label class="checkbox-row" style="margin-top:4px">
                         <input type="checkbox" name="kvkk" value="1" required @checked(old('kvkk'))>
-                        <span><a href="#" style="color:var(--brand);font-weight:600">KVKK</a> aydınlatma metnini okudum, iletişim kurulmasını onaylıyorum.</span>
+                        <span><a href="{{ $kvkkUrl }}" style="color:var(--brand);font-weight:600">KVKK</a> aydınlatma metnini okudum, iletişim kurulmasını onaylıyorum.</span>
                     </label>
 
                     <button type="submit" class="btn btn--ink btn--block" style="margin-top:8px">Teklif isteyin</button>

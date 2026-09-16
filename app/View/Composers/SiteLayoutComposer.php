@@ -56,9 +56,20 @@ class SiteLayoutComposer
             };
         }
 
+        $brand = $site?->brand() ?? ['name' => (string) config('ofisvio.brand.name'), 'legal_name' => (string) config('ofisvio.brand.name'), 'phone' => '', 'phone_href' => '', 'email' => '', 'tagline' => '', 'address' => '', 'whatsapp' => '', 'whatsapp_href' => '', 'hours' => []];
+        $texts = $this->blocks->texts($site);
+
+        if ($brand['whatsapp_href'] !== '' && ($texts['whatsapp_message'] ?? '') !== '') {
+            $brand['whatsapp_href'] .= '?text='.rawurlencode($texts['whatsapp_message']);
+        }
+
+        // KVKK bağlantısı: yayındaki 'aydinlatma' ya da 'kvkk' slug'lı sayfa; yoksa ana sayfa (ölü # bağlantısı yok).
+        $kvkk = $this->contents->livePages($site)->first(fn (Content $p) => str_contains($p->slug, 'aydinlatma') || str_contains($p->slug, 'kvkk'));
+
         $view->with([
-            'brand' => $site?->brand() ?? ['name' => (string) config('ofisvio.brand.name'), 'legal_name' => (string) config('ofisvio.brand.name'), 'phone' => '', 'phone_href' => '', 'email' => '', 'tagline' => '', 'address' => ''],
-            'texts' => $this->blocks->texts($site),
+            'kvkkUrl' => $kvkk?->path() ?? '/',
+            'brand' => $brand,
+            'texts' => $texts,
             'leadOptions' => $this->blocks->solutionOptions($site),
             'siteLayout' => $tenant ? 'layouts.tenant' : 'layouts.site',
             'currentWebsite' => $site,

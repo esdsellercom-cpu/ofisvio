@@ -29,8 +29,8 @@
                 </div>
             @else
                 <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
-                    <h3 class="h3">Hızlı ön talep</h3>
-                    <span class="label">aynı gün teyit</span>
+                    <h3 class="h3">{{ $texts['booking_widget_title'] }}</h3>
+                    @if ($texts['booking_widget_badge'] !== '')<span class="label">{{ $texts['booking_widget_badge'] }}</span>@endif
                 </div>
 
                 {{-- DÜRÜSTLÜK: Tasarımda bu araç "rezervasyon oluşturuldu" diyordu.
@@ -88,7 +88,7 @@
 
                     <label class="checkbox-row" style="margin-top:14px">
                         <input type="checkbox" name="kvkk" value="1" required>
-                        <span><a href="#" style="color:var(--brand);font-weight:600">KVKK</a> aydınlatma metnini okudum, iletişim kurulmasını onaylıyorum.</span>
+                        <span><a href="{{ $kvkkUrl }}" style="color:var(--brand);font-weight:600">KVKK</a> aydınlatma metnini okudum, iletişim kurulmasını onaylıyorum.</span>
                     </label>
 
                     @if ($errors->any() && old('kind') === 'booking')

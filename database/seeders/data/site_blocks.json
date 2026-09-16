@@ -174,23 +174,51 @@
             {
                 "title": "Çözümler",
                 "items": [
-                    "Sanal Ofis",
-                    "Hazır Ofis",
-                    "Coworking",
-                    "Gün Geçişi",
-                    "Toplantı Odası",
-                    "Etkinlik Alanı"
+                    {
+                        "label": "Sanal Ofis",
+                        "href": "#cozumler"
+                    },
+                    {
+                        "label": "Hazır Ofis",
+                        "href": "#cozumler"
+                    },
+                    {
+                        "label": "Coworking",
+                        "href": "#cozumler"
+                    },
+                    {
+                        "label": "Gün Geçişi",
+                        "href": "#cozumler"
+                    },
+                    {
+                        "label": "Toplantı Odası",
+                        "href": "#toplanti"
+                    },
+                    {
+                        "label": "Etkinlik Alanı",
+                        "href": "#toplanti"
+                    }
                 ]
             },
             {
                 "title": "Kurumsal",
                 "items": [
-                    "Hakkımızda",
-                    "Franchise",
-                    "Kariyer",
-                    "Basın",
-                    "S.S.S.",
-                    "İletişim"
+                    {
+                        "label": "Lokasyonlar",
+                        "href": "#lokasyonlar"
+                    },
+                    {
+                        "label": "Üyelikler",
+                        "href": "#uyelik"
+                    },
+                    {
+                        "label": "Yazılar",
+                        "href": "/blog"
+                    },
+                    {
+                        "label": "Teklif al",
+                        "href": "#teklif"
+                    }
                 ]
             }
         ],

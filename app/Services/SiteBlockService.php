@@ -46,7 +46,28 @@ class SiteBlockService
         'amenities_title' => 'Dahil olanlar başlığı',
         'pricing_title' => 'Üyelikler başlığı',
         'stats_review_time' => 'İstatistik: belge inceleme süresi',
+        'nav_solutions' => 'Menü: Çözümler',
+        'nav_journey' => 'Menü: Nasıl çalışır',
+        'nav_locations' => 'Menü: Lokasyonlar',
+        'nav_meeting' => 'Menü: Toplantı & Etkinlik',
+        'nav_pricing' => 'Menü: Üyelikler',
+        'cta_header' => 'CTA: üst menü düğmesi',
+        'cta_topbar' => 'CTA: üst şerit bağlantısı',
+        'cta_hero' => 'CTA: hero süzgeç düğmesi',
+        'cta_solution' => 'CTA: çözüm kartı',
+        'lead_title' => 'Teklif formu başlığı',
+        'lead_lede' => 'Teklif formu açıklaması',
+        'lead_claim_1' => 'Teklif vaadi 1',
+        'lead_claim_2' => 'Teklif vaadi 2',
+        'lead_claim_3' => 'Teklif vaadi 3',
+        'booking_widget_title' => 'Ön talep aracı başlığı',
+        'booking_widget_badge' => 'Ön talep aracı rozeti',
+        'blog_title' => 'Yazılar bölümü başlığı',
+        'whatsapp_message' => 'WhatsApp ön yazılı mesaj',
     ];
+
+    /** Boş bırakılınca bölümü gizleyen (varsayılana dönmeyen) metinler. */
+    public const OPTIONAL_TEXT_KEYS = ['lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'booking_widget_badge', 'whatsapp_message'];
 
     public function __construct(private readonly ContentCache $cache) {}
 
@@ -74,9 +95,15 @@ class SiteBlockService
         $data = [];
 
         foreach (self::TEXT_KEYS as $key => $label) {
-            $value = trim((string) ($values[$key] ?? ''));
+            if (! array_key_exists($key, $values)) {
+                continue;
+            }
 
-            if ($value !== '' && $value !== ($defaults[$key] ?? '')) {
+            $value = trim((string) $values[$key]);
+            $optional = in_array($key, self::OPTIONAL_TEXT_KEYS, true);
+
+            // Boş: zorunlu metin varsayılana döner; isteğe bağlı metin bilinçli olarak gizlenir ('' saklanır).
+            if (($value !== '' || $optional) && $value !== ($defaults[$key] ?? '')) {
                 $data[$key] = $value;
             }
         }
@@ -216,8 +243,8 @@ class SiteBlockService
                     ? ['label' => $cells[0], 'cells' => array_slice($cells, 1)]
                     : throw new DomainException("{$n}. satır: Özellik | hücre | hücre … biçiminde olmalı."),
                 'footer_columns' => count($cells) === 2
-                    ? ['title' => $cells[0], 'items' => array_values(array_filter(array_map('trim', explode(',', $cells[1]))))]
-                    : throw new DomainException("{$n}. satır: Başlık | madde, madde biçiminde olmalı."),
+                    ? ['title' => $cells[0], 'items' => $this->footerItems($cells[1], $n)]
+                    : throw new DomainException("{$n}. satır: Başlık | madde = /yol, madde … biçiminde olmalı."),
                 default => throw new DomainException('Bilinmeyen blok: '.$key),
             };
         }
@@ -244,6 +271,46 @@ class SiteBlockService
     }
 
     /**
+     * Footer maddesi: "Etiket = /yol" ya da "Etiket = #bolum" (hedefsiz madde düz metin basılır;
+     * ölü "#" bağlantısı üretilmez). Yalnız site içi yol, sayfa çapası ya da https adres.
+     *
+     * @return array<int, array{label: string, href: string}>
+     */
+    private function footerItems(string $cell, int $line): array
+    {
+        $items = [];
+
+        foreach (array_filter(array_map('trim', explode(',', $cell))) as $raw) {
+            [$label, $href] = array_pad(array_map('trim', explode('=', $raw, 2)), 2, '');
+
+            if ($label === '') {
+                throw new DomainException("{$line}. satır: madde etiketi boş olamaz.");
+            }
+
+            if ($href !== '' && preg_match('~^(/[^\s]*|#[\w-]+|https://[^\s]+)$~u', $href) !== 1) {
+                throw new DomainException("{$line}. satır: '{$label}' hedefi /yol, #bolum ya da https:// olmalı.");
+            }
+
+            $items[] = ['label' => $label, 'href' => $href];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Eski kayıtlar düz dize listesidir; tek biçime getirir.
+     *
+     * @param  array<int, mixed>  $items
+     * @return array<int, array{label: string, href: string}>
+     */
+    public static function normalizeFooterItems(array $items): array
+    {
+        return array_values(array_map(fn ($i) => is_array($i)
+            ? ['label' => (string) ($i['label'] ?? ''), 'href' => (string) ($i['href'] ?? '')]
+            : ['label' => (string) $i, 'href' => ''], $items));
+    }
+
+    /**
      * @param  array<string, mixed>  $row
      * @return array<int, string>
      */
@@ -255,7 +322,7 @@ class SiteBlockService
             'amenities' => [(string) $row['title'], (string) $row['desc']],
             'plans' => [(string) $row['name'], (string) $row['price']],
             'plan_rows' => array_merge([(string) $row['label']], array_map('strval', (array) $row['cells'])),
-            'footer_columns' => [(string) $row['title'], implode(', ', (array) $row['items'])],
+            'footer_columns' => [(string) $row['title'], implode(', ', array_map(fn (array $i) => $i['href'] !== '' ? $i['label'].' = '.$i['href'] : $i['label'], self::normalizeFooterItems((array) $row['items'])))],
             default => [],
         };
     }

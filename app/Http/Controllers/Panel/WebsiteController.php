@@ -26,6 +26,8 @@ class WebsiteController extends Controller
         'contact_email' => ['nullable', 'email:rfc', 'max:190'],
         'tagline' => ['nullable', 'string', 'max:200'],
         'address' => ['nullable', 'string', 'max:300'],
+        'whatsapp_number' => ['nullable', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'], // E.164
+        'business_hours' => ['nullable', 'string', 'max:500'], // satır satır
     ];
 
     public function __construct(

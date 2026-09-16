@@ -10,6 +10,8 @@
                 @if ($brand['phone'])<a href="{{ $brand['phone_href'] }}" style="color:var(--dark-ink)">{{ $brand['phone'] }}</a>@endif
                 @if ($brand['email'])<a href="mailto:{{ $brand['email'] }}" style="color:var(--dark-ink)">{{ $brand['email'] }}</a>@endif
                 @if ($brand['address'])<span>{{ $brand['address'] }}</span>@endif
+                @if ($brand['whatsapp_href'])<a href="{{ $brand['whatsapp_href'] }}" target="_blank" rel="noopener" style="color:var(--dark-ink)">WhatsApp {{ $brand['whatsapp'] }}</a>@endif
+                @foreach ($brand['hours'] as $line)<span style="color:var(--dark-ink-soft)">{{ $line }}</span>@endforeach
             </div>
         </div>
 
@@ -17,8 +19,8 @@
             <div style="min-width:0">
                 <div class="label" style="margin-bottom:16px">{{ $col['title'] }}</div>
                 <div class="stack" style="gap:9px;font-size:14.5px">
-                    @foreach ($col['items'] as $item)
-                        <a href="#">{{ $item }}</a>
+                    @foreach (\App\Services\SiteBlockService::normalizeFooterItems((array) $col['items']) as $item)
+                        @if ($item['href'] !== '')<a href="{{ $item['href'] }}">{{ $item['label'] }}</a>@else<span>{{ $item['label'] }}</span>@endif
                     @endforeach
                 </div>
             </div>
