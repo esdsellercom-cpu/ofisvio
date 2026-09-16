@@ -27,13 +27,21 @@ class ContentCache
     /** Okuma anahtarlarının güvenlik TTL'i: geçersizleme kaçarsa bile en fazla bu kadar bayat kalır. */
     public const TTL_SECONDS = 600;
 
+    /**
+     * Saklama BİÇİMİ sürümü. Önbelleğe yazılan yapının şekli değişince (ör. nesne
+     * -> ham dizi geçişi) artırılır: eski anahtarlar bir daha okunmaz, TTL ile
+     * düşer. Geliştirme DB'sindeki bayat kayıt bir kez 500 üretti — bir daha
+     * üretmesin.
+     */
+    public const SCHEMA = 2;
+
     public function __construct(private readonly Repository $cache) {}
 
     /**
-     * @template T
+     * Önbellekten dönen değerin tipi GARANTİ DEĞİLDİR (eski biçim, bozuk kayıt,
+     * unserialize edilemeyen nesne): çağıran doğrulamak zorundadır.
      *
-     * @param  Closure(): T  $compute
-     * @return T
+     * @param  Closure(): mixed  $compute
      */
     public function remember(Website $website, string $name, Closure $compute): mixed
     {
@@ -48,6 +56,23 @@ class ContentCache
         $this->bump($this->statKey($website, 'misses'));
         $value = $compute();
         $this->cache->put($key, $value, self::TTL_SECONDS);
+
+        return $value;
+    }
+
+    /**
+     * Anahtarı yeniden hesaplayıp ÜZERİNE yazar (bozuk/eski biçimli kayıt için).
+     *
+     * @template T
+     *
+     * @param  Closure(): T  $compute
+     * @return T
+     */
+    public function refresh(Website $website, string $name, Closure $compute): mixed
+    {
+        $value = $compute();
+        $this->cache->put($this->key($website, $name), $value, self::TTL_SECONDS);
+        $this->bump($this->statKey($website, 'misses'));
 
         return $value;
     }
@@ -91,7 +116,7 @@ class ContentCache
 
     public function key(Website $website, string $name): string
     {
-        return "site:{$website->id}:v{$this->version($website)}:{$name}";
+        return "site:{$website->id}:s".self::SCHEMA.":v{$this->version($website)}:{$name}";
     }
 
     /**

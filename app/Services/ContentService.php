@@ -132,9 +132,15 @@ class ContentService
      */
     private function rememberModels(Website $website, string $name, Closure $query): Collection
     {
-        /** @var array<int, array<string, mixed>> $rows */
         $rows = $this->cache->remember($website, $name, fn () => $query()->map(fn (Content $c) => $c->getAttributes())->all());
 
+        // Savunma: önbellekten dizi dışında bir şey gelirse (eski biçim, bozuk
+        // kayıt, __PHP_Incomplete_Class) ıskalama say, yeniden hesapla ve üzerine yaz.
+        if (! is_array($rows) || ($rows !== [] && ! is_array(reset($rows)))) {
+            $rows = $this->cache->refresh($website, $name, fn () => $query()->map(fn (Content $c) => $c->getAttributes())->all());
+        }
+
+        /** @var array<int, array<string, mixed>> $rows */
         return Content::hydrate($rows);
     }
 

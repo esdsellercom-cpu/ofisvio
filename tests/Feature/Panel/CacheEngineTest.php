@@ -97,6 +97,27 @@ class CacheEngineTest extends TestCase
     }
 
     #[Test]
+    public function bozuk_veya_eski_bicimli_onbellek_kaydi_sayfayi_dusurmez(): void
+    {
+        // Regresyon: geliştirme DB'sinde eski kodun yazdığı serileştirilmiş nesne
+        // (__PHP_Incomplete_Class) yeni kodun hydrate() çağrısını 500 ile düşürdü.
+        // Dizi olmayan değer ıskalama sayılır ve üzerine yazılır; anahtar şema
+        // sürümü taşır (eski anahtar zaten okunmaz).
+        $this->publish($this->default, 'saglam', 'Sağlam yazı');
+        $cache = app(ContentCache::class);
+
+        $this->assertStringContainsString(':s'.ContentCache::SCHEMA.':', $cache->key($this->default, 'posts:3'));
+
+        foreach (['posts:3', 'posts:50', 'pages'] as $name) {
+            Cache::put($cache->key($this->default, $name), new \__PHP_Incomplete_Class, 600);
+        }
+
+        $this->get('/')->assertOk()->assertSee('Sağlam yazı');
+        $this->get('/blog')->assertOk()->assertSee('Sağlam yazı');
+        $this->assertIsArray(Cache::get($cache->key($this->default, 'posts:3')), 'Bozuk kayıt üzerine yazılmalı.');
+    }
+
+    #[Test]
     public function yayin_akisi_onbellegi_kendiliginden_gecersiz_kilar(): void
     {
         $admin = $this->staff('system_admin');
