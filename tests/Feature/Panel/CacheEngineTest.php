@@ -9,6 +9,7 @@ use App\Models\Website;
 use App\Services\ContentCache;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -67,6 +68,32 @@ class CacheEngineTest extends TestCase
         $stats = app(ContentCache::class)->stats($this->default);
         $this->assertGreaterThan(0, $stats['hits']);
         $this->assertGreaterThan(0, $stats['misses']);
+    }
+
+    #[Test]
+    public function serilestiren_surucude_de_calisir_nesne_saklamaz(): void
+    {
+        // Regresyon: array store nesneleri olduğu gibi tutar; file/Redis serileştirir
+        // ve Laravel 13 cache'ten nesne unserialize ETMEZ (serializable_classes=false).
+        // Eloquent Collection önbelleklenince __PHP_Incomplete_Class ile 500 alınıyordu
+        // (CI Redis'te yakaladı). Ham öznitelik dizisi saklanır, hydrate edilir.
+        $store = Cache::store('file');
+        $store->flush();
+        $this->app->instance(ContentCache::class, new ContentCache($store));
+
+        try {
+            $this->publish($this->default, 'dosya', 'Dosya önbelleği');
+
+            $this->get('/blog')->assertOk()->assertSee('Dosya önbelleği');
+            $this->get('/blog')->assertOk()->assertSee('Dosya önbelleği');   // önbellekten
+            $this->get('/blog/dosya')->assertOk()->assertSee('Gövde');
+            $this->get('/blog/dosya')->assertOk()->assertSee('Gövde');       // önbellekten
+
+            $raw = (string) file_get_contents(collect(glob(storage_path('framework/cache/data/*/*/*')))->first());
+            $this->assertStringNotContainsString('O:', $raw, 'Önbellekte serileştirilmiş nesne olmamalı.');
+        } finally {
+            $store->flush();
+        }
     }
 
     #[Test]

@@ -8,6 +8,7 @@ use App\Models\Content;
 use App\Models\ContentRevision;
 use App\Models\User;
 use App\Models\Website;
+use Closure;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -78,7 +79,7 @@ class ContentService
         }
 
         // Önbellek: yayın/geçersizleme sürümü artırır (bkz. ContentCache).
-        return $this->cache->remember($website, "posts:{$limit}", fn () => Content::query()
+        return $this->rememberModels($website, "posts:{$limit}", fn () => Content::query()
             ->where('website_id', $website->id)
             ->where('kind', ContentKind::POST->value)
             ->live()
@@ -94,7 +95,7 @@ class ContentService
             return new Collection;
         }
 
-        return $this->cache->remember($website, 'pages', fn () => Content::query()
+        return $this->rememberModels($website, 'pages', fn () => Content::query()
             ->where('website_id', $website->id)
             ->where('kind', ContentKind::PAGE->value)
             ->live()
@@ -109,12 +110,32 @@ class ContentService
         }
 
         // Slug dışarıdan gelir: anahtara ham değil hash'lenmiş girer.
-        return $this->cache->remember($website, "content:{$kind->value}:".sha1($slug), fn () => Content::query()
+        return $this->rememberModels($website, "content:{$kind->value}:".sha1($slug), fn () => Content::query()
             ->where('website_id', $website->id)
             ->where('kind', $kind->value)
             ->where('slug', $slug)
             ->live()
-            ->first());
+            ->limit(1)
+            ->get())->first();
+    }
+
+    /**
+     * Önbelleğe NESNE değil ham öznitelik dizisi yazılır; okurken hydrate edilir.
+     *
+     * Laravel 13 varsayılanı cache'ten hiçbir PHP nesnesini unserialize etmez
+     * (config/cache.php serializable_classes=false — APP_KEY sızarsa gadget-chain
+     * savunması). Model önbelleklemek bu savunmayı gevşetmeyi gerektirirdi; ham
+     * dizi hem güvenli hem sürücüden bağımsızdır (array/file/database/Redis).
+     *
+     * @param  Closure(): Collection<int, Content>  $query
+     * @return Collection<int, Content>
+     */
+    private function rememberModels(Website $website, string $name, Closure $query): Collection
+    {
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $this->cache->remember($website, $name, fn () => $query()->map(fn (Content $c) => $c->getAttributes())->all());
+
+        return Content::hydrate($rows);
     }
 
     // -----------------------------------------------------------------
