@@ -21,10 +21,19 @@ class Lead extends Model
         'consented_at', 'consent_ip', 'consent_user_agent', 'status',
     ];
 
+    public const STATUSES = ['new' => 'Yeni', 'contacted' => 'İletişime geçildi', 'won' => 'Kazanıldı', 'lost' => 'Kaybedildi'];
+
     protected $casts = [
         'consented_at' => 'datetime',
         'requested_date' => 'date',
+        'handled_at' => 'datetime',
     ];
+
+    /** @return BelongsTo<User, $this> */
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
 
     /** @return BelongsTo<Location, $this> */
     public function location(): BelongsTo

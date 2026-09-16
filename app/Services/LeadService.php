@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Lead;
+use DomainException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 /**
  * Siteden gelen teklif ve ön rezervasyon taleplerinin iş mantığı.
@@ -46,6 +48,46 @@ class LeadService
                 ? mb_substr((string) $consent['user_agent'], 0, 255)
                 : null,
         ]);
+    }
+
+    /**
+     * Panel listesi (lead.view): tür/durum süzgeci, ad/e-posta/telefon araması, sayfalama.
+     *
+     * @param  array{kind?: string|null, status?: string|null, q?: string|null}  $filters
+     * @return LengthAwarePaginator<int, Lead>
+     */
+    public function paginate(array $filters, int $perPage = 30): LengthAwarePaginator
+    {
+        $q = trim((string) ($filters['q'] ?? ''));
+
+        return Lead::query()
+            ->with(['location', 'assignee'])
+            ->when($filters['kind'] ?? null, fn ($b, $kind) => $b->where('kind', $kind))
+            ->when($filters['status'] ?? null, fn ($b, $status) => $b->where('status', $status))
+            ->when($q !== '', fn ($b) => $b->where(fn ($w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")->orWhere('phone', 'like', "%{$q}%")))
+            ->orderByDesc('created_at')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /** lead.assign: personel ataması + durum + iç not. Durum STATUSES dışında olamaz. */
+    public function update(Lead $lead, ?int $assignedTo, string $status, ?string $internalNote): Lead
+    {
+        if (! array_key_exists($status, Lead::STATUSES)) {
+            throw new DomainException('Geçersiz talep durumu: '.$status);
+        }
+
+        $lead->assigned_to = $assignedTo;
+        $lead->status = $status;
+        $lead->internal_note = $internalNote;
+
+        if ($status !== 'new' && $lead->handled_at === null) {
+            $lead->handled_at = now();
+        }
+
+        $lead->save();
+
+        return $lead;
     }
 
     public function summary(Lead $lead): string

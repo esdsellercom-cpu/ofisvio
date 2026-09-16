@@ -33,6 +33,11 @@
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
+        <!-- Yerel .env hesap değerleri testlere sızmasın (ofisvio:bootstrap-accounts testleri config() ile besler). -->
+        <env name="OFISVIO_ADMIN_EMAIL" value="" force="true"/>
+        <env name="OFISVIO_ADMIN_PASSWORD" value="" force="true"/>
+        <env name="OFISVIO_TEST_CUSTOMER_EMAIL" value="" force="true"/>
+        <env name="OFISVIO_TEST_CUSTOMER_PASSWORD" value="" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>

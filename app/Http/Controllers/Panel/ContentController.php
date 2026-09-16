@@ -63,7 +63,8 @@ class ContentController extends Controller
         return view('panel.content.index', [
             'website' => $website,
             'websites' => $this->contents->allWebsites(),
-            'items' => $this->contents->listFor($website, $kind, $status),
+            'items' => $this->contents->listFor($website, $kind, $status, (string) $request->query('q', '')),
+            'q' => (string) $request->query('q', ''),
             'kind' => $kind,
             'status' => $status,
             'kinds' => ContentKind::cases(),
@@ -215,6 +216,20 @@ class ContentController extends Controller
         }
 
         return redirect()->route('panel.content.show', $content)->with('status', 'Kaydedildi (yeni revizyon).');
+    }
+
+    /** Silme (soft delete, content.archive): yalnız taslak/arşiv. */
+    public function destroy(Request $request, Content $content): RedirectResponse
+    {
+        $website = $content->website;
+
+        try {
+            $this->contents->delete($request->user(), $content);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('panel.content.index', ['website' => $website->id, 'kind' => $content->kind->value])->with('status', 'İçerik silindi.');
     }
 
     // --- Durum geçişleri -------------------------------------------------

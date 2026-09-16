@@ -67,7 +67,11 @@
                 @endforeach
             </select>
         </label>
-        <noscript><button type="submit" class="btn btn--ghost">Süz</button></noscript>
+        <label class="field" style="flex:1 1 220px">
+            <span class="label">Ara (başlık, slug)</span>
+            <input class="control" type="search" name="q" value="{{ $q }}" maxlength="120">
+        </label>
+        <button type="submit" class="btn btn--ghost">Süz</button>
     </form>
 
     @if ($items->isEmpty())
@@ -100,5 +104,6 @@
                 </tbody>
             </table>
         </div>
+        <div style="margin-top:16px">{{ $items->links() }}</div>
     @endif
 @endsection

@@ -12,6 +12,7 @@ use App\Models\Website;
 use Carbon\CarbonImmutable;
 use Closure;
 use DomainException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -214,16 +215,44 @@ class ContentService
     // Yazma (panel)
     // -----------------------------------------------------------------
 
-    /** @return Collection<int, Content> */
-    public function listFor(Website $website, ?ContentKind $kind = null, ?ContentStatus $status = null): Collection
+    /**
+     * Panel listesi: tür/durum süzgeci, başlık/slug araması, sayfalama.
+     *
+     * @return LengthAwarePaginator<int, Content>
+     */
+    public function listFor(Website $website, ?ContentKind $kind = null, ?ContentStatus $status = null, ?string $search = null, int $perPage = 30): LengthAwarePaginator
     {
+        $search = trim((string) $search);
+
         return Content::query()
             ->with('author')
             ->where('website_id', $website->id)
             ->when($kind, fn ($q) => $q->where('kind', $kind->value))
             ->when($status, fn ($q) => $q->where('status', $status->value))
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('title', 'like', "%{$search}%")->orWhere('slug', 'like', "%{$search}%")))
             ->orderByDesc('updated_at')
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * Kalıcı olmayan silme (soft delete): yalnız taslak ya da arşivdeki içerik.
+     * Yayındaki metin önce yayından kaldırılır — silme, yayın akışını atlatamaz.
+     * Alt sayfaları olan sayfa silinemez (çocuklar yetim kalır).
+     */
+    public function delete(User $actor, Content $content): void
+    {
+        if (! in_array($content->status, [ContentStatus::DRAFT, ContentStatus::ARCHIVED], true)) {
+            throw new DomainException('Yalnızca taslak ya da arşivdeki içerik silinir; önce yayından kaldırın/arşivleyin.');
+        }
+
+        if (Content::query()->where('parent_id', $content->id)->exists()) {
+            throw new DomainException('Alt sayfaları olan sayfa silinemez; önce alt sayfaları taşıyın.');
+        }
+
+        $content->draft?->delete();
+        $content->delete();
+        $this->cache->invalidate($content->website);
     }
 
     /**

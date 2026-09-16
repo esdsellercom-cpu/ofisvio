@@ -237,6 +237,12 @@
                     </form>
                 @endif
 
+                @if (in_array($s, [ContentStatus::DRAFT, ContentStatus::ARCHIVED], true) && $can['archive'])
+                    <form method="POST" action="{{ route('panel.content.destroy', $content) }}" onsubmit="return confirm('İçerik silinsin mi? Revizyonlarla birlikte çöpe gider.')">@csrf @method('DELETE')
+                        <button type="submit" class="btn btn--ghost btn--block" style="color:var(--danger);border-color:#E9C4BC">Sil</button>
+                    </form>
+                @endif
+
                 @if ($s !== ContentStatus::ARCHIVED && $can['archive'])
                     <form method="POST" action="{{ route('panel.content.archive', $content) }}" class="stack" style="gap:8px">@csrf
                         <input class="control" type="text" name="note" maxlength="2000" placeholder="Arşiv notu (isteğe bağlı)">

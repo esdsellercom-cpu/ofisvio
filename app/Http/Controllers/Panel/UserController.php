@@ -21,9 +21,11 @@ class UserController extends Controller
 {
     public function __construct(private readonly UserAdminService $users) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        return view('panel.users.index', ['users' => $this->users->all()]);
+        $q = (string) $request->query('q', '');
+
+        return view('panel.users.index', ['users' => $this->users->paginate($q), 'q' => $q]);
     }
 
     public function create(): View

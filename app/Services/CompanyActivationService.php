@@ -89,9 +89,9 @@ class CompanyActivationService
             $blockers[] = "Mevcut durumdan ({$company->status->value}) fesih süreci başlatılamaz.";
         }
 
-        // TODO(invoice modülü): ödenmemiş fatura kontrolü
-        // TODO(contract modülü): aktif sözleşme kontrolü
-        // TODO(address modülü): tahsisli adresin iadesi
+        // Fatura, sözleşme ve adres modülleri henüz yok (ROADMAP faz 25+); geldiklerinde
+        // ödenmemiş fatura / aktif sözleşme / tahsisli adres iadesi buraya engel olarak eklenir.
+        // Bugün bu kontroller yapılmıyor — kapatma yalnız durum makinesine bakar.
 
         return $blockers;
     }

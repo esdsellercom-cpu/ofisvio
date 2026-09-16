@@ -79,5 +79,16 @@ return [
     'brand' => [
         'name' => 'Ofisvio',
     ],
+
+    /*
+     * Hesap açılışı (ofisvio:bootstrap-accounts). Değerler yalnız .env'den; config:cache
+     * ile uyumlu olsun diye env() burada okunur, komutta config() kullanılır.
+     */
+    'accounts' => [
+        'admin_email' => env('OFISVIO_ADMIN_EMAIL'),
+        'admin_password' => env('OFISVIO_ADMIN_PASSWORD'),
+        'test_customer_email' => env('OFISVIO_TEST_CUSTOMER_EMAIL'),
+        'test_customer_password' => env('OFISVIO_TEST_CUSTOMER_PASSWORD'),
+    ],
     'team_sizes' => ['1' => '1 kişi', '2-5' => '2–5 kişi', '6-15' => '6–15 kişi', '16+' => '16+ kişi'],
 ];

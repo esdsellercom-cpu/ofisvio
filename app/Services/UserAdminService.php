@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use DomainException;
 use Illuminate\Contracts\Auth\PasswordBroker;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -26,13 +27,21 @@ class UserAdminService
 {
     public function __construct(private readonly PasswordBroker $passwords) {}
 
-    /** @return Collection<int, User> */
-    public function all(): Collection
+    /**
+     * Liste: ad/e-posta araması + sayfalama.
+     *
+     * @return LengthAwarePaginator<int, User>
+     */
+    public function paginate(?string $search = null, int $perPage = 50): LengthAwarePaginator
     {
+        $search = trim((string) $search);
+
         return User::query()
             ->with(['userRoles.role', 'organizationMemberships.organization'])
+            ->when($search !== '', fn ($q) => $q->where(fn ($w) => $w->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")))
             ->orderBy('name')
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function find(int $id): User
@@ -40,6 +49,19 @@ class UserAdminService
         return User::query()
             ->with(['userRoles.role', 'organizationMemberships.organization'])
             ->findOrFail($id);
+    }
+
+    /**
+     * Aktif global (personel) rolü olan kullanıcılar — atama listeleri için.
+     *
+     * @return Collection<int, User>
+     */
+    public function staff(): Collection
+    {
+        return User::query()
+            ->whereHas('userRoles', fn ($q) => $q->where('status', 'active')->whereNull('company_id')->whereNull('organization_id')->whereNull('location_id')->whereHas('role', fn ($r) => $r->where('type', 'internal')))
+            ->orderBy('name')
+            ->get();
     }
 
     /** @return Collection<int, Role> */

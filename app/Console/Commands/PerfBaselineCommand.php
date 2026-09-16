@@ -63,27 +63,27 @@ class PerfBaselineCommand extends Command
             $staff = $this->temporaryStaff();
 
             foreach (self::PAGES as $path => [$label, $needsStaff]) {
-                $samples = [];
+                $measurements = [];
 
                 for ($i = 0; $i <= $runs; $i++) {
-                    $sample = $this->measure($kernel, $path, $needsStaff ? $staff : null);
+                    $measurement = $this->measure($kernel, $path, $needsStaff ? $staff : null);
 
                     if ($i > 0) { // ilk koşu ısınma (view cache, opcode)
-                        $samples[] = $sample;
+                        $measurements[] = $measurement;
                     }
                 }
 
-                if ($samples[0]['status'] !== 200) {
-                    $this->warn("{$path}: {$samples[0]['status']} — ".$samples[0]['diag']);
+                if ($measurements[0]['status'] !== 200) {
+                    $this->warn("{$path}: {$measurements[0]['status']} — ".$measurements[0]['diag']);
                 }
 
                 $results[] = [
                     'path' => $path,
                     'label' => $label,
-                    'status' => $samples[0]['status'],
-                    'queries' => max(array_column($samples, 'queries')),
-                    'ms_median' => $this->median(array_column($samples, 'ms')),
-                    'peak_mb' => round(max(array_column($samples, 'peak_bytes')) / 1048576, 1),
+                    'status' => $measurements[0]['status'],
+                    'queries' => max(array_column($measurements, 'queries')),
+                    'ms_median' => $this->median(array_column($measurements, 'ms')),
+                    'peak_mb' => round(max(array_column($measurements, 'peak_bytes')) / 1048576, 1),
                 ];
             }
         } finally {

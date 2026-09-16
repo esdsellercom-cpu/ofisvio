@@ -56,11 +56,19 @@ php artisan optimize                         # config + route + view cache
 php artisan ofisvio:doctor                   # 0 dönmüyorsa trafik açma
 ```
 
-İlk kurulumda personel hesabı:
+İlk kurulumda personel hesabı — şifre `.env`'den, kodda/seeder'da yoktur:
+
+```env
+OFISVIO_ADMIN_EMAIL=admin@ofisvio.com
+OFISVIO_ADMIN_PASSWORD=<≥16 karakter, büyük/küçük harf, rakam, özel karakter>
+```
 
 ```bash
-php artisan ofisvio:make-admin admin@ofisvio.com --name="Ad Soyad" --role=super_admin
+php artisan ofisvio:bootstrap-accounts
 ```
+
+`OFISVIO_TEST_CUSTOMER_*` yalnız test/staging içindir; production'da komut reddeder.
+Alternatif (interaktif): `php artisan ofisvio:make-admin <e-posta> --name="Ad Soyad"`.
 
 Kayıt kapalıdır; hesap yalnız bu komutla ve panel davetleriyle açılır. Personel
 2FA'sız hiçbir panel ekranına giremez — ilk girişte `/panel/hesap/guvenlik`.

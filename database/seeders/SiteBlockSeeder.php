@@ -47,19 +47,12 @@ class SiteBlockSeeder extends Seeder
             $website->save();
         }
 
-        $created = 0;
-
         foreach ($data['blocks'] as $key => $value) {
-            $block = SiteBlock::query()->firstOrCreate(
+            SiteBlock::query()->firstOrCreate(
                 ['website_id' => $website->id, 'key' => $key],
                 ['data' => $value],
             );
-
-            if ($block->wasRecentlyCreated) {
-                $created++;
-            }
         }
 
-        $this->command?->info("Vitrin blokları: {$created} yeni, ".(count($data['blocks']) - $created).' mevcut korundu.');
     }
 }

@@ -19,6 +19,13 @@
         burada yalnızca görünürler. Şifre hiçbir zaman burada belirlenmez — davet, şifre belirleme bağlantısıdır.
     </p>
 
+    <form method="GET" class="inline-form" style="margin-bottom:18px">
+        <label class="field" style="flex:1 1 260px"><span class="label">Ara (ad, e-posta)</span>
+            <input class="control" type="search" name="q" value="{{ $q }}" maxlength="120">
+        </label>
+        <button type="submit" class="btn btn--ghost">Ara</button>
+    </form>
+
     <div class="table-wrap">
         <table class="data">
             <thead><tr><th>Ad</th><th>E-posta</th><th>Roller</th><th>2FA</th><th></th></tr></thead>
@@ -43,4 +50,5 @@
             </tbody>
         </table>
     </div>
+    <div style="margin-top:16px">{{ $users->links() }}</div>
 @endsection

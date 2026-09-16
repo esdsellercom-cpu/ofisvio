@@ -23,6 +23,7 @@ use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\KycController;
+use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\SeoController;
@@ -49,6 +50,13 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         // --- Context'siz ekranlar ---------------------------------------
         Route::get('/organizasyon', [ContextController::class, 'select'])->name('context.select');
         Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:context-switch')->name('context.switch');
+
+        // Talepler / CRM v1 — siteden gelen teklif ve ön rezervasyon talepleri (audit bulgusu: ekranı yoktu).
+        Route::prefix('talepler')->name('leads.')->group(function () {
+            Route::get('/', [LeadController::class, 'index'])->middleware('permission:lead.view')->name('index');
+            Route::get('/{lead}', [LeadController::class, 'show'])->middleware('permission:lead.view')->name('show');
+            Route::put('/{lead}', [LeadController::class, 'update'])->middleware('permission:lead.assign')->name('update');
+        });
 
         // Kullanıcı yönetimi (faz 29) — personel daveti + global rol; user.manage.
         Route::prefix('kullanicilar')->name('users.')->middleware('permission:user.manage')->group(function () {
@@ -94,6 +102,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');
             Route::get('/{content}/duzenle', [ContentController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
             Route::put('/{content}', [ContentController::class, 'update'])->middleware('permission:content.edit')->name('update');
+            Route::delete('/{content}', [ContentController::class, 'destroy'])->middleware('permission:content.archive')->name('destroy');
 
             Route::post('/{content}/incelemeye-gonder', [ContentController::class, 'submit'])->middleware('permission:content.edit')->name('submit');
             Route::post('/{content}/geri-gonder', [ContentController::class, 'reject'])->middleware('permission:content.review')->name('reject');

@@ -289,7 +289,9 @@ table.compare td:first-child { font-size: 15px; font-weight: 500; color: var(--i
 .panel-side .brand { color: var(--dark-ink); }
 .panel-side .brand__mark { background: var(--brand-light); }
 .panel-side .label { color: var(--dark-ink-mute); }
-.panel-nav { display: flex; flex-direction: column; gap: 2px; }
+.panel-nav { display: flex; flex-direction: column; gap: 14px; }
+.panel-nav__group { display: flex; flex-direction: column; gap: 2px; }
+.panel-nav__label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--dark-ink-mute); padding: 0 10px 4px; }
 .panel-nav a {
   color: var(--dark-ink-soft); border-radius: var(--r-sm); padding: 10px 12px;
   font-size: 14.5px; font-weight: 500; display: flex; align-items: center; gap: 10px;
