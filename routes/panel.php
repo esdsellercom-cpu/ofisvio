@@ -27,6 +27,7 @@ use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SiteController;
+use App\Http\Controllers\Panel\SiteSeoController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -222,6 +223,11 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 $canSee = 'permission:content.edit|content.review|content.schedule,company';
 
                 Route::get('/', [SiteController::class, 'index'])->middleware($canSee)->name('index');
+
+                // SEO (faz 15, müşteri): {website} int, organizasyona süzülür.
+                Route::get('/seo', [SiteSeoController::class, 'index'])->middleware('permission:seo.view,company')->name('seo.index');
+                Route::put('/seo/{website}', [SiteSeoController::class, 'update'])->where('website', '[0-9]+')->middleware('permission:seo.edit,company')->name('seo.update');
+                Route::put('/seo/{website}/indeksleme', [SiteSeoController::class, 'indexing'])->where('website', '[0-9]+')->middleware('permission:seo.publish,company')->name('seo.indexing');
                 Route::get('/{content}', [SiteController::class, 'show'])->middleware($canSee)->name('show');
                 Route::get('/{content}/duzenle', [SiteController::class, 'edit'])->middleware('permission:content.edit,company')->name('edit');
                 Route::put('/{content}', [SiteController::class, 'update'])->middleware('permission:content.edit,company')->name('update');

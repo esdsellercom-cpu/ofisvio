@@ -28,6 +28,23 @@ class WebsiteService
     }
 
     /**
+     * Müşteri paneli (faz 10): yalnız organizasyonun siteleri. Tenant sınırı
+     * burada çizilir; çağıran doğrulanmış organizasyon id'sini geçer.
+     *
+     * @return Collection<int, Website>
+     */
+    public function forOrganization(int $organizationId): Collection
+    {
+        return Website::query()->where('organization_id', $organizationId)->orderBy('name')->get();
+    }
+
+    /** Yabancı site null döner (çağıran 404 verir). */
+    public function findForOrganization(int $organizationId, int $id): ?Website
+    {
+        return Website::query()->whereKey($id)->where('organization_id', $organizationId)->first();
+    }
+
+    /**
      * @param  array{name: string, slug?: string|null, domain?: string|null, organization_id?: int|null}  $data
      */
     public function create(array $data): Website

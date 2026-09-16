@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\Content;
 use App\Services\ContentService;
 use App\Services\TenantContext;
+use App\Services\WebsiteService;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -31,6 +32,7 @@ class SiteController extends Controller
 {
     public function __construct(
         private readonly ContentService $contents,
+        private readonly WebsiteService $websites,
         private readonly TenantContext $context,
     ) {}
 
@@ -66,7 +68,7 @@ class SiteController extends Controller
 
         return view('panel.site.index', [
             'company' => $company,
-            'websites' => $this->contents->websitesOf($organizationId),
+            'websites' => $this->websites->forOrganization($organizationId),
             'items' => $this->contents->listForOrganization($organizationId),
         ]);
     }

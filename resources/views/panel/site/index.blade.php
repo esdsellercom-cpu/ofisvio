@@ -20,6 +20,9 @@
             <h1 class="h2">Web sitesi</h1>
         </div>
         <div class="panel-head__actions">
+            @can('seo.view', $company)
+                <a href="{{ route('panel.companies.site.seo.index', $company) }}" class="btn btn--ghost">SEO</a>
+            @endcan
             @foreach ($websites as $site)
                 <a href="{{ $site->baseUrl() }}" class="btn btn--ghost" target="_blank" rel="noopener">{{ $site->domain ?: $site->name }} ↗</a>
             @endforeach

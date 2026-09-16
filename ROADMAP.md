@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **191/191** (Unit 10 · Feature 175 · Architecture 6) |
+| `php artisan test` | ✅ **193/193** (Unit 10 · Feature 177 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -109,9 +109,12 @@ açar, taslak da zamanlanır; `content:publish-scheduled` zamanı gelince
 birleştirir. Tenant sınırı: `{content}` model binding DEĞİL, servis
 organizasyonun sitelerine süzer, yabancı içerik 404; yabancı şirket 404.
 Yeni sayfa açma ve doğrudan yayın personelde (`/panel/icerik`, site seçici).
+**Müşteri SEO alanı** `/panel/sirketler/{company}/site/seo`: `seo.view`
+ayarlar + içerik denetimi + sitemap; `seo.edit` başlık son eki / varsayılan
+açıklama / dil; `seo.publish` (yalnız owner) indeksleme anahtarı — kapatınca
+robots.txt Disallow, her sayfa noindex, sitemap boş. Yabancı site 404.
 Eksik: tema/şablon seçimi, menü yönetimi, vitrin bloklarının (çözümler,
-planlar) CMS'e taşınması, müşteri için SEO alanı düzenleme (`seo.edit`
-company kapsamlı ama ekranı yok).
+planlar) CMS'e taşınması.
 
 ---
 
@@ -216,9 +219,8 @@ Temeller hazır; sıra değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 10 kalanı** — menü/tema, vitrin bloklarının CMS'e taşınması,
-   müşteri paneline SEO alanları (`seo.edit`, company). 11+ (SEO/GEO/
-   Performance) artık `website_id` üzerinde açılabilir.
+2. **Faz 10 kalanı** — menü/tema, vitrin bloklarının CMS'e taşınması.
+   11+ (GEO/Performance) müşteri sitesi için `website_id` üzerinde açılabilir.
 3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
    `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
    bloklara taşınır.

@@ -366,17 +366,6 @@ class ContentService
     // Müşteri sitesi (faz 10): organizasyonun siteleri ve içeriği
     // -----------------------------------------------------------------
 
-    /**
-     * Organizasyonun siteleri. Tenant sınırı BURADA çizilir: çağıran, doğrulanmış
-     * TenantContext'ten gelen organizasyon id'sini geçer.
-     *
-     * @return Collection<int, Website>
-     */
-    public function websitesOf(int $organizationId): Collection
-    {
-        return Website::query()->where('organization_id', $organizationId)->orderBy('name')->get();
-    }
-
     /** @return Collection<int, Content> */
     public function listForOrganization(int $organizationId): Collection
     {
