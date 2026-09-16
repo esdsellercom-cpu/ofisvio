@@ -57,6 +57,17 @@ class ContentService
         return Website::query()->default()->first();
     }
 
+    public function websiteById(int $id): Website
+    {
+        return Website::query()->findOrFail($id);
+    }
+
+    /** @return Collection<int, Website> */
+    public function allWebsites(): Collection
+    {
+        return Website::query()->orderByDesc('is_default')->orderBy('name')->get();
+    }
+
     /** @return Collection<int, Content> */
     public function livePosts(?Website $website, int $limit = 3): Collection
     {

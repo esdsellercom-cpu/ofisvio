@@ -5,7 +5,7 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.content.index') }}">İçerik</a> · {{ $kind->label() }}</p>
+            <p class="eyebrow"><a href="{{ route('panel.content.index', ['website' => $website->id]) }}">İçerik</a> · {{ $website->name }} · {{ $kind->label() }}</p>
             <h1 class="h2">{{ $content ? 'Taslağı düzenle' : 'Yeni '.mb_strtolower($kind->label()) }}</h1>
         </div>
     </div>
@@ -13,7 +13,7 @@
     <form method="POST" action="{{ $content ? route('panel.content.update', $content) : route('panel.content.store') }}"
           class="grid-auto" style="--min:320px;--gap:20px;align-items:start">
         @csrf
-        @if ($content) @method('PUT') @else <input type="hidden" name="kind" value="{{ $kind->value }}"> @endif
+        @if ($content) @method('PUT') @else <input type="hidden" name="kind" value="{{ $kind->value }}"><input type="hidden" name="website_id" value="{{ $website->id }}"> @endif
 
         <div class="panel stack" style="gap:14px">
             <label class="field">

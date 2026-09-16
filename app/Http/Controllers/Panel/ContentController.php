@@ -7,6 +7,7 @@ use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreContentRequest;
 use App\Models\Content;
+use App\Models\Website;
 use App\Services\AuthorizationService;
 use App\Services\ContentService;
 use DomainException;
@@ -38,13 +39,24 @@ class ContentController extends Controller
         private readonly AuthorizationService $authorization,
     ) {}
 
+    /** ?website=<id> ile seçilen site; yoksa varsayılan (Ofisvio vitrini). */
+    private function selectedWebsite(Request $request): Website
+    {
+        $id = $request->integer('website');
+
+        return $id > 0 ? $this->contents->websiteById($id) : $this->contents->defaultWebsite();
+    }
+
     public function index(Request $request): View
     {
         $kind = ContentKind::tryFrom((string) $request->query('kind', ''));
         $status = ContentStatus::tryFrom((string) $request->query('status', ''));
+        $website = $this->selectedWebsite($request);
 
         return view('panel.content.index', [
-            'items' => $this->contents->listFor($this->contents->defaultWebsite(), $kind, $status),
+            'website' => $website,
+            'websites' => $this->contents->allWebsites(),
+            'items' => $this->contents->listFor($website, $kind, $status),
             'kind' => $kind,
             'status' => $status,
             'kinds' => ContentKind::cases(),
@@ -56,6 +68,7 @@ class ContentController extends Controller
     {
         return view('panel.content.form', [
             'content' => null,
+            'website' => $this->selectedWebsite($request),
             'kind' => ContentKind::tryFrom((string) $request->query('kind', 'post')) ?? ContentKind::POST,
         ]);
     }
@@ -63,7 +76,8 @@ class ContentController extends Controller
     public function store(StoreContentRequest $request): RedirectResponse
     {
         try {
-            $content = $this->contents->create($request->user(), $this->contents->defaultWebsite(), $request->validated());
+            $website = $this->contents->websiteById((int) $request->validated('website_id'));
+            $content = $this->contents->create($request->user(), $website, $request->validated());
         } catch (DomainException $e) {
             return back()->withErrors(['title' => $e->getMessage()])->withInput();
         }
@@ -96,7 +110,7 @@ class ContentController extends Controller
                 ->withErrors(['status' => 'Yalnızca taslak düzenlenir; önce taslağa alın.']);
         }
 
-        return view('panel.content.form', ['content' => $content, 'kind' => $content->kind]);
+        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind]);
     }
 
     public function update(StoreContentRequest $request, Content $content): RedirectResponse

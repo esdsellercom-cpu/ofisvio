@@ -68,6 +68,7 @@ class ContentFlowTest extends TestCase
         $this->actingAs($admin)->get('/panel/icerik')->assertOk()->assertSee('Yeni yazı');
 
         $this->actingAs($admin)->post('/panel/icerik', [
+            'website_id' => $this->website->id,
             'kind' => 'post',
             'title' => 'Sanal ofis ile şirket kurmak',
             'excerpt' => 'Kısa özet.',
@@ -172,7 +173,7 @@ class ContentFlowTest extends TestCase
         $content = $this->draft();
 
         $this->actingAs($ops)->get('/panel/icerik')->assertOk();
-        $this->actingAs($ops)->post('/panel/icerik', ['kind' => 'post', 'title' => 'Yetkisiz'])->assertForbidden();
+        $this->actingAs($ops)->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'post', 'title' => 'Yetkisiz'])->assertForbidden();
         $this->actingAs($ops)->post("/panel/icerik/{$content->id}/incelemeye-gonder")->assertRedirect();
         $this->actingAs($ops)->post("/panel/icerik/{$content->id}/onayla")->assertForbidden();
         $this->actingAs($ops)->post("/panel/icerik/{$content->id}/yayinla")->assertForbidden();
@@ -227,7 +228,7 @@ class ContentFlowTest extends TestCase
     {
         $admin = $this->staff('system_admin');
 
-        $this->actingAs($admin)->post('/panel/icerik', ['kind' => 'page', 'title' => 'Panel', 'body' => 'x']);
+        $this->actingAs($admin)->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'page', 'title' => 'Panel', 'body' => 'x']);
         $page = Content::where('kind', 'page')->where('slug', 'panel')->firstOrFail();
         $this->actingAs($admin)->post("/panel/icerik/{$page->id}/incelemeye-gonder");
         $this->actingAs($admin)->post("/panel/icerik/{$page->id}/yayinla");
@@ -237,9 +238,9 @@ class ContentFlowTest extends TestCase
         $this->actingAs($admin)->get('/panel')->assertRedirect('/panel/organizasyon');
 
         // Aynı türde aynı başlık: slug -2 alır; farklı türde aynı slug serbest.
-        $this->actingAs($admin)->post('/panel/icerik', ['kind' => 'page', 'title' => 'Panel']);
+        $this->actingAs($admin)->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'page', 'title' => 'Panel']);
         $this->assertTrue(Content::where('kind', 'page')->where('slug', 'panel-2')->exists());
-        $this->actingAs($admin)->post('/panel/icerik', ['kind' => 'post', 'title' => 'Panel']);
+        $this->actingAs($admin)->post('/panel/icerik', ['website_id' => $this->website->id, 'kind' => 'post', 'title' => 'Panel']);
         $this->assertTrue(Content::where('kind', 'post')->where('slug', 'panel')->exists());
     }
 }

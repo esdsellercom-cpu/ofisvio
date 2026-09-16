@@ -12,13 +12,15 @@
         ContentStatus::ARCHIVED => 'danger',
         ContentStatus::DRAFT => 'muted',
     };
-    $publicUrl = $content->kind->value === 'post' ? route('site.post', $content->slug) : route('site.page', $content->slug);
+    // Müşteri sitesi: kendi alan adı; Ofisvio vitrini: uygulama adresi.
+    $path = ($content->kind->value === 'post' ? '/blog/' : '/').$content->slug;
+    $publicUrl = $content->website->domain ? 'https://'.$content->website->domain.$path : url($path);
 @endphp
 
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.content.index') }}">İçerik</a> · {{ $content->kind->label() }}</p>
+            <p class="eyebrow"><a href="{{ route('panel.content.index', ['website' => $content->website_id]) }}">İçerik</a> · {{ $content->website->name }} · {{ $content->kind->label() }}</p>
             <h1 class="h2">{{ $content->title }}</h1>
         </div>
         <div class="panel-head__actions">

@@ -22,6 +22,7 @@ use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
+use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
@@ -73,6 +74,15 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/{content}/zamanla', [ContentController::class, 'schedule'])->middleware('permission:content.schedule')->name('schedule');
             Route::post('/{content}/arsivle', [ContentController::class, 'archive'])->middleware('permission:content.archive')->name('archive');
             Route::post('/{content}/taslaga-al', [ContentController::class, 'restore'])->middleware('permission:content.edit')->name('restore');
+        });
+
+        // --- Websiteler (faz 10) — personel, tenant context'siz ----------------
+        Route::prefix('websiteler')->name('websites.')->group(function () {
+            Route::get('/', [WebsiteController::class, 'index'])->middleware('permission:website.view|website.manage')->name('index');
+            Route::get('/yeni', [WebsiteController::class, 'create'])->middleware('permission:website.manage')->name('create');
+            Route::post('/', [WebsiteController::class, 'store'])->middleware('permission:website.manage')->name('store');
+            Route::get('/{website}/duzenle', [WebsiteController::class, 'edit'])->middleware('permission:website.manage')->name('edit');
+            Route::put('/{website}', [WebsiteController::class, 'update'])->middleware('permission:website.manage')->name('update');
         });
 
         // --- Tenant context'li ekranlar -----------------------------------

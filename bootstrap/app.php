@@ -4,6 +4,7 @@ use App\Exceptions\TenantContextException;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureStaffTwoFactor;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\ResolveWebsite;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Çoklu website: Host -> Website çözümlemesi her web isteğinde.
+        $middleware->web(append: [ResolveWebsite::class]);
+
         $middleware->alias([
             'tenant' => EnsureTenantContext::class,
             'permission' => EnsurePermission::class,

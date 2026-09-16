@@ -16,18 +16,30 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow">CMS · Ofisvio vitrini</p>
+            <p class="eyebrow">CMS · {{ $website->name }}@if ($website->domain) · {{ $website->domain }}@endif</p>
             <h1 class="h2">İçerik</h1>
         </div>
         <div class="panel-head__actions">
             @can('content.create')
-                <a href="{{ route('panel.content.create', ['kind' => 'post']) }}" class="btn btn--brand">Yeni yazı</a>
-                <a href="{{ route('panel.content.create', ['kind' => 'page']) }}" class="btn btn--ghost">Yeni sayfa</a>
+                <a href="{{ route('panel.content.create', ['kind' => 'post', 'website' => $website->id]) }}" class="btn btn--brand">Yeni yazı</a>
+                <a href="{{ route('panel.content.create', ['kind' => 'page', 'website' => $website->id]) }}" class="btn btn--ghost">Yeni sayfa</a>
             @endcan
         </div>
     </div>
 
     <form method="GET" class="inline-form" style="margin-bottom:18px">
+        @if ($websites->count() > 1)
+            <label class="field" style="flex:0 1 220px">
+                <span class="label">Site</span>
+                <select class="control" name="website" onchange="this.form.submit()">
+                    @foreach ($websites as $site)
+                        <option value="{{ $site->id }}" @selected($site->id === $website->id)>{{ $site->name }}</option>
+                    @endforeach
+                </select>
+            </label>
+        @else
+            <input type="hidden" name="website" value="{{ $website->id }}">
+        @endif
         <label class="field" style="flex:0 1 180px">
             <span class="label">Tür</span>
             <select class="control" name="kind" onchange="this.form.submit()">

@@ -1,6 +1,6 @@
-@extends('layouts.site')
+@extends($siteLayout)
 
-@section('title', 'Yazılar — '.config('ofisvio.brand.name'))
+@section('title', 'Yazılar — '.($currentWebsite?->name ?? config('ofisvio.brand.name')))
 @section('description', 'Sanal ofis, tescil, hibrit çalışma ve mevzuat üzerine Ofisvio yazıları.')
 
 @section('content')

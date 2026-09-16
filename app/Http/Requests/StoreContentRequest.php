@@ -19,6 +19,7 @@ class StoreContentRequest extends FormRequest
         $creating = $this->routeIs('panel.content.store');
 
         return [
+            'website_id' => $creating ? ['required', 'integer', Rule::exists('websites', 'id')->whereNull('deleted_at')] : ['prohibited'],
             'kind' => $creating ? ['required', Rule::enum(ContentKind::class)] : ['prohibited'],
             'title' => ['required', 'string', 'min:3', 'max:190'],
             'slug' => ['nullable', 'string', 'max:190', 'regex:/^[a-z0-9-]+$/'],
@@ -37,6 +38,7 @@ class StoreContentRequest extends FormRequest
         return [
             'slug.regex' => 'Slug yalnızca küçük harf, rakam ve tire içerebilir.',
             'kind.prohibited' => 'İçerik türü sonradan değiştirilemez.',
+            'website_id.prohibited' => 'İçerik başka siteye taşınamaz.',
         ];
     }
 
@@ -44,7 +46,7 @@ class StoreContentRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'kind' => 'İçerik türü', 'title' => 'Başlık', 'slug' => 'Slug', 'excerpt' => 'Özet',
+            'website_id' => 'Site', 'kind' => 'İçerik türü', 'title' => 'Başlık', 'slug' => 'Slug', 'excerpt' => 'Özet',
             'body' => 'Gövde', 'category' => 'Kategori', 'meta_title' => 'SEO başlığı',
             'meta_description' => 'SEO açıklaması', 'requires_approval' => 'Onay gerekli',
         ];

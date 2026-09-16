@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **157/157** (Unit 10 · Feature 141 · Architecture 6) |
+| `php artisan test` | ✅ **161/161** (Unit 10 · Feature 145 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -33,7 +33,8 @@ parametre adı (`{document}` → `Company::documents()` yoktu).
 ## FAZLAR — §77 sırası, mevcut duruma göre
 
 ### 1. RBAC CSV → Migration + Seeder ✅
-252 satır · 12 rol · 107 izin · 52 JIT · 2 dual-control.
+257 satır · 12 rol · 109 izin · 52 JIT · 2 dual-control (`website.view`,
+`website.manage` faz 10'da eklendi).
 
 ### 2. Tenant Context Engine ✅
 Üyelik yolu + personel yolu (`ContextSwitchService::switchTo` ikisini de kabul
@@ -42,7 +43,7 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-157 test; "izin verilmemeli" senaryoları her modülde var.
+161 test; "izin verilmemeli" senaryoları her modülde var.
 
 ### 4. CI/CD Pipeline ✅
 GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
@@ -92,9 +93,15 @@ TASLAK iskelet açar (uydurma metin yayınlanmaz; yazı yoksa bölüm gizlenir).
 Karar notları: içerik operatör sitesi için, personel global izinle; müşteri
 siteleri (owner:company `content.edit`) faz 10 ile gelir.
 
-### 10. Website / Page Engine 🟡
-Vitrin statik Blade + CMS sayfaları. Eksik: çoklu website (tenant başına site,
-`websites.organization_id` dolu kayıtlar), tema/şablon seçimi, menü yönetimi.
+### 10. Website / Page Engine 🟡 (v1 ✅)
+Çoklu website: `CurrentWebsite` isteğin Host'unu `websites.domain` ile eşler
+(port/büyük harf yok sayılır; bilinmeyen host varsayılana düşer, asla site
+üretmez). Müşteri sitesi kendi iskeletiyle (`layouts.tenant`: site adı +
+yayındaki sayfa menüsü) kendi sayfa/yazılarını gösterir; içerik siteler arası
+sızmaz. Personel `/panel/websiteler` ile site açar (ad, alan adı, organizasyon —
+§66), editörde site seçer. Eksik: tema/şablon seçimi, menü yönetimi, müşteri
+kullanıcılarının kendi sitesini yönetmesi (company kapsamlı `content.*`),
+vitrin bloklarının (çözümler, planlar) CMS'e taşınması.
 
 ---
 
@@ -124,8 +131,10 @@ Tamamı 9. ve 10. fazlara bağlı; sıra ve önkoşullar değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 10** — Website Engine: çoklu website + tenant siteleri (`content.*`
-   müşteri rolleri), menü/tema. Sonra 11+ (SEO/GEO/Performance) açılır.
+2. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
+   (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
+   vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık
+   `website_id` üzerinde açılabilir.
 3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
    `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
    bloklara taşınır.

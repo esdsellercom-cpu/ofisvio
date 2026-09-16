@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Site;
 use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Services\ContentService;
+use App\Services\CurrentWebsite;
 use App\Support\ActivationJourney;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -26,10 +27,25 @@ class HomeController extends Controller
 
     private const DAY_NAMES = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
-    public function __construct(private readonly ContentService $contents) {}
+    public function __construct(
+        private readonly ContentService $contents,
+        private readonly CurrentWebsite $website,
+    ) {}
 
     public function __invoke(): View
     {
+        // Müşteri sitesi (Host eşleşti): Ofisvio pazarlama blokları DEĞİL,
+        // o sitenin kendi sayfa/yazıları.
+        if ($this->website->isTenantSite()) {
+            $site = $this->website->get();
+
+            return view('site.tenant-home', [
+                'website' => $site,
+                'pages' => $this->contents->livePages($site),
+                'posts' => $this->contents->livePosts($site, 6),
+            ]);
+        }
+
         $locations = Location::published()->get();
 
         return view('site.home', [
@@ -40,7 +56,7 @@ class HomeController extends Controller
             'bookingDays' => $this->bookingDays(),
             'bookingSlots' => self::SLOTS,
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
-            'posts' => $this->contents->livePosts($this->contents->defaultWebsiteOrNull(), 3),
+            'posts' => $this->contents->livePosts($this->website->get(), 3),
         ]);
     }
 

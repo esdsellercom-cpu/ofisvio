@@ -251,3 +251,8 @@ cache,cache.settings,system_admin,global,yes,no,
 cache,cache.settings,super_admin,global,yes,no,
 analytics,analytics.integration.manage,system_admin,global,yes,no,Analytics API kimlik bilgisi
 analytics,analytics.integration.manage,super_admin,global,yes,no,Analytics API kimlik bilgisi
+website,website.view,system_admin,global,no,no,Website listesi ve ayarlarini gorme
+website,website.view,super_admin,global,no,no,
+website,website.view,operations_admin,global,no,no,
+website,website.manage,system_admin,global,no,no,Website acma ve alan adi atama (§66 Organization -> Website)
+website,website.manage,super_admin,global,no,no,

@@ -1,6 +1,6 @@
-@extends('layouts.site')
+@extends($siteLayout)
 
-@section('title', ($content->meta_title ?: $content->title).' — '.config('ofisvio.brand.name'))
+@section('title', ($content->meta_title ?: $content->title).' — '.$currentWebsite->name)
 @section('description', $content->meta_description ?: ($content->excerpt ?: ''))
 
 @section('content')
@@ -12,7 +12,7 @@
                 @if ($content->reading_minutes) · {{ $content->reading_minutes }} dk @endif
             </p>
         @else
-            <p class="eyebrow">{{ config('ofisvio.brand.name') }}</p>
+            <p class="eyebrow">{{ $currentWebsite->name }}</p>
         @endif
 
         <h1 class="h2">{{ $content->title }}</h1>

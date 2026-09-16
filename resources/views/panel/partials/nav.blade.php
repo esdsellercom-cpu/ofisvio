@@ -11,6 +11,9 @@
 @can('content.view')
     <a href="{{ route('panel.content.index') }}" @if (request()->routeIs('panel.content.*')) aria-current="page" @endif>İçerik</a>
 @endcan
+@canany(['website.view', 'website.manage'])
+    <a href="{{ route('panel.websites.index') }}" @if (request()->routeIs('panel.websites.*')) aria-current="page" @endif>Websiteler</a>
+@endcanany
 @can('user.manage')
     <a href="{{ route('panel.onboarding.create') }}" @if (request()->routeIs('panel.onboarding.*')) aria-current="page" @endif>Yeni müşteri</a>
 @endcan

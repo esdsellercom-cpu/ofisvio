@@ -7,6 +7,7 @@ use App\Services\CompanyActivationService;
 use App\Services\CompanyService;
 use App\Services\ContentService;
 use App\Services\ContextSwitchService;
+use App\Services\CurrentWebsite;
 use App\Services\JitAccessService;
 use App\Services\KycQueueService;
 use App\Services\KycService;
@@ -16,6 +17,7 @@ use App\Services\OrganizationOnboardingService;
 use App\Services\TenantContext;
 use App\View\Composers\PanelLayoutComposer;
 use App\View\Composers\SiteFooterComposer;
+use App\View\Composers\SiteLayoutComposer;
 use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +56,9 @@ class TenantServiceProvider extends ServiceProvider
         $this->app->singleton(KycQueueService::class);
         $this->app->singleton(MembershipService::class);
         $this->app->singleton(ContentService::class);
+
+        // İstek başına tek örnek (Octane\u0027da da istek sonunda sıfırlanır).
+        $this->app->scoped(CurrentWebsite::class);
     }
 
     public function boot(): void
@@ -65,5 +70,8 @@ class TenantServiceProvider extends ServiceProvider
 
         // Vitrin footer'ı yasal sayfaları CMS'ten alır.
         View::composer('site.partials.footer', SiteFooterComposer::class);
+
+        // Vitrin görünümleri: Ofisvio mu müşteri sitesi mi -> iskelet + menü.
+        View::composer(['site.content', 'site.posts', 'site.tenant-home', 'layouts.tenant'], SiteLayoutComposer::class);
     }
 }
