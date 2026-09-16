@@ -74,4 +74,22 @@
         </table>
         <p class="small muted" style="margin:12px 0 0">Ayarlar ve geçersizleme: <a href="{{ route('panel.cache.index') }}">Önbellek</a>.</p>
     </div>
+    <div class="panel" style="margin-top:20px">
+        <p class="eyebrow">Entegrasyon geçidi (faz 5)</p>
+        <p class="small muted" style="margin:0 0 12px">Sağlayıcılar env ile açılır; kimlik bilgileri yalnız env'de, burada maskeli. Giden istekler ve gelen webhook'lar Denetim kaydında.</p>
+        <table class="data">
+            <thead><tr><th>Sağlayıcı</th><th>Durum</th><th>Adres</th><th>Secret'lar</th><th>Webhook</th></tr></thead>
+            <tbody>
+                @foreach ($providers as $p)
+                    <tr>
+                        <td>{{ $p['label'] }} <span class="mono small muted">{{ $p['key'] }}</span></td>
+                        <td>@if ($p['enabled'])<span class="badge badge--ok">Açık</span>@else<span class="badge badge--muted">Kapalı</span>@endif</td>
+                        <td class="mono small">{{ $p['base_url'] ?: '—' }}</td>
+                        <td class="small">@foreach ($p['secrets'] as $k => $v)<span class="mono">{{ $k }}</span>: {{ $v }}@if (! $loop->last) · @endif @endforeach</td>
+                        <td class="small">{{ $p['webhook'] ? 'imza anahtarı tanımlı · /webhooks/'.$p['key'] : '—' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
 @endsection

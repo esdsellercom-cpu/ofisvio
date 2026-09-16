@@ -5,7 +5,9 @@ namespace App\Services;
 use App\Models\Company;
 use App\Models\CompanyStatusTransition;
 use App\Models\ContextSwitchLog;
+use App\Models\IntegrationLog;
 use App\Models\Scopes\TenantScope;
+use App\Models\WebhookEvent;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +26,7 @@ use stdClass;
  */
 class AuditLogService
 {
-    public const TYPES = ['jit' => 'JIT erişimleri', 'context' => 'Organizasyon girişleri', 'company' => 'Şirket durum geçişleri'];
+    public const TYPES = ['jit' => 'JIT erişimleri', 'context' => 'Organizasyon girişleri', 'company' => 'Şirket durum geçişleri', 'webhook' => 'Gelen webhook olayları', 'integration' => 'Giden entegrasyon istekleri'];
 
     /**
      * @param  array{q?: string|null, from?: string|null, to?: string|null}  $filters
@@ -89,13 +91,53 @@ class AuditLogService
             ->withQueryString();
     }
 
-    /** Özet sayaçlar (denetim ekranı başlığı). @return array{jit: int, context: int, company: int} */
+    /**
+     * @param  array{q?: string|null, from?: string|null, to?: string|null}  $filters
+     * @return LengthAwarePaginator<int, WebhookEvent>
+     */
+    public function webhooks(array $filters, int $perPage = 50): LengthAwarePaginator
+    {
+        $q = trim((string) ($filters['q'] ?? ''));
+
+        return WebhookEvent::query()
+            ->when($q !== '', fn (Builder $b) => $b->where(fn (Builder $w) => $w->where('provider', 'like', "%{$q}%")->orWhere('event_id', 'like', "%{$q}%")->orWhere('status', 'like', "%{$q}%")))
+            ->when($filters['from'] ?? null, fn (Builder $b, $from) => $b->where('received_at', '>=', $from.' 00:00:00'))
+            ->when($filters['to'] ?? null, fn (Builder $b, $to) => $b->where('received_at', '<=', $to.' 23:59:59'))
+            ->orderByDesc('received_at')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * @param  array{q?: string|null, from?: string|null, to?: string|null}  $filters
+     * @return LengthAwarePaginator<int, IntegrationLog>
+     */
+    public function integrations(array $filters, int $perPage = 50): LengthAwarePaginator
+    {
+        $q = trim((string) ($filters['q'] ?? ''));
+
+        return IntegrationLog::query()
+            ->when($q !== '', fn (Builder $b) => $b->where(fn (Builder $w) => $w->where('provider', 'like', "%{$q}%")->orWhere('path', 'like', "%{$q}%")->orWhere('error', 'like', "%{$q}%")))
+            ->when($filters['from'] ?? null, fn (Builder $b, $from) => $b->where('created_at', '>=', $from.' 00:00:00'))
+            ->when($filters['to'] ?? null, fn (Builder $b, $to) => $b->where('created_at', '<=', $to.' 23:59:59'))
+            ->orderByDesc('created_at')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * Özet sayaçlar (denetim ekranı başlığı).
+     *
+     * @return array{jit: int, context: int, company: int, webhook: int, integration: int}
+     */
     public function counts(): array
     {
         return [
             'jit' => Schema::hasTable('jit_access_grants') ? (int) DB::table('jit_access_grants')->count() : 0,
             'context' => ContextSwitchLog::query()->count(),
             'company' => CompanyStatusTransition::query()->count(),
+            'webhook' => WebhookEvent::query()->count(),
+            'integration' => IntegrationLog::query()->count(),
         ];
     }
 }

@@ -27,6 +27,7 @@ class RateLimitServiceProvider extends ServiceProvider
         'jit-request' => 10,
         'invite' => 20,
         'context-switch' => 30,
+        'webhook' => 120, // sağlayıcı yeniden teslimleri; IP bazlı (oturum yok)
     ];
 
     public function boot(): void

@@ -31,6 +31,8 @@ class AuditController extends Controller
             'rows' => match ($type) {
                 'context' => $this->audit->contextSwitches($filters),
                 'company' => $this->audit->companyTransitions($filters),
+                'webhook' => $this->audit->webhooks($filters),
+                'integration' => $this->audit->integrations($filters),
                 default => $this->audit->jitGrants($filters),
             },
         ]);

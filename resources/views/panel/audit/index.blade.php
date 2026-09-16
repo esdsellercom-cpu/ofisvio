@@ -66,6 +66,34 @@
                             </tr>
                         @endforeach
                     </tbody>
+                @elseif ($type === 'webhook')
+                    <thead><tr><th>Alındı</th><th>Sağlayıcı</th><th>Olay</th><th>Durum</th><th>Kaynak IP</th><th>Hata</th></tr></thead>
+                    <tbody>
+                        @foreach ($rows as $r)
+                            <tr>
+                                <td class="small mono">{{ $r->received_at?->format('d.m.Y H:i:s') }}</td>
+                                <td class="mono small">{{ $r->provider }}</td>
+                                <td class="mono small">{{ $r->event_id }}<span class="muted" style="display:block">{{ $r->payload['type'] ?? '' }}</span></td>
+                                <td><span class="badge badge--{{ $r->status === 'processed' ? 'ok' : ($r->status === 'failed' ? 'danger' : 'warn') }}">{{ $r->status }}</span></td>
+                                <td class="small mono">{{ $r->source_ip }}</td>
+                                <td class="small">{{ $r->error ?: '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                @elseif ($type === 'integration')
+                    <thead><tr><th>Zaman</th><th>Sağlayıcı</th><th>İstek</th><th class="num">Durum</th><th class="num">Süre</th><th>Hata</th></tr></thead>
+                    <tbody>
+                        @foreach ($rows as $r)
+                            <tr>
+                                <td class="small mono">{{ $r->created_at?->format('d.m.Y H:i:s') }}</td>
+                                <td class="mono small">{{ $r->provider }}</td>
+                                <td class="mono small">{{ $r->method }} {{ $r->path }}</td>
+                                <td class="num"><span class="badge badge--{{ $r->ok ? 'ok' : 'danger' }}">{{ $r->status ?? '—' }}</span></td>
+                                <td class="num mono small">{{ $r->duration_ms }} ms</td>
+                                <td class="small">{{ $r->error ?: '—' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
                 @else
                     <thead><tr><th>Zaman</th><th>Şirket</th><th>Geçiş</th><th>Yapan</th><th>Gerekçe</th></tr></thead>
                     <tbody>

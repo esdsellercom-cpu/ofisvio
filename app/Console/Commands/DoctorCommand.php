@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Integrations\SecretStore;
 use App\Models\Content;
 use App\Models\Permission;
 use App\Models\UserRole;
@@ -51,6 +52,7 @@ class DoctorCommand extends Command
         $this->checkMailAndQueue($production);
         $this->checkScheduler($production);
         $this->checkSeedAndAdmin();
+        $this->checkIntegrations($production);
 
         $failed = array_filter($this->rows, fn (array $r) => $r['level'] === 'fail');
         $warned = array_filter($this->rows, fn (array $r) => $r['level'] === 'warn');
@@ -245,6 +247,33 @@ class DoctorCommand extends Command
         $overdue > 0
             ? $this->add('Gecikmiş yayın', 'warn', "{$overdue} içerik zamanı geçtiği halde yayınlanmadı (bkz. /panel/icerik/takvim)")
             : $this->add('Gecikmiş yayın', 'ok', 'yok');
+    }
+
+    /** Açık sağlayıcı: secret'ları tam ve base_url https olmalı; kapalı sağlayıcı bilgi satırı. */
+    private function checkIntegrations(bool $production): void
+    {
+        $secrets = app(SecretStore::class);
+        $enabled = 0;
+
+        foreach ((array) config('integrations.providers') as $key => $provider) {
+            if (! ($provider['enabled'] ?? false)) {
+                continue;
+            }
+
+            $enabled++;
+            $missing = $secrets->missing((string) $key);
+            $https = str_starts_with((string) ($provider['base_url'] ?? ''), 'https://');
+
+            match (true) {
+                $missing !== [] => $this->add('Entegrasyon: '.$key, 'fail', 'Açık ama eksik secret: '.implode(', ', $missing)),
+                ! $https => $this->add('Entegrasyon: '.$key, 'fail', 'base_url https:// olmalı'),
+                default => $this->add('Entegrasyon: '.$key, 'ok', 'açık, secret tanımlı'),
+            };
+        }
+
+        if ($enabled === 0) {
+            $this->add('Entegrasyonlar', 'ok', 'açık sağlayıcı yok (hepsi env ile kapalı)');
+        }
     }
 
     private function checkSeedAndAdmin(): void

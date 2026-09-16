@@ -53,6 +53,10 @@ class SystemPanelsTest extends TestCase
         $this->actingAs($admin)->get('/panel/denetim?tur=context')->assertOk()->assertSee($admin->name)->assertSee('Acme')->assertSee('Personel');
         $this->actingAs($admin)->get('/panel/denetim?tur=company')->assertOk()->assertSee('Acme A.Ş.')->assertSee('KYC_PENDING')->assertSee($owner->name);
 
+        // Webhook ve entegrasyon sekmeleri (boş ama erişilebilir).
+        $this->actingAs($admin)->get('/panel/denetim?tur=webhook')->assertOk()->assertSee('eşleşen kayıt yok');
+        $this->actingAs($admin)->get('/panel/denetim?tur=integration')->assertOk()->assertSee('eşleşen kayıt yok');
+
         // Süzgeç: arama ve tarih; geçersiz tür reddedilir.
         $this->actingAs($admin)->get('/panel/denetim?q=olmayan-metin')->assertOk()->assertSee('eşleşen kayıt yok');
         $this->actingAs($admin)->get('/panel/denetim?from=2099-01-01')->assertOk()->assertSee('eşleşen kayıt yok');
@@ -79,6 +83,7 @@ class SystemPanelsTest extends TestCase
         $this->actingAs($admin)->post('/panel/performans/olc')->assertRedirect('/panel/performans');
         $this->assertFileExists($path);
         $this->actingAs($admin)->get('/panel/performans')->assertOk()->assertSee('Vitrin ana sayfa')->assertSee('İçerik takvimi')->assertSee('Ofisvio');
+        $this->actingAs($admin)->get('/panel/performans')->assertOk()->assertSee('Entegrasyon geçidi')->assertSee('iyzico')->assertSee('Kapalı')->assertDontSee('gizli');
 
         // Doctor ekranı: kontrol satırları.
         $this->actingAs($admin)->get('/panel/performans/doctor')->assertOk()->assertSee('APP_KEY')->assertSee('RBAC matrisi');

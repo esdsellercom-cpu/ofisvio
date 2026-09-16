@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **233/233** (Unit 10 · Feature 210 · Architecture 13) |
+| `php artisan test` | ✅ **237/237** (Unit 10 · Feature 213 · Architecture 14) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -48,7 +48,7 @@ yönlenir; 404 her yerde 404 (enumeration savunması).
 ### 4. CI/CD Pipeline ✅
 GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
 
-### 5. P0 Security Infrastructure 🟡
+### 5. P0 Security Infrastructure ✅ (passkey hariç)
 Var: tenant izolasyonu, RBAC+scope, JIT, dual-control, fail-closed, audit
 tabloları, login throttling (5/dk e-posta+IP), session fixation savunması,
 **2FA (TOTP, kurtarma kodları, replay koruması) — personel için zorunlu**
@@ -59,8 +59,19 @@ davet, context), **File Quarantine**: `MalwareScanner` sözleşmesi,
 `QUARANTINED` + `quarantine/` ön eki + hiçbir yoldan (JIT dahil) açılmaz,
 tarayıcı yoksa yükleme reddedilir (fail-closed), `KYC_SCANNER=none`
 production'da açılışta durur.
-Yok: passkey, Integration Gateway, Secret Management, SSRF koruması,
-Webhook Security (entegrasyon modülleriyle birlikte gelecek).
+**Integration Gateway** (`App\Integrations\Gateway`): dış sağlayıcıya giden TEK yol
+(`Http::` yalnız burada — MockDataDetectionTest zorlar); sağlayıcı env ile
+açılır, kapalıysa/secret eksikse RED; zaman aşımı; yönlendirme yok;
+`integration_logs` (secret/gövde/sorgu dizgisi yok). **Secret Management**
+(`SecretStore`): env → config('integrations'), DB/kod/log/yanıt dışı, panelde
+maskeli, doctor eksikte hata. **SSRF koruması** (`UrlGuard`): https + 443,
+kullanıcı bilgisi yok, IP literali yok, DNS çözümü özel/loopback/link-local/
+metadata/IPv4-mapped reddi, yol base_url dışına çıkamaz. **Webhook Security**
+(`/webhooks/{provider}`, `WebhookReceiver`): HMAC-SHA256(gövde.zaman) sabit zamanlı
+karşılaştırma, zaman damgası toleransı (replay), (provider, event_id) tekil
+(idempotent tekrar teslim), kapalı sağlayıcı/secret yok → 404, throttle.
+Sağlayıcı adaptörleri (iyzico, SC, analytics, AI, SMS, e-Fatura) kimlik bilgisi
+gelince geçit üzerinden yazılır. Yok: passkey (WebAuthn — ayrı paket + JS kararı).
 
 ### 6. Auth ✅
 Fortify: login / logout / şifre sıfırlama. **Kayıt kapalı** — hesaplar davetle

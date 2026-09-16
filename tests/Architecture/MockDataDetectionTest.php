@@ -88,6 +88,27 @@ class MockDataDetectionTest extends TestCase
     }
 
     #[Test]
+    public function backend_dis_saglayiciya_yalniz_gateway_uzerinden_cikar(): void
+    {
+        // Http facade / curl / dış file_get_contents yalnız Integration Gateway'de (faz 5).
+        $offenders = [];
+
+        foreach (self::files('app', '/\.php$/') as $path) {
+            if (str_ends_with($path, 'Gateway.php')) {
+                continue;
+            }
+
+            $source = (string) file_get_contents($path);
+
+            if (preg_match('/\bHttp::|curl_init\(|file_get_contents\(\s*[\'"]https?:/', $source, $m) === 1) {
+                $offenders[] = basename($path).': '.$m[0];
+            }
+        }
+
+        $this->assertSame([], $offenders, "Gateway dışında dış HTTP çağrısı:\n".implode("\n", $offenders));
+    }
+
+    #[Test]
     public function frontend_dis_saglayiciya_dogrudan_baglanmiyor(): void
     {
         // JS'te fetch/XHR/WebSocket ile dış adrese çağrı yok; form POST'ları ve bağlantılar sunucuya gider.

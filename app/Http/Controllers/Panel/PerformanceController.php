@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Panel;
 
 use App\Console\Commands\DoctorCommand;
 use App\Http\Controllers\Controller;
+use App\Integrations\SecretStore;
 use App\Models\Website;
 use App\Services\AuthorizationService;
 use App\Services\ContentCache;
@@ -27,6 +28,7 @@ class PerformanceController extends Controller
         private readonly ContentService $contents,
         private readonly ContentCache $cache,
         private readonly AuthorizationService $authorization,
+        private readonly SecretStore $secrets,
     ) {}
 
     private function baselinePath(): string
@@ -47,6 +49,14 @@ class PerformanceController extends Controller
             'canAudit' => $this->authorization->can($request->user(), 'performance.audit') && config('app.env') !== 'production',
             'cacheStore' => (string) config('cache.default'),
             'dbDriver' => (string) config('database.default'),
+            'providers' => collect((array) config('integrations.providers'))->map(fn (array $p, string $key) => [
+                'key' => $key,
+                'label' => (string) ($p['label'] ?? $key),
+                'enabled' => (bool) ($p['enabled'] ?? false),
+                'base_url' => (string) ($p['base_url'] ?? ''),
+                'secrets' => $this->secrets->masked($key),
+                'webhook' => $this->secrets->webhookSecret($key) !== null,
+            ]),
         ]);
     }
 
