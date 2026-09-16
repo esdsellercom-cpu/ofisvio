@@ -81,6 +81,28 @@ class WebsiteService
         return $website;
     }
 
+    /**
+     * Site silme (website.manage, soft delete): varsayılan site ve içeriği olan
+     * site silinemez — içerik önce taşınır/silinir; alan adı boşa çıkar
+     * (domain NULL, slug "-silindi-{id}"), bloklar/ayarlar kayıtla kalır.
+     */
+    public function delete(Website $website): void
+    {
+        if ($website->is_default) {
+            throw new DomainException('Varsayılan site (Ofisvio vitrini) silinemez.');
+        }
+
+        if ($website->contents()->withTrashed()->exists()) {
+            throw new DomainException('İçeriği olan site silinemez; önce içerikleri silin (çöp dahil).');
+        }
+
+        // Alan adı ve slug boşa çıkar: DB unique indeksleri deleted_at bilmez; silinen kayıt onları rezerve etmesin.
+        $website->domain = null;
+        $website->slug = $website->slug.'-silindi-'.$website->id;
+        $website->save();
+        $website->delete();
+    }
+
     /** Tema (faz 10): müşteri paneli de çağırır (content.edit, company). Bilinmeyen anahtar reddedilir. */
     public function updateTheme(Website $website, string $theme): Website
     {

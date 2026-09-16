@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Location;
 use App\Models\Website;
+use DomainException;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Str;
 
 /**
  * GEO Engine + Entity / Knowledge Graph (faz 16-17) — v1.
@@ -33,6 +35,95 @@ class GeoService
     public function allLocations(): Collection
     {
         return Location::query()->orderBy('city')->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    /**
+     * Yeni şube (geo.edit): yayında DEĞİL açılır; vitrine geo.publish alır.
+     *
+     * @param  array{name: string, city?: string|null, region?: string|null, address_line?: string|null, badge?: string|null, tags?: array<int, string>|null, price_from?: string|null, sort_order?: int|null}  $data
+     */
+    public function create(array $data): Location
+    {
+        $location = new Location($this->basics($data));
+        $location->slug = $this->uniqueSlug($data['name']);
+        $location->is_active = true;
+        $location->is_published = false;
+        $location->save();
+
+        return $location;
+    }
+
+    /**
+     * Künye alanları (geo.edit): ad, şehir, bölge, adres, rozet, etiketler, fiyat metni, sıra, operasyon.
+     * Slug DEĞİŞMEZ (dış bağlantılar ve sitemap kırılmasın).
+     *
+     * @param  array{name: string, city?: string|null, region?: string|null, address_line?: string|null, badge?: string|null, tags?: array<int, string>|null, price_from?: string|null, sort_order?: int|null, is_active?: bool}  $data
+     */
+    public function updateBasics(Location $location, array $data): Location
+    {
+        $location->fill($this->basics($data));
+        $location->is_active = (bool) ($data['is_active'] ?? $location->is_active);
+        $location->save();
+
+        return $location;
+    }
+
+    /**
+     * Silme (geo.publish): yalnız vitrinde olmayan şube; talepler (leads.location_id)
+     * nullOnDelete ile korunur, kayıt kalıcı silinir.
+     */
+    public function delete(Location $location): void
+    {
+        if ($location->is_published) {
+            throw new DomainException('Vitrindeki şube silinemez; önce vitrinden kaldırın.');
+        }
+
+        $location->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function basics(array $data): array
+    {
+        $tags = array_values(array_filter(array_map('trim', (array) ($data['tags'] ?? []))));
+
+        return [
+            'name' => trim((string) $data['name']),
+            'city' => $this->blank($data['city'] ?? null),
+            'region' => $this->blank($data['region'] ?? null),
+            'address_line' => $this->blank($data['address_line'] ?? null),
+            'badge' => $this->blank($data['badge'] ?? null),
+            'tags' => $tags === [] ? null : $tags,
+            'price_from' => $this->blank($data['price_from'] ?? null),
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
+        ];
+    }
+
+    private function blank(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+
+    private function uniqueSlug(string $name): string
+    {
+        $base = Str::slug($name);
+
+        if ($base === '') {
+            throw new DomainException('Şube adından geçerli bir slug üretilemedi.');
+        }
+
+        $slug = $base;
+        $i = 2;
+
+        while (Location::query()->where('slug', $slug)->exists()) {
+            $slug = $base.'-'.$i++;
+        }
+
+        return $slug;
     }
 
     /**

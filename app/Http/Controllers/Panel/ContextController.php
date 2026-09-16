@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\AuthorizationService;
 use App\Services\ContextSwitchService;
 use App\Services\KycQueueService;
+use App\Services\OrganizationOnboardingService;
 use App\Services\TenantContext;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -42,6 +43,17 @@ class ContextController extends Controller
             'showsQueue' => $showsQueue,
             'pendingCounts' => $showsQueue && $organizations->isNotEmpty() ? $this->queue->pendingCounts($user) : [],
         ]);
+    }
+
+    /** organization.manage: aktif organizasyonun adı (tenant middleware'i context'i doğrular). */
+    public function updateOrganization(Request $request, OrganizationOnboardingService $onboarding): RedirectResponse
+    {
+        $validated = $request->validate(['name' => ['required', 'string', 'min:2', 'max:120']]);
+        $organization = $this->context->requireOrganization($request->user());
+
+        $onboarding->rename($organization, $validated['name']);
+
+        return redirect()->route('panel.dashboard')->with('status', 'Organizasyon adı güncellendi.');
     }
 
     public function switch(Request $request): RedirectResponse

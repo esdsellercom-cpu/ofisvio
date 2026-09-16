@@ -28,6 +28,19 @@
     <div class="grid-auto" style="--min:300px;--gap:20px;align-items:start">
         <div class="panel">
             <p class="eyebrow">Künye</p>
+            @can('company.update', $company)
+                <form method="POST" action="{{ route('panel.companies.update', $company) }}" class="stack" style="gap:10px;margin-bottom:16px">
+                    @csrf @method('PUT')
+                    <label class="field"><span class="label">Unvan</span>
+                        <input class="control" type="text" name="legal_name" value="{{ old('legal_name', $company->legal_name) }}" required minlength="3" maxlength="190" @error('legal_name') aria-invalid="true" @enderror>
+                    </label>
+                    <label class="field"><span class="label">Vergi no (VKN 10 / TCKN 11 hane)</span>
+                        <input class="control mono" type="text" name="tax_number" value="{{ old('tax_number', $company->tax_number) }}" maxlength="11" @error('tax_number') aria-invalid="true" @enderror>
+                        @error('tax_number')<span class="small" style="color:var(--danger)">{{ $message }}</span>@enderror
+                    </label>
+                    <div><button type="submit" class="btn btn--ghost">Künyeyi kaydet</button></div>
+                </form>
+            @endcan
             <dl class="dl">
                 <dt>Unvan</dt><dd>{{ $company->legal_name }}</dd>
                 <dt>Vergi no</dt><dd class="mono">{{ $company->tax_number ?: '—' }}</dd>

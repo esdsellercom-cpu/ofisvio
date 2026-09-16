@@ -136,6 +136,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/{website}/duzenle', [WebsiteController::class, 'edit'])->middleware('permission:website.manage')->name('edit');
             Route::put('/{website}', [WebsiteController::class, 'update'])->middleware('permission:website.manage')->name('update');
             Route::put('/{website}/ayarlar', [WebsiteController::class, 'settings'])->middleware('permission:website.manage')->name('settings');
+            Route::delete('/{website}', [WebsiteController::class, 'destroy'])->middleware('permission:website.manage')->name('destroy');
         });
 
         // --- Önbellek (faz 12-14) — personel, tenant context'siz -----------------
@@ -170,6 +171,10 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::prefix('geo')->name('geo.')->group(function () {
             Route::get('/', [GeoController::class, 'index'])->middleware('permission:geo.view')->name('index');
             Route::get('/lokasyon/{location}', [GeoController::class, 'edit'])->middleware('permission:geo.edit')->name('edit');
+            Route::get('/lokasyon-yeni', [GeoController::class, 'create'])->middleware('permission:geo.edit')->name('create');
+            Route::post('/lokasyon', [GeoController::class, 'store'])->middleware('permission:geo.edit')->name('store');
+            Route::put('/lokasyon/{location}/kunye', [GeoController::class, 'updateBasics'])->middleware('permission:geo.edit')->name('basics');
+            Route::delete('/lokasyon/{location}', [GeoController::class, 'destroy'])->middleware('permission:geo.publish')->name('destroy');
             Route::put('/lokasyon/{location}/yayin', [GeoController::class, 'publish'])->middleware('permission:geo.publish')->name('publish');
             Route::put('/lokasyon/{location}', [GeoController::class, 'update'])->middleware('permission:geo.edit')->name('update');
             Route::put('/{website}/varlik', [GeoController::class, 'entity'])
@@ -183,6 +188,11 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
 
             Route::get('/', DashboardController::class)->name('dashboard');
 
+            // Organizasyon künyesi (organization.manage, organization kapsamı; owner).
+            Route::put('/organizasyon/kunye', [ContextController::class, 'updateOrganization'])
+                ->middleware('permission:organization.manage')
+                ->name('organization.update');
+
             // Şirketler — liste servis tarafından süzülür; oluşturma organizasyon
             // yönetimi ister; görüntüleme şirket kapsamlı company.view ister.
             Route::get('/sirketler', [CompanyController::class, 'index'])->name('companies.index');
@@ -195,6 +205,9 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/sirketler/{company}', [CompanyController::class, 'show'])
                 ->middleware('permission:company.view|kyc.view_status,company')
                 ->name('companies.show');
+            Route::put('/sirketler/{company}', [CompanyController::class, 'update'])
+                ->middleware('permission:company.update,company')
+                ->name('companies.update');
 
             // KYC — matristeki üçlü ayrımın route karşılığı (bkz. KycController).
             Route::get('/sirketler/{company}/kyc', [KycController::class, 'show'])

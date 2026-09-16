@@ -138,4 +138,28 @@ class MultiWebsiteTest extends TestCase
         $owner = $this->owner($acme);
         $this->actingAs($owner)->get('/panel/websiteler')->assertForbidden();
     }
+
+    #[Test]
+    public function site_silme_yalniz_icerigi_olmayan_varsayilan_disi_site(): void
+    {
+        $admin = $this->staff('system_admin');
+        $default = Website::query()->default()->firstOrFail();
+
+        // Varsayılan silinemez; içerikli tenant site silinemez.
+        $this->live($this->tenant, 'page', 'hakkimizda', 'Acme Hakkında');
+        $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->delete("/panel/websiteler/{$default->id}")->assertSessionHasErrors('name');
+        $this->actingAs($admin)->from("/panel/websiteler/{$this->tenant->id}/duzenle")->delete("/panel/websiteler/{$this->tenant->id}")->assertSessionHasErrors('name');
+        $this->assertNotNull(Website::find($this->tenant->id));
+
+        // İçeriksiz site silinir (soft); alan adı yeniden kullanılabilir; vitrin varsayılana düşer.
+        $empty = Website::create(['organization_id' => $this->tenant->organization_id, 'name' => 'Boş', 'slug' => 'bos', 'domain' => 'bos.example']);
+        $this->actingAs($admin)->delete("/panel/websiteler/{$empty->id}")->assertRedirect('/panel/websiteler');
+        $this->assertNull(Website::find($empty->id));
+        $this->assertNotNull(Website::withTrashed()->find($empty->id));
+        $this->get('http://bos.example/')->assertOk()->assertDontSee('Boş');
+        $this->actingAs($admin)->post('/panel/websiteler', ['name' => 'Yeni Boş', 'domain' => 'bos.example'])->assertRedirect()->assertSessionHasNoErrors();
+
+        // website.manage olmayan personel silemez.
+        $this->actingAs($this->staff('operations_admin'))->delete("/panel/websiteler/{$this->tenant->id}")->assertForbidden();
+    }
 }

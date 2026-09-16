@@ -12,6 +12,7 @@ use App\Services\ContentService;
 use App\Services\GeoService;
 use App\Services\JitAccessService;
 use App\Services\WebsiteService;
+use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,9 @@ use Illuminate\Http\Request;
  * GEO / Entity yönetimi (faz 16-17, F8 v1).
  *
  *   index     geo.view      — lokasyon varlıkları + denetim özeti
- *   edit/save geo.edit      — koordinat, telefon, saatler, açıklama
+ *   create/store geo.edit   — yeni şube (yayında değil)
+ *   edit/save geo.edit      — koordinat, telefon, saatler, açıklama; künye (ad, şehir, adres, etiket, fiyat metni)
+ *   destroy   geo.publish   — silme (yalnız vitrinde olmayan)
  *   publish   geo.publish   — şube vitrine alınır / kaldırılır (is_published)
  *   entity    geo.settings + JIT ('geo_entity', website id) — Organization sameAs/legalName
  *   jit       geo.view -> geo.settings için grant
@@ -65,6 +68,78 @@ class GeoController extends Controller
     public function edit(Location $location): View
     {
         return view('panel.geo.location', ['location' => $location]);
+    }
+
+    public function create(): View
+    {
+        return view('panel.geo.create');
+    }
+
+    public const BASICS_RULES = [
+        'name' => ['required', 'string', 'min:2', 'max:120'],
+        'city' => ['nullable', 'string', 'max:64'],
+        'region' => ['nullable', 'string', 'max:64'],
+        'address_line' => ['nullable', 'string', 'max:255'],
+        'badge' => ['nullable', 'string', 'max:120'],
+        'tags' => ['nullable', 'string', 'max:300'], // virgülle
+        'price_from' => ['nullable', 'string', 'max:48'],
+        'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+        'is_active' => ['sometimes', 'boolean'],
+    ];
+
+    /** geo.edit: yeni şube (yayında değil). */
+    public function store(Request $request): RedirectResponse
+    {
+        $validated = $request->validate(self::BASICS_RULES);
+
+        try {
+            $location = $this->geo->create($this->basicsPayload($validated));
+        } catch (DomainException $e) {
+            return back()->withErrors(['name' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('panel.geo.edit', $location)->with('status', $location->name.' açıldı (vitrinde değil); varlık alanlarını doldurup "Vitrine al" ile yayınlayın.');
+    }
+
+    /** geo.edit: künye alanları. */
+    public function updateBasics(Request $request, Location $location): RedirectResponse
+    {
+        $validated = $request->validate(self::BASICS_RULES);
+
+        $this->geo->updateBasics($location, $this->basicsPayload($validated) + ['is_active' => (bool) ($validated['is_active'] ?? false)]);
+        $this->cache->invalidate($this->contents->defaultWebsite());
+
+        return redirect()->route('panel.geo.edit', $location)->with('status', $location->name.' künyesi güncellendi.');
+    }
+
+    /** geo.publish: silme — yalnız vitrinde olmayan şube. */
+    public function destroy(Location $location): RedirectResponse
+    {
+        try {
+            $this->geo->delete($location);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return redirect()->route('panel.geo.index')->with('status', $location->name.' silindi.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array{name: string, city: string|null, region: string|null, address_line: string|null, badge: string|null, tags: array<int, string>, price_from: string|null, sort_order: int}
+     */
+    private function basicsPayload(array $validated): array
+    {
+        return [
+            'name' => (string) $validated['name'],
+            'city' => $validated['city'] ?? null,
+            'region' => $validated['region'] ?? null,
+            'address_line' => $validated['address_line'] ?? null,
+            'badge' => $validated['badge'] ?? null,
+            'tags' => array_values(array_filter(array_map('trim', explode(',', (string) ($validated['tags'] ?? ''))))),
+            'price_from' => $validated['price_from'] ?? null,
+            'sort_order' => (int) ($validated['sort_order'] ?? 0),
+        ];
     }
 
     public function update(Request $request, Location $location): RedirectResponse

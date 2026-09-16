@@ -64,4 +64,17 @@
             </table>
         </div>
     @endif
+
+    @can('organization.manage')
+        <div class="panel" style="margin-top:24px;max-width:520px">
+            <p class="eyebrow">Organizasyon künyesi</p>
+            <form method="POST" action="{{ route('panel.organization.update') }}" class="stack" style="gap:10px">
+                @csrf @method('PUT')
+                <label class="field"><span class="label">Organizasyon adı</span>
+                    <input class="control" type="text" name="name" value="{{ old('name', $activeOrganization->name) }}" required minlength="2" maxlength="120" @error('name') aria-invalid="true" @enderror>
+                </label>
+                <div><button type="submit" class="btn btn--ghost">Kaydet</button></div>
+            </form>
+        </div>
+    @endcan
 @endsection

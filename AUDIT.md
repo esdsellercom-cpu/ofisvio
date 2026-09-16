@@ -82,21 +82,20 @@ ile canlıda doğrulanmadan **"production ready" denmez**.
 | Çalışma taslağı | — | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ birleşince |
 | Ana sayfa (metin + bloklar) | ✅ | — | ✅ | ✅ | ✅ (boş = kaldır) | — | ✅ `site_blocks` | ✅ testli |
 | Menü / tema / bağlantılar / site ayarları | ✅ | — | ✅ | ✅ | — | — | ✅ | ✅ testli |
-| Websiteler | ✅ | ✅ | ✅ | ✅ | ❌ **yok** (bilinçli: içerikli site silme yıkıcı; UNKNOWN ihtiyaç) | ❌ sayfalama yok (site sayısı küçük) | ✅ | ✅ |
+| Websiteler | ✅ | ✅ | ✅ | ✅ | ✅ soft (içeriksiz, varsayılan dışı) | ❌ sayfalama yok (site sayısı küçük) | ✅ | ✅ |
 | SEO (site ayarı + denetim) | ✅ | — | ✅ | ✅ (JIT) | — | — | ✅ | ✅ |
-| GEO / lokasyonlar | ✅ | ❌ **yok** | ✅ | ✅ (koordinat, telefon, saatler, açıklama, yayın) | ❌ **yok** | — | ✅ | ✅ |
+| GEO / lokasyonlar | ✅ | ✅ (`geo.edit`) | ✅ | ✅ künye + varlık + yayın | ✅ (`geo.publish`, gizliyken) | — | ✅ | ✅ |
 | Önbellek | ✅ | — | ✅ (anahtar özeti) | ✅ ayarlar (JIT) | ✅ geçersiz kıl (JIT) | — | ✅ | ✅ |
 | Talepler (CRM) | ✅ (yeni) | ✅ (vitrin formu) | ✅ | ✅ atama/durum/not | — (KVKK kanıtı; silme bilinçli yok) | ✅ tür/durum/arama/sayfalama | ✅ | ✅ |
 | Kullanıcılar (personel) | ✅ | ✅ davet | ✅ | ✅ rol | askıya alma (silme bilinçli yok) | ✅ arama/sayfalama (yeni) | ✅ | — |
-| Organizasyon açılışı | — | ✅ | ✅ (context) | ❌ ad/slug düzenleme yok | ❌ | — | ✅ | — |
-| Şirketler | ✅ | ✅ | ✅ | ❌ unvan/vergi no düzenleme **yok** | ❌ (fesih durum makinesi var) | ❌ | ✅ | — |
+| Organizasyon | — | ✅ açılış | ✅ (context) | ✅ ad (`organization.manage`) | ❌ (bilinçli) | — | ✅ | — |
+| Şirketler | ✅ | ✅ | ✅ | ✅ unvan/vergi no (`company.update`) | ❌ (fesih durum makinesi var) | ❌ | ✅ | — |
 | KYC | ✅ kuyruk | ✅ yükleme | ✅ indirme (JIT) | ✅ karar | — | ✅ | ✅ private disk + karantina | — |
 | Üyeler | ✅ | ✅ davet | ✅ | askıya al/etkinleştir | — | — | ✅ | — |
 
-**Kalan boşluklar (açık bırakıldı, tahminle kapatılmadı):** lokasyon ekleme/silme
-ekranı; şirket ve organizasyon künye düzenleme; website silme. Bunlar bu
-denetimde eklenmedi — her biri kendi yetki kararını (matris) ve veri modeli
-sorusunu (ör. lokasyon adres alanları) ister; ROADMAP'e "Faz 30" olarak yazıldı.
+**Denetim sonrası kapatılanlar (17 Eylül):** lokasyon ekleme/künye/silme; şirket
+künyesi; organizasyon adı; website silme — hepsi testli (bkz. ROADMAP faz 30).
+Açık: içerik görseli / medya kütüphanesi.
 
 ## F. Frontend ↔ backend sözleşme raporu
 

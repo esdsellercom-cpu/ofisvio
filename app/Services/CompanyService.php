@@ -81,6 +81,21 @@ class CompanyService
     }
 
     /**
+     * Künye (company.update): unvan ve vergi no. Durum BURADAN değişmez
+     * (CompanyActivationService); tenant doğrulaması route+middleware'de.
+     *
+     * @param  array{legal_name: string, tax_number?: string|null}  $data
+     */
+    public function updateProfile(Company $company, array $data): Company
+    {
+        $company->legal_name = trim($data['legal_name']);
+        $company->tax_number = ($data['tax_number'] ?? null) !== null && trim((string) $data['tax_number']) !== '' ? trim((string) $data['tax_number']) : null;
+        $company->save();
+
+        return $company;
+    }
+
+    /**
      * Şirket seviyesinde owner rolü. Personel yolundan açılan şirketlerde
      * (onboarding) owner müşteri kullanıcısıdır, personel değil.
      */

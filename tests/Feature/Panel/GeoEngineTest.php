@@ -131,6 +131,44 @@ class GeoEngineTest extends TestCase
     }
 
     #[Test]
+    public function sube_acilir_kunyesi_duzenlenir_ve_yalniz_gizliyken_silinir(): void
+    {
+        $admin = $this->staff('system_admin');
+        $ops = $this->staff('operations_admin'); // geo.edit var, publish yok
+
+        // Aç (gizli), künye, vitrinde görünmez.
+        $this->actingAs($ops)->get('/panel/geo/lokasyon-yeni')->assertOk()->assertSee('Şubeyi aç');
+        $this->actingAs($ops)->post('/panel/geo/lokasyon', ['name' => 'Ankara Çankaya', 'city' => 'Ankara', 'region' => 'Ankara', 'address_line' => 'Atatürk Blv. 1', 'tags' => 'Sanal Ofis, Coworking', 'price_from' => 'Masa ₺3.900/ay', 'sort_order' => 5])
+            ->assertRedirect()->assertSessionHasNoErrors();
+        $loc = Location::where('slug', 'ankara-cankaya')->firstOrFail();
+        $this->assertFalse($loc->is_published);
+        $this->assertSame(['Sanal Ofis', 'Coworking'], $loc->tags);
+        $this->get('http://localhost/lokasyonlar')->assertOk()->assertDontSee('Ankara Çankaya');
+
+        // Aynı ad -> tekil slug.
+        $this->actingAs($ops)->post('/panel/geo/lokasyon', ['name' => 'Ankara Çankaya'])->assertRedirect();
+        $this->assertNotNull(Location::where('slug', 'ankara-cankaya-2')->first());
+
+        // Künye güncelle; slug sabit.
+        $this->actingAs($ops)->put("/panel/geo/lokasyon/{$loc->slug}/kunye", ['name' => 'Ankara Çankaya Plaza', 'city' => 'Ankara', 'is_active' => 1])->assertRedirect();
+        $this->assertSame('Ankara Çankaya Plaza', $loc->fresh()->name);
+        $this->assertSame('ankara-cankaya', $loc->fresh()->slug);
+
+        // Yayınla -> vitrinde; yayındayken silinemez; ops silemez (geo.publish yok).
+        $this->actingAs($admin)->put("/panel/geo/lokasyon/{$loc->slug}/yayin", ['is_published' => 1])->assertRedirect();
+        $this->get('http://localhost/lokasyonlar')->assertOk()->assertSee('Ankara Çankaya Plaza');
+        $this->actingAs($admin)->from('/panel/geo')->delete("/panel/geo/lokasyon/{$loc->slug}")->assertSessionHasErrors('status');
+        $this->actingAs($ops)->delete("/panel/geo/lokasyon/{$loc->slug}")->assertForbidden();
+        $this->assertNotNull($loc->fresh());
+
+        // Gizle -> sil; vitrinden ve sitemap'ten düşer.
+        $this->actingAs($admin)->put("/panel/geo/lokasyon/{$loc->slug}/yayin", ['is_published' => 0])->assertRedirect();
+        $this->actingAs($admin)->delete("/panel/geo/lokasyon/{$loc->slug}")->assertRedirect('/panel/geo');
+        $this->assertNull(Location::find($loc->id));
+        $this->get('http://localhost/sitemap.xml')->assertDontSee('ankara-cankaya');
+    }
+
+    #[Test]
     public function organizasyon_varligi_jit_ister_ve_ana_sayfa_semasina_girer(): void
     {
         $admin = $this->staff('system_admin');

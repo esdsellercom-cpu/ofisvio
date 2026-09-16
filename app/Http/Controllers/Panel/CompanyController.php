@@ -50,6 +50,15 @@ class CompanyController extends Controller
             ->with('status', $company->legal_name.' açıldı. Sıradaki adım: KYC belgelerini yükleyin.');
     }
 
+    /** company.update: künye (unvan, vergi no). */
+    public function update(StoreCompanyRequest $request, Company $company): RedirectResponse
+    {
+        $this->context->toArray($request->user(), $company->id);
+        $this->companies->updateProfile($company, $request->validated());
+
+        return redirect()->route('panel.companies.show', $company)->with('status', 'Şirket künyesi güncellendi.');
+    }
+
     public function show(Request $request, Company $company): View
     {
         // toArray şirketi aktif organizasyona karşı doğrular (404 aksi halde).

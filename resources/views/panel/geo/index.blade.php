@@ -8,6 +8,11 @@
             <p class="eyebrow">GEO / Entity · v1</p>
             <h1 class="h2">Lokasyon varlıkları</h1>
         </div>
+        <div class="panel-head__actions">
+            @if ($canEdit)
+                <a href="{{ route('panel.geo.create') }}" class="btn btn--brand">Yeni şube</a>
+            @endif
+        </div>
     </div>
 
     <p class="body-muted" style="margin:0 0 18px;max-width:72ch">

@@ -33,6 +33,20 @@ class WebsiteController extends Controller
         private readonly ContentCache $cache,
     ) {}
 
+    /** website.manage: soft delete — yalnız içeriksiz, varsayılan olmayan site. */
+    public function destroy(Website $website): RedirectResponse
+    {
+        try {
+            $this->websites->delete($website);
+        } catch (DomainException $e) {
+            return back()->withErrors(['name' => $e->getMessage()]);
+        }
+
+        $this->cache->invalidate($website);
+
+        return redirect()->route('panel.websites.index')->with('status', $website->name.' silindi.');
+    }
+
     /** Site genel ayarları: iletişim/kimlik alanları; vitrin önbelleği sürüm atlar. */
     public function settings(Request $request, Website $website): RedirectResponse
     {

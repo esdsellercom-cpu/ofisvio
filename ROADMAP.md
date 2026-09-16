@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **226/226** (Unit 10 · Feature 203 · Architecture 13) |
+| `php artisan test` | ✅ **229/229** (Unit 10 · Feature 206 · Architecture 13) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -262,9 +262,15 @@ güvenlik denetimi. Düzeltmeler: ticari içerik config → `site_blocks`/`websi
 hata sayfaları; gruplu panel menüsü; koruyucu testler (`MockDataDetectionTest`,
 `ApiRouteConsistencyTest`, `TenantIsolationTest`, `ErrorHandlingTest`).
 
-### 30. Panel boşlukları (denetimde tespit, açık) ⬜
-Lokasyon ekleme/silme ekranı (matris `geo.*` ile yetki kararı ister); şirket ve
-organizasyon künye düzenleme; website silme; içerik görseli / medya kütüphanesi.
+### 30. Panel boşlukları (denetim sonrası) ✅ (medya hariç)
+**Lokasyon:** yeni şube (`geo.edit`, gizli açılır, tekil slug), künye (ad, şehir,
+bölge, adres, rozet, etiket, fiyat metni, sıra, operasyon; slug sabit), silme
+(`geo.publish`, yalnız vitrinde olmayan; talepler nullOnDelete). **Şirket künyesi:**
+unvan + vergi no (`company.update`, company kapsamı; tenant dışı 404).
+**Organizasyon adı:** genel bakışta (`organization.manage`; slug sabit).
+**Website silme:** `website.manage`, yalnız varsayılan olmayan ve içeriksiz site;
+soft delete, alan adı/slug boşa çıkar. Açık: içerik görseli / medya kütüphanesi
+(dosya karantina zinciri KYC'de var; medya için ayrı modül).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

@@ -81,6 +81,15 @@ class OrganizationOnboardingService
         return ['organization' => $result['organization'], 'owner' => $result['owner'], 'invited' => $invited];
     }
 
+    /** Organizasyon künyesi (organization.manage): yalnız ad; slug sabit (bağlamlar/loglar). */
+    public function rename(Organization $organization, string $name): Organization
+    {
+        $organization->name = trim($name);
+        $organization->save();
+
+        return $organization;
+    }
+
     private function uniqueSlug(string $name): string
     {
         $base = Str::slug($name) ?: 'organizasyon';
