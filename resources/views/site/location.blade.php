@@ -57,8 +57,16 @@
                 @if ($location->hasCoordinates())
                     <a href="https://www.google.com/maps?q={{ $location->latitude }},{{ $location->longitude }}" target="_blank" rel="noopener" class="btn btn--ghost">Haritada aç ↗</a>
                 @endif
+                @if ($location->hasCoordinates())
+                    {{-- Harita gömme (faz 16): üçüncü taraf (OpenStreetMap) yalnız ziyaretçi isteyince yüklenir — KVKK/performans. JS kapalıysa üstteki bağlantı yeter. --}}
+                    <button type="button" class="btn btn--ghost" data-map-load data-map-src="https://www.openstreetmap.org/export/embed.html?bbox={{ $location->longitude - 0.01 }},{{ $location->latitude - 0.006 }},{{ $location->longitude + 0.01 }},{{ $location->latitude + 0.006 }}&layer=mapnik&marker={{ $location->latitude }},{{ $location->longitude }}" data-map-target="location-map">Haritayı göster</button>
+                @endif
 
                 <a href="{{ route('site.home') }}#teklif" class="btn btn--brand">Tur planla</a>
+
+                @if ($location->hasCoordinates())
+                    <div id="location-map" hidden style="border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;aspect-ratio:4/3"></div>
+                @endif
             </aside>
         </div>
     </article>

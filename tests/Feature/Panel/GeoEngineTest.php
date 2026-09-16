@@ -104,6 +104,33 @@ class GeoEngineTest extends TestCase
     }
 
     #[Test]
+    public function lokasyon_yayini_geo_publish_ister_ve_harita_tiklayinca_yuklenir(): void
+    {
+        $admin = $this->staff('system_admin');
+        $ops = $this->staff('operations_admin'); // geo.view/edit var, publish yok
+
+        $this->actingAs($ops)->get('/panel/geo')->assertOk()->assertSee('Vitrinde')->assertDontSee('Vitrinden kaldır');
+        $this->actingAs($ops)->put("/panel/geo/lokasyon/{$this->location->slug}/yayin", ['is_published' => 0])->assertForbidden();
+
+        $this->actingAs($admin)->put("/panel/geo/lokasyon/{$this->location->slug}/yayin", ['is_published' => 0])->assertRedirect('/panel/geo');
+        $this->assertFalse($this->location->fresh()->is_published);
+        $this->assertTrue($this->location->fresh()->is_active, 'Yayın bayrağı operasyon bayrağına dokunmaz.');
+        $this->get('http://localhost'.$this->location->path())->assertNotFound();
+        $this->get('http://localhost/lokasyonlar')->assertOk()->assertDontSee($this->location->name);
+        $this->get('http://localhost/sitemap.xml')->assertDontSee($this->location->path());
+        $this->actingAs($admin)->get('/panel/geo')->assertOk()->assertSee('Gizli')->assertSee('Vitrine al');
+
+        $this->actingAs($admin)->put("/panel/geo/lokasyon/{$this->location->slug}/yayin", ['is_published' => 1])->assertRedirect();
+        $this->get('http://localhost'.$this->location->path())->assertOk()->assertDontSee('Haritayı göster'); // koordinat yok
+
+        $this->actingAs($admin)->put("/panel/geo/lokasyon/{$this->location->slug}", ['latitude' => '41.0621', 'longitude' => '29.0073'])->assertRedirect();
+        $html = $this->get('http://localhost'.$this->location->path())->assertOk()->getContent();
+        $this->assertStringContainsString('data-map-load', $html);
+        $this->assertStringContainsString('openstreetmap.org/export/embed.html', $html);
+        $this->assertStringNotContainsString('<iframe', $html, 'Üçüncü taraf harita yalnız tıklayınca yüklenir.');
+    }
+
+    #[Test]
     public function organizasyon_varligi_jit_ister_ve_ana_sayfa_semasina_girer(): void
     {
         $admin = $this->staff('system_admin');

@@ -176,6 +176,26 @@
   }
 
   /* ---------- gönderim sırasında çift tıklamayı engelle ---------- */
+  /* ---------- harita (tıklayınca yükle) ---------- */
+  function initMap() {
+    $$('[data-map-load]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var target = document.getElementById(btn.getAttribute('data-map-target'));
+        if (!target) return;
+        var frame = document.createElement('iframe');
+        frame.src = btn.getAttribute('data-map-src');
+        frame.title = 'Harita';
+        frame.loading = 'lazy';
+        frame.referrerPolicy = 'no-referrer';
+        frame.style.cssText = 'width:100%;height:100%;border:0';
+        target.innerHTML = '';
+        target.appendChild(frame);
+        target.hidden = false;
+        btn.hidden = true;
+      });
+    });
+  }
+
   function initForms() {
     $$('form[data-guard]').forEach(function (form) {
       form.addEventListener('submit', function () {
@@ -196,6 +216,7 @@
     initLocations();
     initBooking();
     initSolutionPrefill();
+    initMap();
     initForms();
   }
 

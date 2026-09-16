@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **204/204** (Unit 10 · Feature 188 · Architecture 6) |
+| `php artisan test` | ✅ **205/205** (Unit 10 · Feature 189 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -169,7 +169,7 @@ site başına uygulama TTL'i + misafir `max-age`/`s-maxage`; boş = kod
 varsayılanı; kaydedince sürüm atlar. `PublicCacheHeaders` süreleri geçerli
 siteden okur. Eksik (dış bağımlılık): Redis etiketli genişletme, CDN purge.
 
-### 15 · 21. SEO Engine · Sitemap 🟡 (v1 ✅)
+### 15 · 21. SEO Engine · Sitemap ✅ (Search Console hariç)
 `SeoService`: website başına ayar (`seo_title_suffix`, `seo_default_description`,
 `robots_index`, `seo_locale`), içerik başına `noindex`. Her vitrin sayfası
 `<head>`: title (çekirdek + son ek), description, canonical (site alan adı),
@@ -178,10 +178,13 @@ robots, Open Graph, JSON-LD (WebSite / Article / WebPage). `/robots.txt` ve
 kapalıysa Disallow: / + boş sitemap). Panel `/panel/seo`: ayarlar JIT'li
 (`seo.settings`, kaynak website), `seo.audit` deterministik içerik denetimi
 (başlık/açıklama uzunluğu, H1, kısa gövde, noindex). F8 v1.
-Eksik: hreflang, breadcrumb şeması, Search Console/analytics entegrasyonu
-(faz 20), `seo.edit` ile içerik-dışı SEO alanları.
+**Breadcrumb şeması:** her içerik sayfası `@graph` = WebPage/Article +
+BreadcrumbList (Ana sayfa → Yazılar → Kategori → başlık). `seo.edit` alanları
+müşteri panelinde (faz 10). hreflang: site tek dilli (`seo_locale`), ikinci
+dil gelmeden anlamlı değil — bilinçli olarak yok. Eksik (dış servis): Search
+Console / analytics (faz 20).
 
-### 16–17. GEO Engine · Entity / Knowledge Graph 🟡 (v1 ✅)
+### 16–17. GEO Engine · Entity / Knowledge Graph ✅
 Varlık modeli: `Organization` (website: ad, `legal_name`, `sameAs`, `@id`) ←
 `LocalBusiness` (lokasyon: adres, koordinat, telefon, `openingHours`,
 sunulan çözümler `makesOffer`) + `BreadcrumbList`. Lokasyon sayfaları
@@ -191,8 +194,15 @@ yoksa `geo` düğümü yok — uydurma değer yok); eksikler `geo.audit` bulgusu
 Panel `/panel/geo`: lokasyon varlık alanları (`geo.edit`), Organization
 kimliği JIT'li (`geo.settings`, kaynak website). Ana sayfa `WebSite` şeması
 Organization düğümünü `sameAs`/`legalName` ile taşır.
-Eksik: FAQ/Service şemaları, harita gömme, çok dilli hreflang, `geo.publish`
-akışı (lokasyon yayını şu an `is_published` bayrağı).
+**FAQPage:** içerik gövdesindeki `## Soru?` başlıkları + cevap paragrafları
+(≥ 2 çift) otomatik FAQ şeması — içerikte olmayan SSS şemaya girmez.
+**Service:** Ofisvio ana sayfasında çözümler bloğundan Service düğümleri
+(fiyat metni sayıya çevrilmez, Offer description). **geo.publish:** GEO
+panelinde şube vitrine al / kaldır (`is_published`; `is_active` ayrı);
+kaldırılan şube sayfa, liste ve sitemap'ten düşer. **Harita:** lokasyon
+sayfasında OpenStreetMap gömme, yalnız "Haritayı göster" tıklanınca yüklenir
+(üçüncü taraf isteği ziyaretçi seçimi; JS kapalıyken bağlantı). hreflang: tek
+dil (bkz. faz 15).
 
 ### 18 · 23. Content Engine · Internal Linking 🟡 (v1 ✅)
 **Çalışma taslağı** (`content_drafts`, içerikle bire bir): yayındaki içerik

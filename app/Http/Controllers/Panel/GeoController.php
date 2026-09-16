@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
  *
  *   index     geo.view      — lokasyon varlıkları + denetim özeti
  *   edit/save geo.edit      — koordinat, telefon, saatler, açıklama
+ *   publish   geo.publish   — şube vitrine alınır / kaldırılır (is_published)
  *   entity    geo.settings + JIT ('geo_entity', website id) — Organization sameAs/legalName
  *   jit       geo.view -> geo.settings için grant
  */
@@ -50,7 +51,8 @@ class GeoController extends Controller
 
         return view('panel.geo.index', [
             'website' => $website,
-            'locations' => $this->geo->publishedLocations(),
+            'locations' => $this->geo->allLocations(),
+            'canPublish' => $this->authorization->can($user, 'geo.publish'),
             'issues' => $issuesByLocation,
             'grant' => $this->jit->hasActiveGrant($user, 'geo.settings', self::RESOURCE, $website->id),
             'canEdit' => $this->authorization->can($user, 'geo.edit'),
@@ -95,6 +97,17 @@ class GeoController extends Controller
         $this->cache->invalidate($this->contents->defaultWebsite());
 
         return redirect()->route('panel.geo.index')->with('status', $location->name.' varlık bilgileri güncellendi.');
+    }
+
+    /** geo.publish: şubeyi vitrine al / vitrinden kaldır. */
+    public function publish(Request $request, Location $location): RedirectResponse
+    {
+        $validated = $request->validate(['is_published' => ['required', 'boolean']]);
+
+        $this->geo->setPublished($location, (bool) $validated['is_published']);
+        $this->cache->invalidate($this->contents->defaultWebsite());
+
+        return redirect()->route('panel.geo.index')->with('status', $location->name.($validated['is_published'] ? ' vitrine alındı.' : ' vitrinden kaldırıldı.'));
     }
 
     public function entity(Request $request, Website $website): RedirectResponse

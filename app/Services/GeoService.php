@@ -25,6 +25,29 @@ class GeoService
         return Location::published()->get();
     }
 
+    /**
+     * Panel listesi: yayında olmayanlar da (geo.publish akışı).
+     *
+     * @return Collection<int, Location>
+     */
+    public function allLocations(): Collection
+    {
+        return Location::query()->orderBy('city')->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    /**
+     * Lokasyon yayını (geo.publish): is_published bayrağı. is_active (operasyon)
+     * ayrı bir karardır ve burada dokunulmaz. Vitrin, sitemap ve LocalBusiness
+     * şeması yalnız yayındaki şubeleri gösterir.
+     */
+    public function setPublished(Location $location, bool $published): Location
+    {
+        $location->is_published = $published;
+        $location->save();
+
+        return $location;
+    }
+
     public function findPublished(string $slug): ?Location
     {
         return Location::published()->where('slug', $slug)->first();

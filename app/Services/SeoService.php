@@ -29,6 +29,7 @@ class SeoService
     public function __construct(
         private readonly ContentService $contents,
         private readonly GeoService $geo,
+        private readonly SiteBlockService $blocks,
     ) {}
 
     /**
@@ -90,12 +91,23 @@ class SeoService
         $organization = $this->geo->organizationNode($website);
 
         if ($content === null) {
-            return ['@context' => 'https://schema.org', '@type' => 'WebSite', 'name' => $website->name, 'url' => $website->baseUrl(), 'publisher' => $organization];
+            $site = ['@type' => 'WebSite', 'name' => $website->name, 'url' => $website->baseUrl(), 'publisher' => $organization];
+
+            // Ofisvio ana sayfası: çözümler Service düğümü olarak (faz 17) — veri vitrin bloklarından, uydurma yok.
+            if ($path === '/' && $website->is_default) {
+                $services = $this->serviceNodes($website);
+
+                if ($services !== []) {
+                    return ['@context' => 'https://schema.org', '@graph' => array_merge([$site], $services)];
+                }
+            }
+
+            return ['@context' => 'https://schema.org', ...$site];
         }
 
         $node = [
-            '@context' => 'https://schema.org',
             '@type' => $content->kind === ContentKind::POST ? 'Article' : 'WebPage',
+            '@id' => $website->baseUrl().$content->path().'#main',
             'headline' => $content->title,
             'name' => $content->title,
             'url' => $website->baseUrl().$content->path(),
@@ -113,7 +125,139 @@ class SeoService
             $node['author'] = ['@type' => 'Person', 'name' => $content->author->name];
         }
 
-        return $node;
+        // @graph: sayfa + BreadcrumbList (faz 15) + varsa FAQPage (faz 17).
+        $graph = [$node, $this->breadcrumb($website, $content)];
+        $faq = $this->faqNode($website, $content);
+
+        if ($faq !== null) {
+            $graph[] = $faq;
+        }
+
+        return ['@context' => 'https://schema.org', '@graph' => $graph];
+    }
+
+    /**
+     * BreadcrumbList: Ana sayfa → [Günlük → Kategori] → başlık.
+     *
+     * @return array<string, mixed>
+     */
+    private function breadcrumb(Website $website, Content $content): array
+    {
+        $base = $website->baseUrl();
+        $items = [['name' => $website->name, 'item' => $base.'/']];
+
+        if ($content->kind === ContentKind::POST) {
+            $items[] = ['name' => 'Yazılar', 'item' => $base.'/blog'];
+
+            if ($content->category) {
+                $items[] = ['name' => $content->category, 'item' => $base.'/blog/kategori/'.Str::slug($content->category)];
+            }
+        }
+
+        $items[] = ['name' => $content->title, 'item' => $base.$content->path()];
+
+        return [
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => array_map(fn (array $i, int $idx) => ['@type' => 'ListItem', 'position' => $idx + 1, 'name' => $i['name'], 'item' => $i['item']], $items, array_keys($items)),
+        ];
+    }
+
+    /**
+     * FAQPage: gövdede "## Soru?" başlıkları ve altındaki paragraflar. En az iki
+     * soru-cevap çifti yoksa düğüm üretilmez — içerikte olmayan SSS şemaya girmez.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function faqNode(Website $website, Content $content): ?array
+    {
+        $pairs = self::faqPairs((string) $content->body);
+
+        if (count($pairs) < 2) {
+            return null;
+        }
+
+        return [
+            '@type' => 'FAQPage',
+            '@id' => $website->baseUrl().$content->path().'#faq',
+            'mainEntity' => array_map(fn (array $p) => [
+                '@type' => 'Question',
+                'name' => $p['q'],
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $p['a']],
+            ], $pairs),
+        ];
+    }
+
+    /**
+     * Markdown'dan soru-cevap çiftleri: "## …?" başlığı + sonraki başlığa kadar düz metin.
+     *
+     * @return array<int, array{q: string, a: string}>
+     */
+    public static function faqPairs(string $markdown): array
+    {
+        // Önce bölümle: [soru, cevap satırları]; sonra boş cevapları ele.
+        $sections = [];
+        $current = null;
+
+        foreach (preg_split('/\r?\n/', $markdown) ?: [] as $line) {
+            if (preg_match('/^#{2,3}\s+(.+\?)\s*$/u', $line, $m) === 1) {
+                $current = count($sections);
+                $sections[$current] = ['q' => trim($m[1]), 'lines' => []];
+
+                continue;
+            }
+
+            if (preg_match('/^#{1,6}\s/', $line) === 1) {
+                $current = null; // soru olmayan başlık: cevap biter
+
+                continue;
+            }
+
+            if ($current !== null) {
+                $sections[$current]['lines'][] = $line;
+            }
+        }
+
+        $pairs = [];
+
+        foreach ($sections as $section) {
+            $text = trim((string) preg_replace('/\s+/', ' ', strip_tags(implode(' ', $section['lines']))));
+
+            if ($text !== '') {
+                $pairs[] = ['q' => $section['q'], 'a' => $text];
+            }
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * Service düğümleri (faz 17): vitrin "çözümler" bloğundan; fiyat metni
+     * ("₺790/ay'dan") sayıya çevrilmez — Offer yalnız description taşır.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function serviceNodes(Website $website): array
+    {
+        $solutions = (array) ($this->blocks->all($website)['solutions'] ?? []);
+        $nodes = [];
+
+        foreach ($solutions as $s) {
+            if (! is_array($s) || empty($s['title'])) {
+                continue;
+            }
+
+            $nodes[] = [
+                '@type' => 'Service',
+                'name' => (string) $s['title'],
+                'description' => (string) ($s['desc'] ?? ''),
+                'serviceType' => (string) $s['title'],
+                'provider' => ['@id' => $website->baseUrl().'/#organization'],
+                'areaServed' => ['@type' => 'Country', 'name' => 'Türkiye'],
+                'offers' => ['@type' => 'Offer', 'description' => (string) ($s['price'] ?? ''), 'priceCurrency' => 'TRY'],
+            ];
+        }
+
+        return $nodes;
     }
 
     /** robots.txt gövdesi. */

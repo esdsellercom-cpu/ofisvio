@@ -18,17 +18,20 @@
 
     <div class="table-wrap">
         <table class="data">
-            <thead><tr><th>Şube</th><th>Şehir</th><th>Koordinat</th><th>Telefon</th><th>Saatler</th><th>Bulgu</th><th></th></tr></thead>
+            <thead><tr><th>Şube</th><th>Şehir</th><th>Yayın</th><th>Koordinat</th><th>Telefon</th><th>Saatler</th><th>Bulgu</th><th></th></tr></thead>
             <tbody>
                 @foreach ($locations as $loc)
                     <tr>
                         <td>{{ $loc->name }}<a href="{{ $website->baseUrl().$loc->path() }}" target="_blank" rel="noopener" class="small mono muted" style="display:block;font-weight:400">{{ $loc->path() }} ↗</a></td>
                         <td>{{ $loc->city }}</td>
+                        <td>@if ($loc->is_published)<span class="badge badge--ok">Vitrinde</span>@else<span class="badge badge--muted">Gizli</span>@endif</td>
                         <td class="mono small">{{ $loc->hasCoordinates() ? $loc->latitude.', '.$loc->longitude : '—' }}</td>
                         <td class="mono small">{{ $loc->phone ?: '—' }}</td>
                         <td class="small">{{ empty($loc->opening_hours) ? '—' : implode(' · ', $loc->opening_hours) }}</td>
                         <td>
-                            @if (isset($issues[$loc->id]))
+                            @if (! $loc->is_published)
+                                <span class="muted small">—</span>
+                            @elseif (isset($issues[$loc->id]))
                                 <span class="badge badge--warn" title="{{ implode(' ', $issues[$loc->id]) }}">{{ count($issues[$loc->id]) }}</span>
                             @else
                                 <span class="badge badge--ok">Tam</span>
@@ -38,6 +41,12 @@
                             <div class="row-actions">
                                 @if ($canEdit)
                                     <a href="{{ route('panel.geo.edit', $loc) }}" class="btn btn--ghost btn--pill">Düzenle</a>
+                                @endif
+                                @if ($canPublish)
+                                    <form method="POST" action="{{ route('panel.geo.publish', $loc) }}">@csrf @method('PUT')
+                                        <input type="hidden" name="is_published" value="{{ $loc->is_published ? 0 : 1 }}">
+                                        <button type="submit" class="btn btn--ghost btn--pill" @if ($loc->is_published) style="color:var(--danger);border-color:#E9C4BC" @endif>{{ $loc->is_published ? 'Vitrinden kaldır' : 'Vitrine al' }}</button>
+                                    </form>
                                 @endif
                             </div>
                         </td>

@@ -59,6 +59,24 @@ class SeoEngineTest extends TestCase
         $this->assertStringContainsString('"@type":"Article"', $html);
         $this->assertStringContainsString('"headline":"Sanal ofis rehberi"', $html);
 
+        // BreadcrumbList (faz 15): Ana sayfa → Yazılar → Kategori → başlık.
+        $this->assertStringContainsString('"@type":"BreadcrumbList"', $html);
+        $this->assertStringContainsString('"position":3,"name":"Sanal Ofis","item":"'.config('app.url').'/blog/kategori/sanal-ofis"', $html);
+        $this->assertStringContainsString('"position":4,"name":"Sanal ofis rehberi"', $html);
+        $this->assertStringNotContainsString('FAQPage', $html, 'Soru başlığı olmayan içerikte FAQ şeması yok.');
+
+        // FAQPage (faz 17): "## Soru?" başlıkları + cevap paragrafları, en az iki çift.
+        $faq = $this->publish('page', 'sss', 'Sık sorulan sorular', ['body' => "## Sanal ofis nedir?\n\nTescil adresi hizmetidir.\n\n## Sözleşme süresi ne kadar?\n\nEn az 12 ay.\n\n## Fiyatlar\n\nKDV hariçtir."]);
+        $html = $this->get('/sss')->assertOk()->getContent();
+        $this->assertStringContainsString('"@type":"FAQPage"', $html);
+        $this->assertStringContainsString('"name":"Sanal ofis nedir?","acceptedAnswer":{"@type":"Answer","text":"Tescil adresi hizmetidir."}', $html);
+        $this->assertStringNotContainsString('"name":"Fiyatlar"', $html, 'Soru işareti olmayan başlık soru değildir.');
+        $this->assertStringContainsString('"position":2,"name":"Sık sorulan sorular"', $html); // sayfa: Ana sayfa → başlık
+
+        // Service düğümleri (faz 17): Ofisvio ana sayfası, vitrin bloğundan.
+        $home = $this->get('/')->assertOk()->getContent();
+        $this->assertStringContainsString('"@type":"Service","name":"Sanal Ofis"', $home);
+        $this->assertStringContainsString('"@type":"WebSite"', $home);
         // Liste sayfalarının başlığı iskelet composer'ında ezilmez (faz 18 düzeltmesi).
         $list = $this->get('/blog')->assertOk()->getContent();
         $this->assertStringContainsString('<title>Yazılar — Ofisvio</title>', $list);

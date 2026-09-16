@@ -147,6 +147,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::prefix('geo')->name('geo.')->group(function () {
             Route::get('/', [GeoController::class, 'index'])->middleware('permission:geo.view')->name('index');
             Route::get('/lokasyon/{location}', [GeoController::class, 'edit'])->middleware('permission:geo.edit')->name('edit');
+            Route::put('/lokasyon/{location}/yayin', [GeoController::class, 'publish'])->middleware('permission:geo.publish')->name('publish');
             Route::put('/lokasyon/{location}', [GeoController::class, 'update'])->middleware('permission:geo.edit')->name('update');
             Route::put('/{website}/varlik', [GeoController::class, 'entity'])
                 ->middleware('permission:geo.settings,,geo_entity,website')->name('entity');
