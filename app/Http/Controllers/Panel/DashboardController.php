@@ -26,9 +26,11 @@ class DashboardController extends Controller
     {
         $companies = $this->companies->visibleTo($request->user());
 
+        $summaries = $this->kyc->statusSummaries($companies); // tek sorgu, şirket başına değil
+
         $rows = $companies->map(fn (Company $company) => [
             'company' => $company,
-            'kyc' => $this->kyc->statusSummary($company),
+            'kyc' => $summaries[$company->id],
         ]);
 
         return view('panel.dashboard', [

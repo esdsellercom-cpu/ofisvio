@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Permission;
 use App\Models\User;
 use App\Support\AccessDecision;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -37,6 +38,47 @@ use Illuminate\Support\Facades\DB;
 class AuthorizationService
 {
     /**
+     * İSTEK BAŞINA ÖNBELLEK (faz 11 — Performance Foundation).
+     *
+     * Bir panel sayfası aynı kullanıcı için onlarca can() çağırır (liste satırı
+     * başına 3-4). Her çağrı 2-3 sorgu yaparsa liste N+1 olur (dashboard 8
+     * şirkette 126 sorgu). Önbellek yalnızca HTTP isteği içinde açıktır
+     * (CacheAuthorizationForRequest middleware\u0027i): istek başında açılır, sonunda
+     * boşaltılır. Konsolda ve doğrudan servis çağrılarında kapalıdır — rol
+     * değişikliği anında görünür. İstek içinde rol değişip aynı istekte
+     * yeniden sorulmaz (davet/rol atamaları redirect ile biter).
+     */
+    private bool $caching = false;
+
+    /** @var array<string, int>|null izin adı => id (tek sorgu) */
+    private ?array $permissionIds = null;
+
+    /** @var array<int, Collection<int, \stdClass>> kullanıcı id => grant satırları */
+    private array $grants = [];
+
+    /** @var array<int, int|null> şirket id => organizasyon id */
+    private array $companyOrganizations = [];
+
+    public function startRequestCache(): void
+    {
+        $this->caching = true;
+        $this->forgetCache();
+    }
+
+    public function stopRequestCache(): void
+    {
+        $this->caching = false;
+        $this->forgetCache();
+    }
+
+    public function forgetCache(): void
+    {
+        $this->permissionIds = null;
+        $this->grants = [];
+        $this->companyOrganizations = [];
+    }
+
+    /**
      * @param  array{company_id?: int|null, organization_id?: int|null, location_id?: int|null}  $context
      */
     public function can(User $user, string $permissionName, array $context = []): bool
@@ -62,9 +104,9 @@ class AuthorizationService
      */
     public function resolve(User $user, string $permissionName, array $context = []): AccessDecision
     {
-        $permission = Permission::where('name', $permissionName)->first();
+        $permissionId = $this->permissionId($permissionName);
 
-        if (! $permission) {
+        if ($permissionId === null) {
             // Fail-closed: tanımsız izin adı = izin yok. Yazım hatası olan bir
             // permission adının sessizce "izin ver"e dönüşmesi en tehlikeli hata.
             return AccessDecision::denied('unknown_permission');
@@ -74,23 +116,7 @@ class AuthorizationService
         $locationId = $this->intOrNull($context['location_id'] ?? null);
         $organizationId = $this->resolveOrganizationId($context, $companyId);
 
-        $rows = DB::table('user_roles')
-            ->join('role_permissions', 'role_permissions.role_id', '=', 'user_roles.role_id')
-            ->where('user_roles.user_id', $user->id)
-            ->where('user_roles.status', 'active')
-            ->where('role_permissions.permission_id', $permission->id)
-            ->select([
-                'user_roles.id as user_role_id',
-                'user_roles.company_id',
-                'user_roles.organization_id',
-                'user_roles.location_id',
-                'role_permissions.scope',
-                'role_permissions.requires_jit',
-                'role_permissions.requires_dual_control',
-            ])
-            // JIT gerektirmeyen grant varsa önce o değerlendirilsin.
-            ->orderBy('role_permissions.requires_jit')
-            ->get();
+        $rows = $this->grantRows($user, $permissionId);
 
         $jitFallback = null;
 
@@ -164,9 +190,66 @@ class AuthorizationService
         // kurar ve organization kapsamlı izinler hiçbir zaman eşleşmez.
         // Bu sorgu yetki vermez, yalnızca şirketin hangi organizasyona ait
         // olduğunu okur; tenant kararı çağıran katmanda verilir.
-        $orgId = Company::withoutTenantScope()->whereKey($companyId)->value('organization_id');
+        if ($this->caching && array_key_exists($companyId, $this->companyOrganizations)) {
+            return $this->companyOrganizations[$companyId];
+        }
 
-        return $orgId !== null ? (int) $orgId : null;
+        $orgId = Company::withoutTenantScope()->whereKey($companyId)->value('organization_id');
+        $orgId = $orgId !== null ? (int) $orgId : null;
+
+        if ($this->caching) {
+            $this->companyOrganizations[$companyId] = $orgId;
+        }
+
+        return $orgId;
+    }
+
+    /** İzin adı -> id. Önbellek açıkken tüm izinler tek sorguda yüklenir. */
+    private function permissionId(string $name): ?int
+    {
+        if (! $this->caching) {
+            $id = Permission::query()->where('name', $name)->value('id');
+
+            return $id === null ? null : (int) $id;
+        }
+
+        $this->permissionIds ??= Permission::query()->pluck('id', 'name')->map(fn ($id) => (int) $id)->all();
+
+        return $this->permissionIds[$name] ?? null;
+    }
+
+    /**
+     * Kullanıcının bu izne ait aktif grant satırları. Önbellek açıkken
+     * kullanıcının TÜM grant'leri bir kez yüklenir, bellekte süzülür.
+     *
+     * @return Collection<int, \stdClass>
+     */
+    private function grantRows(User $user, int $permissionId): Collection
+    {
+        $query = DB::table('user_roles')
+            ->join('role_permissions', 'role_permissions.role_id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $user->id)
+            ->where('user_roles.status', 'active')
+            ->select([
+                'user_roles.id as user_role_id',
+                'user_roles.company_id',
+                'user_roles.organization_id',
+                'user_roles.location_id',
+                'role_permissions.permission_id',
+                'role_permissions.scope',
+                'role_permissions.requires_jit',
+                'role_permissions.requires_dual_control',
+            ])
+            // JIT gerektirmeyen grant varsa önce o değerlendirilsin.
+            ->orderBy('role_permissions.requires_jit');
+
+        if (! $this->caching) {
+            return $query->where('role_permissions.permission_id', $permissionId)->get();
+        }
+
+        $this->grants[$user->id] ??= $query->get();
+
+        return $this->grants[$user->id]->filter(fn (object $row) => (int) $row->permission_id === $permissionId)->values();
     }
 
     private function intOrNull(mixed $value): ?int

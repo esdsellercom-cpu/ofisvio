@@ -45,7 +45,45 @@ class TenantContext
      */
     private bool $systemMode = false;
 
+    /**
+     * İstek başına memo (faz 11): isInternalStaff / isActiveMember / organizasyon
+     * kaydı bir istekte onlarca kez sorulur (middleware, composer, servisler).
+     * Yalnızca HTTP isteği içinde açıktır (PerRequestCaches middleware'i);
+     * istek sonunda boşalır. Konsol ve doğrudan çağrılarda kapalıdır.
+     *
+     * @var array<string, mixed>
+     */
+    private array $memo = [];
+
+    private bool $memoEnabled = false;
+
     public function __construct(private readonly Session $session) {}
+
+    public function startRequestCache(): void
+    {
+        $this->memoEnabled = true;
+        $this->memo = [];
+    }
+
+    public function stopRequestCache(): void
+    {
+        $this->memoEnabled = false;
+        $this->memo = [];
+    }
+
+    /** @param  callable(): mixed  $compute */
+    private function remember(string $key, callable $compute): mixed
+    {
+        if (! $this->memoEnabled) {
+            return $compute();
+        }
+
+        if (! array_key_exists($key, $this->memo)) {
+            $this->memo[$key] = $compute();
+        }
+
+        return $this->memo[$key];
+    }
 
     public function activeOrganizationId(): ?int
     {
@@ -74,7 +112,7 @@ class TenantContext
             throw TenantContextException::notAMember($id);
         }
 
-        return Organization::findOrFail($id);
+        return $this->remember("organization:{$id}", fn () => Organization::findOrFail($id));
     }
 
     /** Bu kullanıcı bu organizasyona girebilir mi? (üyelik VEYA personel yolu) */
@@ -85,10 +123,10 @@ class TenantContext
 
     public function isActiveMember(User $user, int $organizationId): bool
     {
-        return $user->organizationMemberships()
+        return $this->remember("member:{$user->id}:{$organizationId}", fn () => $user->organizationMemberships()
             ->where('organization_id', $organizationId)
             ->where('status', 'active')
-            ->exists();
+            ->exists());
     }
 
     /**
@@ -99,7 +137,7 @@ class TenantContext
      */
     public function isInternalStaff(User $user): bool
     {
-        return DB::table('user_roles')
+        return $this->remember("staff:{$user->id}", fn () => DB::table('user_roles')
             ->join('roles', 'roles.id', '=', 'user_roles.role_id')
             ->where('user_roles.user_id', $user->id)
             ->where('user_roles.status', 'active')
@@ -107,7 +145,7 @@ class TenantContext
             ->whereNull('user_roles.company_id')
             ->whereNull('user_roles.organization_id')
             ->whereNull('user_roles.location_id')
-            ->exists();
+            ->exists());
     }
 
     /**

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **161/161** (Unit 10 · Feature 145 · Architecture 6) |
+| `php artisan test` | ✅ **165/165** (Unit 10 · Feature 149 · Architecture 6) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -43,7 +43,7 @@ eder, `context_switch_logs.entry_path` ile ayırır), model-level TenantScope
 yönlenir; 404 her yerde 404 (enumeration savunması).
 
 ### 3. Security Acceptance Test Skeleton ✅
-161 test; "izin verilmemeli" senaryoları her modülde var.
+165 test; "izin verilmemeli" senaryoları her modülde var.
 
 ### 4. CI/CD Pipeline ✅
 GitHub Actions: pint · phpstan · test (Redis) · build + ayrı P0 güvenlik job'ı.
@@ -105,8 +105,20 @@ vitrin bloklarının (çözümler, planlar) CMS'e taşınması.
 
 ---
 
-### ⛔ 11–28 (Performance, Cache, SEO/GEO, Content, AI, Command Center'lar)
-Tamamı 9. ve 10. fazlara bağlı; sıra ve önkoşullar değişmedi.
+### 11. Performance Foundation 🟡 (v1 ✅)
+Ölçüm birimi SORGU SAYISI (CI'da deterministik; süre gürültülü).
+`tests/Feature/Performance/QueryBudgetTest`: liste sayfaları satır sayısıyla
+büyümez (2 vs 8 kayıt aynı sayı) + sayfa başına üst sınır. İlk ölçüm dashboard
+8 şirkette **126** sorgu, KYC sayfası **62** — N+1. Düzeltme: istek başına
+yetki memo'su (`AuthorizationService`: izinler tek sorgu, kullanıcının tüm
+grant'leri tek sorgu, şirket→organizasyon memo), `TenantContext` memo'su
+(personel/üyelik/organizasyon), `PerRequestCaches` middleware'i (istek dışında
+kapalı), `PanelLayoutComposer` parçalarda çalışmaz, `KycService::statusSummaries`
+tek sorgu. Sonuç: dashboard **11**, KYC **14**, vitrin 5, içerik 6.
+Eksik: süre/bellek baseline artefaktı, HTTP önbellek başlıkları (faz 12).
+
+### ⛔ 12–28 (Cache, SEO/GEO, Content, AI, Command Center'lar)
+`website_id` ve sorgu bütçesi hazır; sıra ve önkoşullar değişmedi.
 
 ---
 
@@ -131,11 +143,13 @@ Tamamı 9. ve 10. fazlara bağlı; sıra ve önkoşullar değişmedi.
 
 1. **Üretim ortamı** — `KYC_SCANNER=clamav` + clamd konteyneri; `MAIL_MAILER`
    gerçek sağlayıcı; `APP_ENV=production` (NullScanner açılışta reddedilir).
-2. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
+2. **Faz 12** — Advanced Cache Engine: yayındaki içerik/vitrin için HTTP
+   önbellek başlıkları + uygulama önbelleği, tenant başına anahtar (faz 13).
+3. **Faz 10 devamı** — müşteri kullanıcılarının kendi sitesini yönetmesi
    (company kapsamlı `content.*` -> organizasyonun sitesi), menü/tema,
    vitrin bloklarının CMS'e taşınması. 11+ (SEO/GEO/Performance) artık
    `website_id` üzerinde açılabilir.
-3. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
+4. **İçerik** — editör panelden yazıları ve yasal sayfaları yazıp yayınlar;
    `config/ofisvio.php`'deki kalan vitrin metinleri (çözümler, planlar) faz 10'da
    bloklara taşınır.
 

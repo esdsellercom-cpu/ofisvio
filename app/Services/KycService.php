@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Security\MalwareScanner;
 use DomainException;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -330,6 +331,28 @@ class KycService
     }
 
     /**
+     * Birden çok şirketin özeti TEK sorguyla (dashboard/liste N+1 savunması).
+     *
+     * @param  Collection<int, Company>  $companies
+     * @return array<int, array{complete: bool, missing: array<string>, documents: array<array<string, mixed>>}> company_id => özet
+     */
+    public function statusSummaries(Collection $companies): array
+    {
+        $documents = KycDocument::whereIn('company_id', $companies->pluck('id')->all())
+            ->whereNot('status', KycDocumentStatus::SUPERSEDED->value)
+            ->get()
+            ->groupBy('company_id');
+
+        $summaries = [];
+
+        foreach ($companies as $company) {
+            $summaries[$company->id] = $this->summarize($documents->get($company->id, collect()));
+        }
+
+        return $summaries;
+    }
+
+    /**
      * Şirketin KYC tamamlanma özeti — personelin kyc.view_status ile
      * göreceği şey budur. Belge içeriği YOK.
      *
@@ -337,10 +360,17 @@ class KycService
      */
     public function statusSummary(Company $company): array
     {
-        $documents = KycDocument::where('company_id', $company->id)
+        return $this->summarize(KycDocument::where('company_id', $company->id)
             ->whereNot('status', KycDocumentStatus::SUPERSEDED->value)
-            ->get();
+            ->get());
+    }
 
+    /**
+     * @param  Collection<int, KycDocument>  $documents
+     * @return array{complete: bool, missing: array<string>, documents: array<array<string, mixed>>}
+     */
+    private function summarize(Collection $documents): array
+    {
         $approved = $documents
             ->filter(fn (KycDocument $d) => $d->status->countsAsComplete())
             ->map(fn (KycDocument $d) => $d->type->value)

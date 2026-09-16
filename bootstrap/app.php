@@ -4,6 +4,7 @@ use App\Exceptions\TenantContextException;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureStaffTwoFactor;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\PerRequestCaches;
 use App\Http\Middleware\ResolveWebsite;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Çoklu website: Host -> Website çözümlemesi her web isteğinde.
-        $middleware->web(append: [ResolveWebsite::class]);
+        $middleware->web(append: [ResolveWebsite::class, PerRequestCaches::class]);
 
         $middleware->alias([
             'tenant' => EnsureTenantContext::class,
