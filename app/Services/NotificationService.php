@@ -9,6 +9,7 @@ use App\Models\NotificationRecipient;
 use App\Models\NotificationRule;
 use App\Models\NotificationTemplate;
 use App\Models\User;
+use App\Notifications\Channels\ChannelRegistry;
 use App\Notifications\NotificationEvents;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -318,6 +319,40 @@ class NotificationService
     public function logsFor(string $entityType, int $entityId): Collection
     {
         return NotificationLog::query()->where('entity_type', $entityType)->where('entity_id', $entityId)->orderBy('created_at')->get();
+    }
+
+    /**
+     * Entegrasyon sağlığı (faz 39): kanal başına son N günde gönderilen/başarısız/kuyrukta + son gönderim.
+     *
+     * @return array<string, array{sent: int, failed: int, queued: int, last_sent_at: string|null}>
+     */
+    public function channelHealth(int $days = 7): array
+    {
+        $since = Carbon::now()->subDays($days);
+        $out = [];
+
+        foreach (ChannelRegistry::CHANNELS as $channel) {
+            $out[$channel] = ['sent' => 0, 'failed' => 0, 'queued' => 0, 'last_sent_at' => null];
+        }
+
+        $rows = NotificationLog::query()->where('created_at', '>=', $since)
+            ->selectRaw('channel, status, count(*) as n, max(sent_at) as last_sent_at')->groupBy('channel', 'status')->get();
+
+        foreach ($rows as $row) {
+            $channel = (string) $row->getAttribute('channel');
+            $out[$channel] ??= ['sent' => 0, 'failed' => 0, 'queued' => 0, 'last_sent_at' => null];
+            $status = (string) $row->getAttribute('status');
+            $key = match ($status) {
+                'sent', 'delivered' => 'sent', 'failed' => 'failed', default => 'queued'
+            };
+            $out[$channel][$key] += (int) $row->getAttribute('n');
+
+            if ($key === 'sent' && $row->getAttribute('last_sent_at') !== null) {
+                $out[$channel]['last_sent_at'] = max((string) $out[$channel]['last_sent_at'], (string) $row->getAttribute('last_sent_at'));
+            }
+        }
+
+        return $out;
     }
 
     /** @return array{queued: int, failed: int, sent_today: int} */

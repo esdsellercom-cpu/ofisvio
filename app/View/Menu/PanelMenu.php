@@ -52,20 +52,26 @@ class PanelMenu
             $this->routeIs('panel.bookings.location*', 'panel.bookings.calendar', 'panel.bookings.show') && $this->request->route('location')?->id === $l->id,
         ))->all();
 
+        // Artifact ("Kolektif Panel") sırası: Genel bakış · Operasyon · Üyelik · Finans · Büyüme · Dijital · Sistem.
+        // Yalnız var olan modüller; Finans/Etkinlik/Franchise ögeleri kendi fazlarında eklenir.
         $groups = [
             ['Genel bakış', [
                 $hasOrganization ? $this->item('Dashboard', route('panel.dashboard'), $this->routeIs('panel.dashboard')) : null,
             ]],
             ['Operasyon', [
                 $can('geo.view') ? $this->item('Lokasyonlar & alanlar', route('panel.geo.index'), $this->routeIs('panel.geo.*')) : null,
-                $can('service.view', 'service.manage') ? $this->item('Hizmet kataloğu', route('panel.services.index'), $this->routeIs('panel.services.*')) : null,
+                $can('geo.view', 'booking.view') ? $this->item('Masalar, ofisler & odalar', route('panel.spaces.index'), $this->routeIs('panel.spaces.*')) : null,
                 $can('booking.view') ? $this->item('Rezervasyonlar', route('panel.bookings.index'), $this->routeIs('panel.bookings.index'), $badges['bookings_pending'] ?? 0, 'w') : null,
                 ...$desk,
+                $can('service.view', 'service.manage') ? $this->item('Hizmet kataloğu', route('panel.services.index'), $this->routeIs('panel.services.*')) : null,
             ]],
-            ['Müşteri', [
+            ['Üyelik', [
                 $hasOrganization ? $this->item('Şirketler', route('panel.companies.index'), $this->routeIs('panel.companies.*')) : null,
+                $hasOrganization ? $this->item('Üyeler & kullanıcılar', route('panel.members.index'), $this->routeIs('panel.members.*')) : null,
                 $hasOrganization && $can('kyc.view_status') ? $this->item('KYC kuyruğu', route('panel.kyc.queue'), $this->routeIs('panel.kyc.queue'), $badges['kyc_pending'] ?? 0, 'w') : null,
-                $can('lead.view') ? $this->item('Talepler & CRM', route('panel.leads.index'), $this->routeIs('panel.leads.*'), $badges['leads_new'] ?? 0, 'a') : null,
+            ]],
+            ['Büyüme', [
+                $can('lead.view') ? $this->item('CRM & pazarlama', route('panel.leads.index'), $this->routeIs('panel.leads.*'), $badges['leads_new'] ?? 0, 'a') : null,
             ]],
             ['Dijital', [
                 $can(...$contentPerms) ? $this->item('Sayfalar', route('panel.content.index', ['kind' => 'page']), $kind('page')) : null,
@@ -76,14 +82,17 @@ class PanelMenu
                 $can('content.edit') ? $this->item('Menü & tema', route('panel.content.menu'), $this->routeIs('panel.content.menu')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Medya kütüphanesi', route('panel.content.media.index'), $this->routeIs('panel.content.media.*')) : null,
                 $can('website.view', 'website.manage') ? $this->item('Websiteler', route('panel.websites.index'), $this->routeIs('panel.websites.*')) : null,
-                $can('seo.view') ? $this->item('SEO', route('panel.seo.index'), $this->routeIs('panel.seo.*')) : null,
+                $can('seo.view') ? $this->item('SEO & GEO', route('panel.seo.index'), $this->routeIs('panel.seo.*')) : null,
+                $can('settings.view', 'settings.manage') ? $this->item('Yerelleştirme', route('panel.settings.index', ['grup' => 'general']), $this->routeIs('panel.settings.*') && $this->request->query('grup') === 'general') : null,
             ]],
             ['Sistem', [
-                $can('notification.view', 'notification.manage') ? $this->item('Bildirim merkezi', route('panel.notifications.index'), $this->routeIs('panel.notifications.index'), $badges['notifications_failed'] ?? 0, 'c') : null,
-                $can('settings.view', 'settings.manage') ? $this->item('Ayarlar', route('panel.settings.index'), $this->routeIs('panel.settings.*')) : null,
-                $can('user.manage') ? $this->item('Kullanıcılar & roller', route('panel.users.index'), $this->routeIs('panel.users.*', 'panel.onboarding.*')) : null,
+                $can('notification.view', 'notification.manage') ? $this->item('Bildirimler & otomasyon', route('panel.notifications.index'), $this->routeIs('panel.notifications.index'), $badges['notifications_failed'] ?? 0, 'c') : null,
+                $can('analytics.view') ? $this->item('Raporlar & analitik', route('panel.reports.index'), $this->routeIs('panel.reports.*')) : null,
+                $can('user.manage') ? $this->item('Roller, yetkiler & güvenlik', route('panel.users.index'), $this->routeIs('panel.users.*', 'panel.onboarding.*')) : null,
+                $can('performance.view') ? $this->item('Entegrasyonlar & API', route('panel.integrations.index'), $this->routeIs('panel.integrations.*')) : null,
+                $can('settings.view', 'settings.manage') ? $this->item('Site & sistem ayarları', route('panel.settings.index'), $this->routeIs('panel.settings.*') && $this->request->query('grup') !== 'general') : null,
                 $can('audit.view') ? $this->item('Denetim kaydı', route('panel.audit.index'), $this->routeIs('panel.audit.*')) : null,
-                $can('performance.view') ? $this->item('Performans & entegrasyonlar', route('panel.performance.index'), $this->routeIs('panel.performance.*')) : null,
+                $can('performance.view') ? $this->item('Performans', route('panel.performance.index'), $this->routeIs('panel.performance.*')) : null,
                 $can('cache.view') ? $this->item('Önbellek', route('panel.cache.index'), $this->routeIs('panel.cache.*')) : null,
             ]],
             ['Hesap', [

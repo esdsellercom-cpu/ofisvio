@@ -6,10 +6,12 @@
     <div class="panel-head">
         <div>
             <p class="eyebrow">Ayar merkezi · {{ $location ? 'Lokasyon: '.$location->name : 'Kurulum (varsayılan)' }}</p>
-            <h1 class="h2">Ayarlar</h1>
+            <h1 class="h2">{{ $group === 'general' ? 'Yerelleştirme' : 'Site & sistem ayarları' }}</h1>
+            @if ($group === 'general')<p>Saat dilimi ve para birimi. Çok dilli içerik (yerel/dil başına sayfa) yol haritasında; bugün vitrin tek dilde yayınlanır.</p>@endif
         </div>
         <div class="panel-head__actions">
             <form method="GET" class="inline-form">
+                @if ($group)<input type="hidden" name="grup" value="{{ $group }}">@endif
                 <label class="field" style="flex:1 1 220px"><span class="label">Kapsam</span>
                     <select class="control" name="lokasyon" onchange="this.form.requestSubmit()">
                         <option value="">Kurulum (tüm lokasyonlar)</option>
@@ -28,6 +30,7 @@
 
     <form method="POST" action="{{ route('panel.settings.update', $location ? ['lokasyon' => $location->id] : []) }}" class="stack" style="gap:20px">
         @csrf @method('PUT')
+        @if ($group)<input type="hidden" name="grup" value="{{ $group }}">@endif
         @foreach ($groups as $groupKey => $groupLabel)
             @continue(empty($data[$groupKey]))
             <div class="panel stack" style="gap:14px">

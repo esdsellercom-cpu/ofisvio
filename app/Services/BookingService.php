@@ -85,6 +85,16 @@ class BookingService
             ->values();
     }
 
+    /**
+     * Alanlar ekranı (faz 39): tüm lokasyonların odaları/masaları, lokasyonla birlikte.
+     *
+     * @return Collection<int, Room>
+     */
+    public function allRooms(): Collection
+    {
+        return Room::query()->with('location')->orderBy('location_id')->orderBy('sort_order')->orderBy('name')->get();
+    }
+
     public function findRoom(int $id): ?Room
     {
         return Room::query()->with('location')->find($id);

@@ -23,6 +23,12 @@ class UserRole extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Company, $this> */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function isActive(): bool
     {
         return $this->status === 'active';

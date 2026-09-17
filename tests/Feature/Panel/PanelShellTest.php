@@ -63,9 +63,11 @@ class PanelShellTest extends TestCase
         $this->assertStringContainsString('class="ap-nav__h">Sistem<', $html);
         $this->assertMatchesRegularExpression('~<span class="n" aria-hidden="true">1</span>\s*<span class="t">Dashboard</span>~', $html);
         $this->assertMatchesRegularExpression('~<span class="t">Rezervasyonlar</span>\s*<span class="c w" aria-label="1 bekleyen">1</span>~', $html);
-        $this->assertMatchesRegularExpression('~<span class="t">Talepler &amp; CRM</span>\s*<span class="c a" aria-label="1 bekleyen">1</span>~', $html);
+        $this->assertMatchesRegularExpression('~<span class="t">CRM &amp; pazarlama</span>\s*<span class="c a" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertStringNotContainsString('KYC kuyruğu', $html); // izin yok
-        $this->assertStringNotContainsString('Kullanıcılar &amp; roller', $html);
+        $this->assertStringNotContainsString('Roller, yetkiler &amp; güvenlik', $html); // user.manage yok
+        $this->assertStringContainsString('<span class="t">Masalar, ofisler &amp; odalar</span>', $html);
+        $this->assertStringContainsString('<span class="t">Raporlar &amp; analitik</span>', $html); // analytics.view
         preg_match_all('~<span class="n" aria-hidden="true">(\d+)</span>~', $html, $m);
         $this->assertSame(range(1, count($m[1])), array_map('intval', $m[1]), 'Menü numaraları boşluksuz ve sıralı olmalı.');
 
@@ -95,6 +97,47 @@ class PanelShellTest extends TestCase
         $this->assertStringNotContainsString('Bugünkü rezervasyon', $html);
         $this->assertStringNotContainsString('class="ap-nav__h">Sistem<', $html);
         $this->assertStringContainsString('Müşteri</small>', $html);
+    }
+
+    #[Test]
+    public function faz39_sayfalari_izne_gore_acilir_ve_gercek_toplam_basar(): void
+    {
+        $acme = $this->organization('Acme');
+        $ops = $this->staff('operations_admin');
+        $finance = $this->staff('finance_admin');
+        $admin = $this->staff('system_admin');
+        $kadikoy = Location::create(['name' => 'Kadıköy', 'slug' => 'kadikoy', 'city' => 'İstanbul', 'region' => 'Anadolu', 'is_active' => true, 'is_published' => true]);
+        Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 400, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
+        Room::create(['location_id' => $kadikoy->id, 'name' => 'Odak 1', 'kind' => 'focus', 'capacity' => 1, 'hourly_rate' => 150, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 8, 'is_active' => false]);
+        $owner = $this->owner($acme, $this->company($acme, 'Acme A.Ş.'));
+
+        // Alanlar (geo.view|booking.view): lokasyon başlığı, tür, aktif/pasif; finans göremez.
+        $this->actingAs($ops)->get('/panel/alanlar')->assertOk()->assertSee('Kadıköy')->assertSee('Toplantı odası')->assertSee('Odaklanma odası')
+            ->assertSee('<span class="k">Rezervasyona açık</span><span class="v">1</span>', false)->assertSee('Odaları yönet');
+        $this->actingAs($finance)->get('/panel/alanlar')->assertForbidden();
+
+        // Raporlar (analytics.view): sekmeler; KYC adedi yalnız kyc.view_status taşıyana.
+        $this->actingAs($ops)->get('/panel/raporlar')->assertOk()->assertSee('Onaylı tutar (30g)')->assertSee('Lokasyona göre rezervasyon');
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=doluluk')->assertOk()->assertSee('Alan türleri')->assertSee('<span class="k">Alan</span><span class="v">1</span>', false);
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=uyelik')->assertOk()->assertSee('Şirketler duruma göre')->assertSee('Kayıt alındı')->assertDontSee('Bekleyen KYC belgesi');
+        $this->actingAs($admin)->get('/panel/raporlar?sekme=uyelik')->assertOk()->assertSee('Bekleyen KYC belgesi');
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=talepler')->assertOk()->assertSee('Dönüşüm');
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=bildirim')->assertOk()->assertSee('Kanal sağlığı')->assertSee('WhatsApp');
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=icerik')->assertOk()->assertSee('İçerik duruma göre');
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=yok')->assertOk()->assertSee('Onaylı tutar (30g)');
+        $this->actingAs($owner)->withContext($acme)->get('/panel/raporlar')->assertForbidden();
+
+        // Entegrasyonlar (performance.view): sağlayıcılar maskeli, kanal sağlığı, API notu.
+        $this->actingAs($admin)->get('/panel/entegrasyonlar')->assertOk()->assertSee('WhatsApp (Meta Cloud API)')->assertSee('Kapalı')->assertSee('Bildirim kanalı sağlığı')->assertSee('public) API henüz yok')->assertDontSee('tok-');
+        $this->actingAs($finance)->get('/panel/entegrasyonlar')->assertForbidden();
+
+        // Üye dizini (tenant): görünürlük şirket listesiyle aynı; arama.
+        $this->actingAs($owner)->withContext($acme)->get('/panel/uyeler')->assertOk()->assertSee('Üye dizini')->assertSee($owner->name)->assertSee('Sahip');
+        $this->actingAs($owner)->withContext($acme)->get('/panel/uyeler?q=olmayan-kisi')->assertOk()->assertSee('Eşleşen üye yok');
+
+        // Yerelleştirme = ayarlar genel grubu; diğer gruplar sayfada yok.
+        $this->actingAs($admin)->get('/panel/ayarlar?grup=general')->assertOk()->assertSee('Yerelleştirme')->assertSee('Saat dilimi')->assertDontSee('Otomatik onay');
+        $this->actingAs($admin)->get('/panel/ayarlar')->assertOk()->assertSee('Site & sistem ayarları')->assertSee('Otomatik onay');
     }
 
     #[Test]

@@ -8,6 +8,9 @@ use InvalidArgumentException;
 /** Kanal adı → adaptör (container'dan; testte HTTP sahtelemeyle gerçek adaptör koşar). */
 class ChannelRegistry
 {
+    /** Kanal adları (raporlama/sağlık ekranı için). */
+    public const CHANNELS = ['whatsapp', 'sms', 'email', 'in_app'];
+
     private const MAP = [
         'whatsapp' => WhatsAppChannel::class,
         'sms' => SmsChannel::class,

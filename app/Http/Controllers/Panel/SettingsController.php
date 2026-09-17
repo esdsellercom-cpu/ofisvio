@@ -28,8 +28,12 @@ class SettingsController extends Controller
     {
         [$scope, $scopeId, $location] = $this->scopeFrom($request);
 
+        // ?grup= tek grup görünümü (menü: Yerelleştirme → general).
+        $group = (string) $request->query('grup', '');
+
         return view('panel.settings.index', [
-            'groups' => SettingsRegistry::GROUPS,
+            'groups' => isset(SettingsRegistry::GROUPS[$group]) ? [$group => SettingsRegistry::GROUPS[$group]] : SettingsRegistry::GROUPS,
+            'group' => isset(SettingsRegistry::GROUPS[$group]) ? $group : null,
             'data' => $this->settings->formData($scope, $scopeId),
             'scope' => $scope,
             'location' => $location,
@@ -66,7 +70,7 @@ class SettingsController extends Controller
             return back()->withErrors(['settings' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.settings.index', $scopeId ? ['lokasyon' => $scopeId] : [])->with('status', 'Ayarlar kaydedildi.');
+        return redirect()->route('panel.settings.index', array_filter(['lokasyon' => $scopeId, 'grup' => $request->input('grup')]))->with('status', 'Ayarlar kaydedildi.');
     }
 
     /** @return array{0: string, 1: int|null, 2: Location|null} */

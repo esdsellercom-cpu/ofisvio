@@ -129,6 +129,7 @@ class ArchitectureTest extends TestCase
             'KycQueueService.php',          // pendingCounts: yalnızca personel, yalnızca org başına ADET (bkz. sınıf başlığı)
             'AuditLogService.php',          // denetim kaydı: global audit.view, salt okunur, tüm organizasyonlar tanım gereği (bkz. sınıf başlığı)
             'BookingService.php',           // uygunluk/çakışma tüm şirketlere bakmak zorunda; masa/genel liste yalnız booking.view (lokasyon/global) rotasından (bkz. sınıf başlığı)
+            'ReportService.php',            // raporlar: analytics.view (global), şirketler duruma göre yalnız ADET — satır/isim dönmez (bkz. sınıf başlığı)
         ];
 
         $violations = [];

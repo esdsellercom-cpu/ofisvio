@@ -52,6 +52,28 @@ class MembershipService
     }
 
     /**
+     * Üye dizini (faz 39): verilen şirketlerin tüm üyeleri (company kapsamlı roller).
+     * Çağıran şirket listesini CompanyService::visibleTo ile alır — görünürlük orada karar verilir.
+     *
+     * @param  Collection<int, Company>  $companies
+     * @return Collection<int, UserRole>
+     */
+    public function membersOfCompanies(Collection $companies): Collection
+    {
+        if ($companies->isEmpty()) {
+            return new Collection;
+        }
+
+        return UserRole::query()
+            ->with(['user', 'role', 'company'])
+            ->whereIn('company_id', $companies->modelKeys())
+            ->orderBy('company_id')
+            ->orderByDesc('status')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /**
      * @param  array{email: string, name: string, role: string}  $data
      * @return array{user: User, role: UserRole, invited: bool}
      */

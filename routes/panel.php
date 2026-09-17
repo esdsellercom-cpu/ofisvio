@@ -25,14 +25,17 @@ use App\Http\Controllers\Panel\ContentDraftController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\GeoController;
+use App\Http\Controllers\Panel\IntegrationController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\LocationMediaController;
 use App\Http\Controllers\Panel\MediaController;
+use App\Http\Controllers\Panel\MemberDirectoryController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\PerformanceController;
+use App\Http\Controllers\Panel\ReportController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SearchController;
 use App\Http\Controllers\Panel\SeoController;
@@ -42,6 +45,7 @@ use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteBuilderController;
 use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
+use App\Http\Controllers\Panel\SpaceController;
 use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
@@ -66,6 +70,11 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
 
         // Üst çubuk araması (faz 38): kümeler izne göre serviste süzülür; ek route izni yok.
         Route::get('/ara', SearchController::class)->name('search');
+
+        // Faz 39 — artifact menü paritesi: alanlar (§3), raporlar (§16), entegrasyonlar (§18).
+        Route::get('/alanlar', [SpaceController::class, 'index'])->middleware('permission:geo.view|booking.view')->name('spaces.index');
+        Route::get('/raporlar', [ReportController::class, 'index'])->middleware('permission:analytics.view')->name('reports.index');
+        Route::get('/entegrasyonlar', [IntegrationController::class, 'index'])->middleware('permission:performance.view')->name('integrations.index');
 
         // Talepler / CRM v1 — siteden gelen teklif ve ön rezervasyon talepleri (audit bulgusu: ekranı yoktu).
         Route::prefix('talepler')->name('leads.')->group(function () {
@@ -317,6 +326,8 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             // Şirketler — liste servis tarafından süzülür; oluşturma organizasyon
             // yönetimi ister; görüntüleme şirket kapsamlı company.view ister.
             Route::get('/sirketler', [CompanyController::class, 'index'])->name('companies.index');
+            // Üye dizini (faz 39, §5): görünürlük şirket listesiyle aynı (CompanyService::visibleTo).
+            Route::get('/uyeler', [MemberDirectoryController::class, 'index'])->name('members.index');
             Route::get('/sirketler/yeni', [CompanyController::class, 'create'])
                 ->middleware('permission:organization.manage')
                 ->name('companies.create');
