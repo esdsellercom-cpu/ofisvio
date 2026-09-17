@@ -33,7 +33,7 @@
             @else
                 <div class="rows">
                     @foreach ($invoice->payments->sortByDesc('paid_on') as $p)
-                        <div class="row"><div class="main-t"><b>{{ money($p->amount) }}</b><span>{{ $p->methodLabel() }} · {{ $p->paid_on->format('d.m.Y') }}@if ($p->reference) · {{ $p->reference }}@endif</span></div></div>
+                        <div class="row" style="{{ $p->isCancelled() ? 'opacity:.6' : '' }}"><div class="main-t"><b>{{ money($p->amount, $p->currency) }}</b><span>{{ $p->methodLabel() }} · {{ $p->paid_on->format('d.m.Y') }}@if ($p->reference) · {{ $p->reference }}@endif</span></div>@if ($p->isCancelled())<span class="rt"><span class="pill n flat">iptal</span></span>@endif</div>
                     @endforeach
                 </div>
             @endif

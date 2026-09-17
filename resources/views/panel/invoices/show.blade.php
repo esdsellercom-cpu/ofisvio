@@ -49,9 +49,9 @@
                 @if ($invoice->payments->isEmpty())
                     <div class="empty-state" style="border:0">Henüz tahsilat yok.</div>
                 @else
-                    <div class="tw"><table class="t"><thead><tr><th>Tarih</th><th class="num">Tutar</th><th>Yöntem</th><th>Referans</th><th>Kaydeden</th></tr></thead><tbody>
+                    <div class="tw"><table class="t"><thead><tr><th>Tarih</th><th class="num">Tutar</th><th>Yöntem</th><th>Referans</th><th>Kaydeden</th><th>Durum</th></tr></thead><tbody>
                         @foreach ($invoice->payments->sortByDesc('paid_on') as $p)
-                            <tr><td class="mono small">{{ $p->paid_on->format('d.m.Y') }}</td><td class="num">{{ money($p->amount) }}</td><td>{{ $p->methodLabel() }}</td><td class="small">{{ $p->reference ?? '—' }}@if ($p->note)<br><span class="mini">{{ $p->note }}</span>@endif</td><td class="small">{{ $p->recorder?->name ?? 'Sistem' }}</td></tr>
+                            <tr style="{{ $p->isCancelled() ? 'opacity:.6' : '' }}"><td class="mono small">{{ $p->paid_on->format('d.m.Y') }}</td><td class="num">{{ money($p->amount, $p->currency) }}</td><td>{{ $p->methodLabel() }}</td><td class="small">{{ $p->reference ?? '—' }}@if ($p->note)<br><span class="mini">{{ $p->note }}</span>@endif</td><td class="small">{{ $p->recorder?->name ?? 'Sistem' }}</td><td>@if ($p->isCancelled())<span class="pill n flat">İptal</span>@else<span class="pill g flat">Kayıtlı</span>@endif</td></tr>
                         @endforeach
                     </tbody></table></div>
                 @endif

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **291/291** (Unit 12 · Feature 263 · Architecture 16) |
+| `php artisan test` | ✅ **294/294** (Unit 12 · Feature 266 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -586,6 +586,33 @@ Demirbaşlar · Tahsisler**; durum süzgeci Müsait/Tahsisli/Bakımda/Pasif; lok
 - **Yetki/kapsam:** yazma `space.manage,anylocation` (lokasyon yöneticisi yalnız kendi lokasyonu; yabancı lokasyon
   404), oda yazımı `geo.edit`; `super_admin` matriste `space.manage` aldı. `asset_v()` sürümlü asset adresi (CSS/JS
   önbelleği). Testler `InventoryScreenTest` (2); lokasyon künyesindeki eski alan/oda formları duruyor.
+
+### 47. Tahsilat & belge merkezi — manuel tahsilat, makbuz, geciken ödeme belgesi, şablonlar ✅ (18 Eylül 2026)
+`/panel/tahsilat` (`CollectionController`, sekmeler Özet · Tahsilatlar · Geciken ödemeler · Belgeler; üstte
+**+ Manuel tahsilat · + Makbuz oluştur · Geciken ödemeler · Belgeler**). Mevcut fatura/tahsilat yapısı korunarak
+genişletildi (`InvoiceService::recordPayment` aynı yol; `InvoiceController::payment` rotası duruyor).
+- **Manuel tahsilat** (modal, `payment_allocation.manage`): müşteri → fatura (şirkete göre süzülür; kalan tutar,
+  hizmet ve para birimi otomatik) → tutar → ödeme yöntemi (Nakit / Kart-POS / Havale-EFT / Diğer) → tarih →
+  açıklama/referans → not; **Kaydet** ya da **Kaydet ve makbuz oluştur**. Faturaya (paid_amount/status) ve müşteri
+  hesabına anında yansır; nakit ödeme rozetle belirtilir. `payments.currency/description/status`.
+- **Tahsilat iptali** (`InvoiceService::cancelPayment`): kayıt silinmez → `cancelled` + gerekçe; fatura bakiyesi
+  geri alınır (ödenmişse yeniden issued/overdue), bağlı makbuz iptal olur, rezervasyon ödeme durumu senkron,
+  audit `payment.cancelled` + `invoice.payment_reversed`. Özet/aylık toplamlar iptalleri saymaz.
+- **Belgeler** (`documents`, `DocumentService`): tahsilat makbuzu `MKB-YYYY-000001`, geciken ödeme belgesi
+  `GOB-YYYY-000001` (`document_sequences`, satır kilidi); değerler belge anında `data`'ya dondurulur (işletme
+  bilgisi site marka ayarından, müşteri/fatura/tahsilat kayıttan, tutar yazıyla `NumberWords`). Tahsilat başına tek
+  geçerli makbuz. Belge sayfası: **Önizleme · Düzenle (yalnız metin alanları, audit) · PDF indir (dompdf) ·
+  Yazdır (otomatik yazdırma görünümü) · İptal**. Aynı HTML önizleme/PDF/yazdırma için (`documents.render`).
+- **Geciken ödemeler sekmesi:** vadesi geçmiş açık faturalar (müşteri, fatura, vade, gecikme günü, toplam, ödenen,
+  kalan) + satırdan Tahsilat / **Geciken ödeme belgesi oluştur**.
+- **Belge ayarları / şablonlar** (`document_templates`, `App\Documents\DocumentTemplates`; yazma `invoice.issue`):
+  logo, başlık, alt başlık, işletme bloğu, giriş metni, tablo sütunları, gövde, imza, kaşe, alt bilgi, vurgu rengi;
+  dinamik alanlar `{{customer_name}} {{invoice_number}} {{amount}} {{payment_method}} {{date}} {{due_date}}
+  {{remaining_amount}} …` (tanımsız yer tutucu olduğu gibi kalır). Düzenlerken **gerçek belge önizlemesi**: son
+  gerçek kayıtla (yoksa etiketli örnekle) sunucuda çizilir, yazarken JS (`initLivePreview`) anında günceller;
+  "Sunucuda önizle" kaydetmeden yeniden çizer.
+- `super_admin` matriste `invoice.issue` + `payment_allocation.manage` aldı. Bağımlılık: `dompdf/dompdf ^3.1`
+  (uzak kaynak kapalı, chroot public/). Testler `CollectionCenterTest` (3).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

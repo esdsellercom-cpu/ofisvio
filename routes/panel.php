@@ -146,6 +146,20 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
 
         // Finans (faz 39c, §7–8): invoice.view görür; invoice.issue açar/yayınlar; invoice.cancel iptal; payment_allocation.manage tahsilat.
         Route::get('/tahsilat', [CollectionController::class, 'index'])->middleware('permission:invoice.view')->name('collections.index');
+        // Tahsilat & belge merkezi (faz 47): manuel tahsilat + iptal, makbuz, geciken ödeme belgesi, belge görüntüle/düzenle/PDF/yazdır, şablonlar.
+        Route::prefix('tahsilat')->name('collections.')->group(function () {
+            Route::post('/tahsilat', [CollectionController::class, 'storePayment'])->middleware('permission:payment_allocation.manage')->name('payments.store');
+            Route::post('/tahsilat/{payment}/iptal', [CollectionController::class, 'cancelPayment'])->where('payment', '[0-9]+')->middleware('permission:payment_allocation.manage')->name('payments.cancel');
+            Route::post('/tahsilat/{payment}/makbuz', [CollectionController::class, 'receipt'])->where('payment', '[0-9]+')->middleware('permission:payment_allocation.manage')->name('payments.receipt');
+            Route::post('/fatura/{invoice}/gecikme-belgesi', [CollectionController::class, 'overdueNotice'])->where('invoice', '[0-9]+')->middleware('permission:payment_allocation.manage')->name('invoices.notice');
+            Route::get('/belge/{document}', [CollectionController::class, 'showDocument'])->where('document', '[0-9]+')->middleware('permission:invoice.view')->name('documents.show');
+            Route::put('/belge/{document}', [CollectionController::class, 'updateDocument'])->where('document', '[0-9]+')->middleware('permission:payment_allocation.manage')->name('documents.update');
+            Route::post('/belge/{document}/iptal', [CollectionController::class, 'cancelDocument'])->where('document', '[0-9]+')->middleware('permission:payment_allocation.manage')->name('documents.cancel');
+            Route::get('/belge/{document}/pdf', [CollectionController::class, 'pdf'])->where('document', '[0-9]+')->middleware('permission:invoice.view')->name('documents.pdf');
+            Route::get('/belge/{document}/yazdir', [CollectionController::class, 'print'])->where('document', '[0-9]+')->middleware('permission:invoice.view')->name('documents.print');
+            Route::get('/sablon/{kind}', [CollectionController::class, 'template'])->where('kind', 'receipt|overdue_notice')->middleware('permission:invoice.view')->name('templates.edit');
+            Route::put('/sablon/{kind}', [CollectionController::class, 'updateTemplate'])->where('kind', 'receipt|overdue_notice')->middleware('permission:invoice.issue')->name('templates.update');
+        });
         Route::prefix('faturalar')->name('invoices.')->group(function () {
             Route::get('/', [InvoiceController::class, 'index'])->middleware('permission:invoice.view')->name('index');
             Route::get('/yeni', [InvoiceController::class, 'create'])->middleware('permission:invoice.issue')->name('create');

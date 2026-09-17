@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\CompanyStatus;
 use App\Models\Booking;
 use App\Models\Company;
+use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\Scopes\TenantScope;
@@ -309,7 +310,7 @@ class InvoiceService
      * Tahsilat kaydı (payment_allocation.manage ya da sağlayıcı webhook'u). Fazla ödeme reddedilir;
      * bakiye sıfırlanınca fatura paid.
      *
-     * @param  array{amount: int|string, method: string, paid_on: string, reference?: string|null, note?: string|null}  $data  amount büyük birim (₺); webhook kuruş gönderiyorsa önce Money::major ile geçirilir
+     * @param  array{amount: int|string, method: string, paid_on: string, reference?: string|null, note?: string|null, description?: string|null, currency?: string|null}  $data  amount büyük birim (₺); webhook kuruş gönderiyorsa önce Money::major ile geçirilir
      */
     public function recordPayment(?User $actor, Invoice $invoice, array $data): Payment
     {
@@ -327,16 +328,27 @@ class InvoiceService
             throw new DomainException('Geçersiz ödeme yöntemi.');
         }
 
+        if (! empty($data['currency']) && strtoupper((string) $data['currency']) !== strtoupper((string) $invoice->currency)) {
+            throw new DomainException('Para birimi faturanınkiyle aynı olmalı ('.$invoice->currency.').');
+        }
+
+        if (Carbon::parse((string) $data['paid_on'])->gt(Carbon::today())) {
+            throw new DomainException('Ödeme tarihi ileri bir tarih olamaz.');
+        }
+
         return DB::transaction(function () use ($actor, $invoice, $data, $amount) {
             $payment = new Payment([
                 'invoice_id' => $invoice->id,
                 'company_id' => $invoice->company_id,
                 'amount' => $amount,
+                'currency' => (string) $invoice->currency,
                 'method' => (string) $data['method'],
+                'description' => $this->blank($data['description'] ?? null) ?? $this->blank($invoice->description),
                 'paid_on' => Carbon::parse($data['paid_on'])->toDateString(),
                 'reference' => $this->blank($data['reference'] ?? null),
                 'note' => $this->blank($data['note'] ?? null),
                 'recorded_by' => $actor?->id,
+                'status' => 'recorded',
             ]);
             $payment->save();
 
@@ -354,6 +366,85 @@ class InvoiceService
 
             return $payment;
         });
+    }
+
+    /**
+     * Tahsilat iptali (faz 47): kayıt silinmez, 'cancelled' olur; fatura bakiyesi geri alınır (ödenmişse yeniden
+     * açılır: vade geçmişse overdue, değilse issued), makbuzu varsa iptal edilir; audit + rezervasyon ödeme durumu.
+     */
+    public function cancelPayment(User $actor, Payment $payment, string $reason): Payment
+    {
+        if ($payment->isCancelled()) {
+            throw new DomainException('Tahsilat zaten iptal edilmiş.');
+        }
+
+        return DB::transaction(function () use ($actor, $payment, $reason) {
+            $invoice = Invoice::withoutTenantScope()->lockForUpdate()->findOrFail($payment->invoice_id);
+            $before = $payment->only(['status']);
+            $payment->fill(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => $reason])->save();
+
+            $invoiceBefore = $invoice->toArray();
+            $paid = max(0, $invoice->paid_amount - $payment->amount);
+            $status = $invoice->status;
+
+            if ($invoice->status === 'paid' && $paid < $invoice->total) {
+                $status = $invoice->due_on !== null && $invoice->due_on->lt(Carbon::today()) ? 'overdue' : 'issued';
+            }
+
+            $invoice->fill(['paid_amount' => $paid, 'status' => $status, 'paid_at' => $status === 'paid' ? $invoice->paid_at : null])->save();
+
+            foreach (Document::query()->where('payment_id', $payment->id)->where('status', 'issued')->get() as $document) {
+                $document->fill(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => 'Tahsilat iptal edildi: '.$reason])->save();
+                $this->audit->record($actor, 'document.cancelled', 'document', $document->id, ['status' => 'issued'], ['status' => 'cancelled', 'cancel_reason' => $reason]);
+            }
+
+            $this->audit->record($actor, 'payment.cancelled', 'payment', $payment->id, $before, $payment->only(['status', 'cancel_reason']));
+            $this->audit->record($actor, 'invoice.payment_reversed', 'invoice', $invoice->id, $invoiceBefore, $invoice->toArray());
+            $this->syncBookingPayment($invoice, $paid <= 0 ? 'unpaid' : ($status === 'paid' ? 'paid' : 'partial'));
+
+            return $payment;
+        });
+    }
+
+    public function findPayment(int $id): ?Payment
+    {
+        return Payment::withoutTenantScope()->with(['invoice', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class), 'recorder', 'receipt'])->find($id);
+    }
+
+    /**
+     * Tahsilat listesi (faz 47): son kayıtlar, iptaller dahil (geçmiş görünür).
+     *
+     * @param  array{method?: string|null, q?: string|null, status?: string|null}  $filters
+     * @return Collection<int, Payment>
+     */
+    public function payments(array $filters = [], int $limit = 100): Collection
+    {
+        return Payment::withoutTenantScope()->with(['invoice', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class), 'recorder', 'receipt'])
+            ->when(! empty($filters['method']), fn (Builder $q) => $q->where('method', (string) $filters['method']))
+            ->when(! empty($filters['status']), fn (Builder $q) => $q->where('status', (string) $filters['status']))
+            ->when(! empty($filters['q']), fn (Builder $q) => $q->where(fn (Builder $w) => $w->where('reference', 'like', '%'.$filters['q'].'%')->orWhere('description', 'like', '%'.$filters['q'].'%')->orWhereHas('invoice', fn (Builder $i) => $i->where('number', 'like', '%'.$filters['q'].'%'))))
+            ->orderByDesc('paid_on')->orderByDesc('id')->limit($limit)->get();
+    }
+
+    /**
+     * Gecikmiş faturalar (faz 47 — Geciken ödemeler sekmesi): vadesi geçmiş açık faturalar, en eski önce.
+     *
+     * @return Collection<int, Invoice>
+     */
+    public function overdueList(): Collection
+    {
+        return Invoice::withoutTenantScope()->whereIn('status', Invoice::OPEN)->whereNotNull('due_on')->whereDate('due_on', '<', Carbon::today()->toDateString())
+            ->with(['company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->orderBy('due_on')->get();
+    }
+
+    /**
+     * Manuel tahsilat formu: tahsilat bekleyen faturalar (şirketle).
+     *
+     * @return Collection<int, Invoice>
+     */
+    public function openForPayment(): Collection
+    {
+        return Invoice::withoutTenantScope()->whereIn('status', Invoice::OPEN)->with(['company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->orderBy('company_id')->orderBy('due_on')->get();
     }
 
     /** Zamanlayıcı: vade + tolerans geçen yayınlanmış faturalar overdue. */
@@ -461,8 +552,8 @@ class InvoiceService
         $overdue = $open->where('status', 'overdue');
 
         return [
-            'revenue_today' => (int) Payment::withoutTenantScope()->whereDate('paid_on', $today->toDateString())->sum('amount'),
-            'revenue_month' => (int) Payment::withoutTenantScope()->whereDate('paid_on', '>=', $today->copy()->startOfMonth()->toDateString())->whereDate('paid_on', '<=', $today->copy()->endOfMonth()->toDateString())->sum('amount'),
+            'revenue_today' => (int) Payment::withoutTenantScope()->where('status', 'recorded')->whereDate('paid_on', $today->toDateString())->sum('amount'),
+            'revenue_month' => (int) Payment::withoutTenantScope()->where('status', 'recorded')->whereDate('paid_on', '>=', $today->copy()->startOfMonth()->toDateString())->whereDate('paid_on', '<=', $today->copy()->endOfMonth()->toDateString())->sum('amount'),
             'outstanding' => (int) $open->sum(fn (Invoice $i) => $i->outstanding()),
             'outstanding_count' => $open->count(),
             'overdue' => (int) $overdue->sum(fn (Invoice $i) => $i->outstanding()),
@@ -491,7 +582,7 @@ class InvoiceService
     public function monthlyRevenue(int $months = 6): array
     {
         $start = Carbon::today()->startOfMonth()->subMonths($months - 1);
-        $rows = Payment::withoutTenantScope()->whereDate('paid_on', '>=', $start->toDateString())->get(['paid_on', 'amount'])->groupBy(fn (Payment $p) => $p->paid_on->format('Y-m'));
+        $rows = Payment::withoutTenantScope()->where('status', 'recorded')->whereDate('paid_on', '>=', $start->toDateString())->get(['paid_on', 'amount'])->groupBy(fn (Payment $p) => $p->paid_on->format('Y-m'));
         $out = [];
 
         for ($i = 0; $i < $months; $i++) {

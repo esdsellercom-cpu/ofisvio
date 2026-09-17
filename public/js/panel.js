@@ -136,7 +136,18 @@
       b.addEventListener('click', function () { var d = b.closest('dialog'); if (d) d.close(); });
     });
     document.querySelectorAll('form[data-modal-form]').forEach(function (form) {
-      form.addEventListener('change', function () { applyDeps(form); });
+      form.addEventListener('change', function (e) {
+        applyDeps(form);
+        // data-sync="kaynak:attr": kaynak select değişince seçili option'ın data-attr değeri alana yazılır (tutar, açıklama, para birimi).
+        var src = e.target && e.target.getAttribute ? e.target.getAttribute('name') : null;
+        if (src) {
+          form.querySelectorAll('[data-sync^="' + src + ':"]').forEach(function (el) {
+            var attr = el.getAttribute('data-sync').split(':')[1];
+            var opt = e.target.options ? e.target.options[e.target.selectedIndex] : null;
+            if (opt && opt.getAttribute('data-' + attr) !== null) el.value = opt.getAttribute('data-' + attr);
+          });
+        }
+      });
       applyDeps(form);
     });
     // Doğrulama hatasından dönüşte ilgili modal (eski girdilerle) yeniden açılır.
@@ -159,7 +170,50 @@
     });
   }
 
-  function boot() { initShell(); initTheme(); initModals(); }
+  /* Belge şablonu canlı önizleme (faz 47): form alanları → önizlemedeki [data-slot] öğeleri; {{yer_tutucu}} örnek değerlerle değişir. */
+  function initLivePreview() {
+    var form = document.querySelector('form[data-live-preview]');
+    var preview = document.querySelector('[data-preview]');
+    if (!form || !preview) return;
+    var sample = {};
+    try { sample = JSON.parse(preview.getAttribute('data-sample') || '{}'); } catch (e) { sample = {}; }
+    var labels = {};
+    try { labels = JSON.parse(preview.getAttribute('data-column-labels') || '{}'); } catch (e) { labels = {}; }
+
+    function sub(text) {
+      return String(text || '').replace(/\{\{\s*([a-z_]+)\s*\}\}/g, function (m, key) { return Object.prototype.hasOwnProperty.call(sample, key) ? sample[key] : m; });
+    }
+    function lines(text) { return String(text || '').split(/\r?\n/).map(sub); }
+    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+    function update() {
+      var v = function (name) { var el = form.querySelector('[name="' + name + '"]'); return el ? el.value : ''; };
+      var accent = v('accent') || '#1f5f4b';
+      preview.querySelectorAll('[data-slot="heading"]').forEach(function (el) { el.textContent = sub(v('heading')); el.style.color = accent; });
+      preview.querySelectorAll('[data-slot="subheading"]').forEach(function (el) { el.textContent = sub(v('subheading')); });
+      preview.querySelectorAll('[data-slot="intro"]').forEach(function (el) { el.textContent = sub(v('intro')); el.style.display = v('intro') ? '' : 'none'; });
+      preview.querySelectorAll('[data-slot="body"]').forEach(function (el) { el.innerHTML = lines(v('body')).map(function (l) { return '<div>' + esc(l) + '</div>'; }).join(''); el.style.display = v('body') ? '' : 'none'; });
+      preview.querySelectorAll('[data-slot="footer"]').forEach(function (el) { el.innerHTML = lines(v('footer')).map(function (l) { return '<div>' + esc(l) + '</div>'; }).join(''); el.style.display = v('footer') ? '' : 'none'; });
+      preview.querySelectorAll('[data-slot="signature"]').forEach(function (el) { el.querySelector('span[data-text]').textContent = sub(v('signature')); el.style.display = v('signature') ? '' : 'none'; });
+      preview.querySelectorAll('[data-slot="stamp"]').forEach(function (el) { el.textContent = sub(v('stamp')); el.style.display = v('stamp') ? '' : 'none'; });
+      preview.querySelectorAll('[data-slot="business"]').forEach(function (el) { var on = form.querySelector('[name="show_business"]'); el.style.display = on && on.checked ? '' : 'none'; });
+      preview.querySelectorAll('[data-slot="logo"]').forEach(function (el) { var url = v('logo_url'); var img = el.querySelector('img'); var txt = el.querySelector('[data-text]'); if (img) { img.src = url || ''; img.style.display = url ? '' : 'none'; } if (txt) { txt.style.display = url ? 'none' : ''; txt.style.color = accent; } });
+      var table = preview.querySelector('[data-slot="table"]');
+      if (table) {
+        var cols = Array.prototype.filter.call(form.querySelectorAll('[name="columns[]"]'), function (c) { return c.checked; }).map(function (c) { return c.value; });
+        table.style.display = cols.length ? '' : 'none';
+        var right = ['amount', 'paid_amount', 'remaining_amount', 'invoice_total'];
+        table.querySelector('thead tr').innerHTML = cols.map(function (c) { return '<th style="text-align:' + (right.indexOf(c) !== -1 ? 'right' : 'left') + ';padding:7px 8px;background:' + accent + ';color:#fff;font-weight:600">' + esc(labels[c] || c) + '</th>'; }).join('');
+        table.querySelector('tbody tr').innerHTML = cols.map(function (c) { return '<td style="text-align:' + (right.indexOf(c) !== -1 ? 'right' : 'left') + ';padding:7px 8px;border-bottom:1px solid #ddd">' + esc(sample[c] || '') + '</td>'; }).join('');
+      }
+    }
+
+    form.addEventListener('input', update);
+    form.addEventListener('change', update);
+    update();
+  }
+
+  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

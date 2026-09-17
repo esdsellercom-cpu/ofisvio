@@ -68,6 +68,7 @@ invoice,invoice.view,system_admin,global,no,no,
 invoice,invoice.view,super_admin,global,no,no,
 invoice,invoice.issue,finance_admin,global,no,no,
 invoice,invoice.issue,system_admin,global,no,no,
+invoice,invoice.issue,super_admin,global,no,no,tahsilat merkezi / belge sablonlari (faz 47)
 invoice,invoice.cancel,finance_admin,global,yes,no,
 invoice,invoice.cancel,super_admin,global,yes,no,
 invoice,invoice.refund,finance_admin,global,yes,no,
@@ -82,6 +83,7 @@ ledger,ledger.correction_entry,finance_admin,global,yes,no,orijinal kayit silinm
 ledger,ledger.correction_entry,super_admin,global,yes,no,
 ledger,payment_allocation.manage,finance_admin,global,no,no,odemenin hangi faturaya tahsis edildigi
 ledger,payment_allocation.manage,system_admin,global,no,no,
+ledger,payment_allocation.manage,super_admin,global,no,no,tahsilat merkezi (faz 47)
 crm,lead.view,system_admin,global,no,no,
 crm,lead.view,operations_admin,global,no,no,
 crm,lead.create,system_admin,global,no,no,

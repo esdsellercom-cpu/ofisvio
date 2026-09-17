@@ -1,0 +1,203 @@
+<?php
+
+namespace Tests\Feature\Panel;
+
+use App\Models\AuditLog;
+use App\Models\Company;
+use App\Models\Document;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\User;
+use App\Services\DocumentService;
+use App\Services\InvoiceService;
+use App\Support\NumberWords;
+use Database\Seeders\NotificationRuleSeeder;
+use Database\Seeders\WebsiteSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+/**
+ * Faz 47 — Tahsilat & belge merkezi: manuel tahsilat (kaydet / kaydet ve makbuz), fatura ve müşteri hesabına yansıma,
+ * nakit işareti, tahsilat iptali (silme yok, bakiye geri alınır, makbuz iptal), makbuz numarası/önizleme/PDF/yazdır/
+ * düzenle, geciken ödemeler sekmesi ve belgesi, şablon düzenleme (yer tutucular, canlı önizleme verisi), yetki.
+ */
+class CollectionCenterTest extends TestCase
+{
+    use CreatesTenantFixtures;
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seedRbac();
+        $this->seed(WebsiteSeeder::class);
+        $this->seed(NotificationRuleSeeder::class);
+        Carbon::setTestNow('2026-09-18 10:00:00');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
+
+    /** @return array{0: Company, 1: User, 2: Invoice} */
+    private function invoice(int $totalMinor = 120000, ?string $dueOn = '2026-09-25'): array
+    {
+        $org = $this->organization('Acme');
+        $co = $this->company($org, 'Acme A.Ş.');
+        $owner = $this->owner($org, $co);
+        $finance = $this->staff('finance_admin');
+        $invoice = app(InvoiceService::class)->create($finance, $co, ['description' => 'Sanal ofis Ekim', 'subtotal' => (string) ($totalMinor / 100 / 1.2), 'tax_rate' => 20, 'due_on' => $dueOn, 'issue' => true]);
+
+        return [$co, $owner, $invoice->fresh()];
+    }
+
+    #[Test]
+    public function manuel_tahsilat_faturaya_yansir_makbuz_olusur_iptal_bakiyeyi_geri_alir(): void
+    {
+        [$co, $owner, $invoice] = $this->invoice();
+        $finance = $this->staff('finance_admin');
+
+        // Ekran: sekmeler, + Manuel tahsilat, açık fatura satırında Tahsilat düğmesi.
+        $this->actingAs($finance)->get('/panel/tahsilat')->assertOk()->assertSee('+ Manuel tahsilat')->assertSee('Geciken ödemeler')->assertSee('Belgeler')->assertSee('modal-payment')->assertSee('Kaydet ve makbuz oluştur');
+
+        // Para birimi uyuşmazlığı ve ileri tarih reddedilir; kalan bakiyeyi aşan tutar reddedilir.
+        $this->actingAs($finance)->from('/panel/tahsilat')->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '100', 'currency' => 'USD', 'method' => 'cash', 'paid_on' => '2026-09-18'])->assertSessionHasErrors('amount');
+        $this->actingAs($finance)->from('/panel/tahsilat')->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '100', 'method' => 'cash', 'paid_on' => '2026-09-19'])->assertSessionHasErrors('amount');
+        $this->actingAs($finance)->from('/panel/tahsilat')->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '5000', 'method' => 'cash', 'paid_on' => '2026-09-18'])->assertSessionHasErrors('amount');
+        $this->assertSame(0, Payment::withoutTenantScope()->count());
+
+        // Kaydet: nakit kısmi tahsilat → fatura kısmi, müşteri hesabında görünür, nakit işaretli.
+        $this->actingAs($finance)->post('/panel/tahsilat/tahsilat', ['company_id' => $co->id, 'invoice_id' => $invoice->id, 'amount' => '500,00', 'currency' => 'TRY', 'method' => 'cash', 'paid_on' => '2026-09-18', 'description' => 'Sanal ofis Ekim', 'reference' => 'Kasa fişi 12', 'note' => 'Elden alındı'])
+            ->assertRedirect('/panel/tahsilat?sekme=tahsilatlar')->assertSessionHasNoErrors();
+        $payment = Payment::withoutTenantScope()->firstOrFail();
+        $this->assertSame([50000, 'TRY', 'cash', 'recorded', 'Sanal ofis Ekim'], [$payment->amount, $payment->currency, $payment->method, $payment->status, $payment->description]);
+        $this->assertSame([50000, 'issued'], [$invoice->fresh()->paid_amount, $invoice->fresh()->status]);
+        $this->actingAs($finance)->get('/panel/tahsilat?sekme=tahsilatlar')->assertOk()->assertSee('Kasa fişi 12')->assertSee('nakit')->assertSee('Makbuz oluştur');
+        $this->actingAs($owner)->withContext($co->organization)->get("/panel/sirketler/{$co->id}/faturalar/{$invoice->id}")->assertOk()->assertSee('Nakit')->assertSee('500,00');
+
+        // Kaydet ve makbuz oluştur: kalan tutar, POS; belge numarası MKB-2026-000001, önizleme/PDF/yazdır.
+        $this->actingAs($finance)->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '700', 'method' => 'card', 'paid_on' => '2026-09-18', 'then' => 'receipt'])->assertSessionHasNoErrors()->assertRedirect('/panel/tahsilat/belge/1');
+        $this->assertSame(['paid', 120000], [$invoice->fresh()->status, $invoice->fresh()->paid_amount]);
+        $doc = Document::query()->firstOrFail();
+        $this->assertSame(['receipt', 'MKB-2026-000001', 'issued'], [$doc->kind, $doc->number, $doc->status]);
+        $this->assertSame('700,00 ₺', $doc->data['amount']);
+        $this->assertSame('Acme A.Ş.', $doc->data['customer_name']);
+        $this->assertSame('0,00 ₺', $doc->data['remaining_amount']);
+        $html = $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id)->assertOk()->getContent();
+        $this->assertStringContainsString('TAHSİLAT MAKBUZU', $html);
+        $this->assertStringContainsString('MKB-2026-000001', $html);
+        $this->assertStringContainsString('Kart / POS', $html);
+        $this->assertStringContainsString('Ofisvio', $html); // işletme adı site marka ayarından
+        $this->assertStringContainsString(NumberWords::amount(70000), $html);
+        $this->assertStringContainsString('PDF indir', $html);
+        $pdf = $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id.'/pdf')->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+        $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id.'/yazdir')->assertOk()->assertSee('window.print()', false)->assertSee('MKB-2026-000001');
+
+        // Makbuz düzenle: metin alanları; numara/tutar sabit; audit.
+        $this->actingAs($finance)->put('/panel/tahsilat/belge/'.$doc->id, ['customer_name' => 'Acme Anonim Şirketi', 'customer_tax_number' => '1234567890', 'description' => 'Sanal ofis Ekim dönemi', 'date' => '18.09.2026', 'note' => 'Teşekkürler'])->assertRedirect('/panel/tahsilat/belge/'.$doc->id)->assertSessionHasNoErrors();
+        $this->assertSame(['Acme Anonim Şirketi', '700,00 ₺', 'MKB-2026-000001'], [$doc->fresh()->data['customer_name'], $doc->fresh()->data['amount'], $doc->fresh()->number]);
+        $this->assertTrue(AuditLog::query()->where('action', 'document.updated')->where('entity_id', $doc->id)->exists());
+        $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id)->assertOk()->assertSee('Acme Anonim Şirketi')->assertSee('Teşekkürler');
+
+        // Aynı tahsilata ikinci "Makbuz oluştur" yeni numara üretmez (tek geçerli makbuz).
+        $second = Payment::withoutTenantScope()->latest('id')->firstOrFail();
+        $this->actingAs($finance)->post('/panel/tahsilat/tahsilat/'.$second->id.'/makbuz')->assertRedirect('/panel/tahsilat/belge/'.$doc->id);
+        $this->assertSame(1, Document::query()->count());
+
+        // Tahsilat iptali: gerekçe zorunlu; kayıt silinmez, fatura yeniden açılır, makbuz iptal, audit + geçmiş.
+        $this->actingAs($finance)->from('/panel/tahsilat?sekme=tahsilatlar')->post('/panel/tahsilat/tahsilat/'.$second->id.'/iptal', ['reason' => 'kısa'])->assertSessionHasErrors('reason');
+        $this->actingAs($finance)->post('/panel/tahsilat/tahsilat/'.$second->id.'/iptal', ['reason' => 'POS işlemi geri alındı'])->assertRedirect('/panel/tahsilat?sekme=tahsilatlar')->assertSessionHasNoErrors();
+        $this->assertSame(['cancelled', 'POS işlemi geri alındı'], [$second->fresh()->status, $second->fresh()->cancel_reason]);
+        $this->assertSame(['issued', 50000], [$invoice->fresh()->status, $invoice->fresh()->paid_amount]);
+        $this->assertSame('cancelled', $doc->fresh()->status);
+        $this->assertSame(2, Payment::withoutTenantScope()->count());
+        $this->assertTrue(AuditLog::query()->where('action', 'payment.cancelled')->where('entity_id', $second->id)->exists());
+        $this->assertTrue(AuditLog::query()->where('action', 'invoice.payment_reversed')->where('entity_id', $invoice->id)->exists());
+        $this->actingAs($finance)->get('/panel/tahsilat?sekme=tahsilatlar')->assertOk()->assertSee('POS işlemi geri alındı')->assertSee('İptal');
+        $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id)->assertOk()->assertSee('Bu belge iptal edildi');
+        $this->actingAs($finance)->from('/panel/tahsilat?sekme=tahsilatlar')->post('/panel/tahsilat/tahsilat/'.$second->id.'/makbuz')->assertSessionHasErrors('payment');
+        // Özet KPI'ları iptali saymaz: bu ay tahsil edilen yalnız nakit 500.
+        $this->actingAs($finance)->get('/panel/tahsilat')->assertOk()->assertSee('Bu ay tahsil edilen')->assertSee('500,00 ₺');
+        $this->assertSame(50000, app(InvoiceService::class)->dashboard()['revenue_month']);
+
+        // Yetki: finans dışı personel yazamaz; müşteri sahibi tahsilat merkezine giremez.
+        $this->actingAs($this->staff('operations_admin'))->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '10', 'method' => 'cash', 'paid_on' => '2026-09-18'])->assertForbidden();
+        $this->actingAs($this->staff('operations_admin'))->get('/panel/tahsilat')->assertForbidden();
+        $this->actingAs($owner)->withContext($co->organization)->get('/panel/tahsilat/belge/'.$doc->id)->assertForbidden();
+    }
+
+    #[Test]
+    public function geciken_odemeler_sekmesi_belgesi_ve_sablon_duzenleme(): void
+    {
+        [$co, $owner, $invoice] = $this->invoice(120000, '2026-09-01');
+        $finance = $this->staff('finance_admin');
+        app(InvoiceService::class)->recordPayment($finance, $invoice, ['amount' => '200', 'method' => 'transfer', 'paid_on' => '2026-09-10']);
+        app(InvoiceService::class)->markOverdue();
+        $this->assertSame('overdue', $invoice->fresh()->status);
+
+        // Geciken ödemeler sekmesi: müşteri, fatura, vade, gecikme günü, toplam/ödenen/kalan + belge düğmesi.
+        $html = $this->actingAs($finance)->get('/panel/tahsilat?sekme=geciken')->assertOk()->getContent();
+        $this->assertStringContainsString('Acme A.Ş.', $html);
+        $this->assertStringContainsString('01.09.2026', $html);
+        $this->assertStringContainsString('17 gün', $html);
+        $this->assertStringContainsString('1.200,00 ₺', $html);
+        $this->assertStringContainsString('200,00 ₺', $html);
+        $this->assertStringContainsString('1.000,00 ₺', $html);
+        $this->assertStringContainsString('Geciken ödeme belgesi oluştur', $html);
+
+        // Belge: numara GOB-2026-000001, alanlar; düzenle → önizle → PDF → yazdır akışı.
+        $this->actingAs($finance)->post('/panel/tahsilat/fatura/'.$invoice->id.'/gecikme-belgesi')->assertRedirect('/panel/tahsilat/belge/1')->assertSessionHasNoErrors();
+        $doc = Document::query()->firstOrFail();
+        $this->assertSame(['overdue_notice', 'GOB-2026-000001', '17', '1.200,00 ₺', '200,00 ₺', '1.000,00 ₺', '01.09.2026'], [$doc->kind, $doc->number, $doc->data['days_overdue'], $doc->data['amount'], $doc->data['paid_amount'], $doc->data['remaining_amount'], $doc->data['due_date']]);
+        $page = $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id)->assertOk()->getContent();
+        $this->assertStringContainsString('GECİKEN ÖDEME BİLDİRİMİ', $page);
+        $this->assertStringContainsString('17 gündür gecikmiştir', $page);
+        $this->assertStringContainsString('Gecikme: 17 gün', $page);
+        $this->actingAs($finance)->put('/panel/tahsilat/belge/'.$doc->id, ['customer_name' => 'Acme A.Ş.', 'invoice_description' => 'Sanal ofis Ekim (gecikmiş)', 'date' => '18.09.2026', 'note' => 'Son ödeme günü 25.09.2026'])->assertSessionHasNoErrors();
+        $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id)->assertOk()->assertSee('Son ödeme günü 25.09.2026');
+        $this->assertStringStartsWith('%PDF', $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id.'/pdf')->assertOk()->getContent());
+        $this->actingAs($finance)->get('/panel/tahsilat/belge/'.$doc->id.'/yazdir')->assertOk()->assertSee('GOB-2026-000001');
+        // Ödenmiş/vadesi gelmemiş faturaya belge düzenlenmez.
+        [, , $fresh] = ['', '', app(InvoiceService::class)->create($finance, $co, ['description' => 'Yeni', 'subtotal' => '100', 'tax_rate' => 0, 'due_on' => '2026-12-01', 'issue' => true])];
+        $this->actingAs($finance)->from('/panel/tahsilat?sekme=geciken')->post('/panel/tahsilat/fatura/'.$fresh->id.'/gecikme-belgesi')->assertSessionHasErrors('invoice');
+        $this->actingAs($finance)->get('/panel/tahsilat?sekme=belgeler')->assertOk()->assertSee('GOB-2026-000001')->assertSee('Geciken ödeme belgesi')->assertSee('Tahsilat makbuzu');
+
+        // Şablon: düzenleme ekranı yer tutucuları ve gerçek kayıtla önizlemeyi gösterir; kaydet → belge çıktısı değişir.
+        $editor = $this->actingAs($finance)->get('/panel/tahsilat/sablon/overdue_notice')->assertOk()->getContent();
+        $this->assertStringContainsString('{{remaining_amount}}', $editor);
+        $this->assertStringContainsString('data-live-preview', $editor);
+        $this->assertStringContainsString('son gerçek kayıtla', $editor);
+        $this->assertStringContainsString('Acme A.Ş.', $editor);
+        $this->actingAs($finance)->from('/panel/tahsilat/sablon/overdue_notice')->put('/panel/tahsilat/sablon/overdue_notice', ['heading' => '', 'subheading' => 'x', 'columns' => ['invoice_number']])->assertSessionHasErrors('heading');
+        $this->actingAs($finance)->put('/panel/tahsilat/sablon/overdue_notice', ['logo_url' => '/images/logo.png', 'heading' => 'ÖDEME HATIRLATMA', 'subheading' => 'No {{document_number}}', 'show_business' => 1, 'intro' => 'Sayın {{customer_name}}, kalan {{remaining_amount}} tutarı {{days_overdue}} gündür gecikmiştir.', 'columns' => ['invoice_number', 'remaining_amount'], 'body' => 'Kalan: {{remaining_amount}}', 'signature' => 'Muhasebe', 'stamp' => '', 'footer' => '{{business_name}}', 'accent' => '#aa3333'])
+            ->assertRedirect('/panel/tahsilat/sablon/overdue_notice')->assertSessionHasNoErrors();
+        $this->assertTrue(AuditLog::query()->where('action', 'document.template_updated')->exists());
+        $rendered = app(DocumentService::class)->html($doc->fresh());
+        $this->assertStringContainsString('ÖDEME HATIRLATMA', $rendered);
+        $this->assertStringContainsString('No GOB-2026-000001', $rendered);
+        $this->assertStringContainsString('kalan 1.000,00 ₺ tutarı 17 gündür', $rendered);
+        $this->assertStringContainsString('#aa3333', $rendered);
+        $this->assertStringContainsString('Muhasebe', $rendered);
+        $this->assertStringNotContainsString('Vade</th>', $rendered); // yalnız seçili sütunlar
+        $this->assertStringContainsString('src="/images/logo.png"', $rendered);
+        // Bilinmeyen yer tutucu olduğu gibi kalır (yazım hatası görünür); geçerli olan değişir.
+        $this->assertSame('Acme A.Ş. · {{bilinmeyen}}', app(DocumentService::class)->substitute('{{customer_name}} · {{bilinmeyen}}', ['customer_name' => 'Acme A.Ş.']));
+        // Şablon yazma invoice.issue ister; görüntüleme invoice.view.
+        $this->actingAs($this->staff('operations_admin'))->put('/panel/tahsilat/sablon/receipt', ['heading' => 'X'])->assertForbidden();
+        // invoice.view taşıyıp invoice.issue taşımayan rol (muhasebeci gibi) yalnız görür: super_admin yazabildiği için finans dışı personel 403 (yukarıda).
+    }
+
+    #[Test]
+    public function tutar_yaziyla(): void
+    {
+        $this->assertSame('bin iki yüz lira sıfır kuruş', NumberWords::amount(120000));
+        $this->assertSame('üç bin beş yüz kırk iki lira yetmiş beş kuruş', NumberWords::amount(354275));
+        $this->assertSame('bir milyon lira sıfır kuruş', NumberWords::amount(100000000));
+        $this->assertSame('sıfır euro on sent', NumberWords::amount(10, 'EUR'));
+    }
+}
