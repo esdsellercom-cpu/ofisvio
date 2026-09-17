@@ -34,6 +34,7 @@ use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\IntegrationController;
 use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KycController;
+use App\Http\Controllers\Panel\LandingController;
 use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\LocationMediaController;
 use App\Http\Controllers\Panel\LocationSpaceController;
@@ -42,6 +43,7 @@ use App\Http\Controllers\Panel\MemberDirectoryController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
+use App\Http\Controllers\Panel\OperationsDashboardController;
 use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\PlanController;
 use App\Http\Controllers\Panel\ReportController;
@@ -78,6 +80,10 @@ Route::middleware(['auth', 'verified'])->prefix('panel')->name('panel.')->group(
         // --- Context'siz ekranlar ---------------------------------------
         Route::get('/organizasyon', [ContextController::class, 'select'])->name('context.select');
         Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:context-switch')->name('context.switch');
+
+        // Operasyon paneli (audit P1-13): personel özeti, tenant bağlamsız; bloklar izne göre (controller). Giriş hedefi /panel/baslangic.
+        Route::get('/operasyon', OperationsDashboardController::class)->middleware('permission:booking.view|invoice.view|subscription.view|space.view|lead.view|event.view|franchise.view|kyc.view_status|notification.view|geo.view')->name('operations');
+        Route::get('/baslangic', LandingController::class)->name('landing');
 
         // Üst çubuk araması (faz 38): kümeler izne göre serviste süzülür; ek route izni yok.
         Route::get('/ara', SearchController::class)->name('search');

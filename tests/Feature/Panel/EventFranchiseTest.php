@@ -93,7 +93,7 @@ class EventFranchiseTest extends TestCase
         $this->get('/etkinlik/girisimci-kahvaltisi')->assertOk()->assertSee('Kalan kontenjan: 1'); // iptal kontenjanı açtı
         $this->actingAs($ops)->from("/panel/etkinlikler/{$event->slug}")->delete("/panel/etkinlikler/{$event->slug}")->assertSessionHasErrors('event');
         $this->actingAs($finance)->post("/panel/etkinlikler/{$event->slug}/kayit/{$reg->id}", ['status' => 'attended'])->assertForbidden();
-        $html = $this->actingAs($ops)->withContext($this->organization('Beta'))->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($ops)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertStringContainsString('<span class="k">Yaklaşan etkinlik</span><span class="v">1</span>', $html);
         $this->assertStringContainsString('<span class="t">Etkinlikler &amp; topluluk</span>', $html);
 
@@ -122,7 +122,7 @@ class EventFranchiseTest extends TestCase
         $this->assertNotNull($app->consented_at);
 
         // Panel: menü rozeti 1 (yeni), dashboard KPI, liste, detay; finans göremez.
-        $html = $this->actingAs($ops)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($ops)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertMatchesRegularExpression('~<span class="t">Franchise yönetimi</span>\s*<span class="c a" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertStringContainsString('<span class="k">Franchise başvurusu</span><span class="v">1</span>', $html);
         $this->actingAs($finance)->get('/panel/franchise')->assertForbidden();
@@ -137,7 +137,7 @@ class EventFranchiseTest extends TestCase
         $this->assertNotNull($app->fresh()->handled_at);
         $this->assertTrue(AuditLog::query()->where('action', 'franchise.updated')->where('entity_id', $app->id)->exists());
         $this->actingAs($ops)->from("/panel/franchise/{$app->id}")->put("/panel/franchise/{$app->id}", ['status' => 'bozuk'])->assertSessionHasErrors('status');
-        $html = $this->actingAs($ops)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($ops)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertDoesNotMatchRegularExpression('~Franchise yönetimi</span>\s*<span class="c a"~', $html);
         $this->actingAs($ops)->get('/panel/raporlar?sekme=talepler')->assertOk()->assertSee('Franchise başvuruları')->assertSee('Değerlendirmede');
     }

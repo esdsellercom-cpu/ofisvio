@@ -89,7 +89,7 @@ class SpaceTest extends TestCase
         $html = $this->actingAs($ops)->get('/panel/alanlar')->assertOk()->getContent();
         $this->assertStringContainsString('<span class="k">Doluluk</span><span class="v">%75</span>', $html);
         $this->assertStringContainsString('30 günde biten tahsis</span><span class="v">1</span>', $html);
-        $dash = $this->actingAs($ops)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $dash = $this->actingAs($ops)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertStringContainsString('<span class="k">Doluluk (masa/ofis)</span><span class="v">%75</span>', $dash);
         $this->actingAs($ops)->get('/panel/raporlar?sekme=doluluk')->assertOk()->assertSee('Masa &amp; ofis doluluğu', false)->assertSee('Sabit masa');
         $this->actingAs($ops)->from("/panel/geo/lokasyon/{$kadikoy->slug}/alanlar")->put("/panel/geo/lokasyon/{$kadikoy->slug}/alanlar/{$desk->id}", ['kind' => 'desk_fixed', 'name' => 'A-1', 'monthly_price' => '3500', 'is_active' => 0])->assertSessionHasErrors('name');

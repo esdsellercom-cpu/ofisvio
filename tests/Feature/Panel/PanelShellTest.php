@@ -57,11 +57,12 @@ class PanelShellTest extends TestCase
         $this->assertSame(1, Lead::query()->where('status', 'new')->count());
 
         // Operasyon: menü grupları + sıralı numaralar + rozetler (bekleyen rezervasyon 1, yeni talep 1).
-        $html = $this->actingAs($ops)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($ops)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertStringContainsString('class="ap-nav__h">Genel bakış<', $html);
         $this->assertStringContainsString('class="ap-nav__h">Operasyon<', $html);
         $this->assertStringContainsString('class="ap-nav__h">Sistem<', $html);
-        $this->assertMatchesRegularExpression('~<span class="n" aria-hidden="true">1</span>\s*<span class="t">Dashboard</span>~', $html);
+        $this->assertMatchesRegularExpression('~<span class="n" aria-hidden="true">1</span>\s*<span class="t">Operasyon paneli</span>~', $html);
+        $this->assertMatchesRegularExpression('~<span class="n" aria-hidden="true">2</span>\s*<span class="t">Dashboard</span>~', $html);
         $this->assertMatchesRegularExpression('~<span class="t">Rezervasyonlar</span>\s*<span class="c w" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertMatchesRegularExpression('~<span class="t">CRM &amp; pazarlama</span>\s*<span class="c a" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertStringNotContainsString('KYC kuyruğu', $html); // izin yok
@@ -83,12 +84,17 @@ class PanelShellTest extends TestCase
         $this->assertStringNotContainsString('Bekleyen KYC', $html);
         $this->assertStringContainsString('Kadıköy', $html); // lokasyon performansı (30g)
 
-        // Finans: operasyon rozetleri/kartları yok, menüde rezervasyon yok; dashboard yine açılır.
-        $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        // Finans: operasyon panelinde rezervasyon blokları yok (izin yok), menüde rezervasyon yok; organizasyon dashboard'u operasyon özeti taşımaz.
+        $html = $this->actingAs($finance)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertStringNotContainsString('<span class="t">Rezervasyonlar</span>', $html);
         $this->assertStringNotContainsString('Onay bekleyen', $html);
         $this->assertStringNotContainsString('Ahmet Yılmaz', $html);
+        $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
         $this->assertStringContainsString('<span class="t">Şirketler</span>', $html);
+        $this->assertStringContainsString('Operasyon paneli', $html);
+        $this->assertStringNotContainsString('Bugünkü rezervasyon', $html);
+        // Giriş hedefi: personel operasyona, müşteri organizasyon dashboard'una.
+        $this->actingAs($ops)->get('/panel/baslangic')->assertRedirect('/panel/operasyon');
 
         // Müşteri (owner): şirket sayaçları; operasyon özeti ve personel menüleri yok.
         $owner = $this->owner($acme, $this->company($acme, 'Acme A.Ş.'));
@@ -97,6 +103,9 @@ class PanelShellTest extends TestCase
         $this->assertStringNotContainsString('Bugünkü rezervasyon', $html);
         $this->assertStringNotContainsString('class="ap-nav__h">Sistem<', $html);
         $this->assertStringContainsString('Müşteri</small>', $html);
+        $this->assertStringNotContainsString('Operasyon paneli', $html);
+        $this->actingAs($owner)->withContext($acme)->get('/panel/baslangic')->assertRedirect('/panel');
+        $this->actingAs($owner)->withContext($acme)->get('/panel/operasyon')->assertForbidden();
     }
 
     #[Test]

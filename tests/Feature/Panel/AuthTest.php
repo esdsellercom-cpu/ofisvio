@@ -44,7 +44,7 @@ class AuthTest extends TestCase
         $user = User::factory()->create(['password' => 'gizli-sifre-123']);
 
         $this->post('/login', ['email' => $user->email, 'password' => 'gizli-sifre-123'])
-            ->assertRedirect('/panel');
+            ->assertRedirect('/panel/baslangic'); // giriş hedefi: personel → operasyon, müşteri → dashboard
 
         $this->assertAuthenticatedAs($user);
     }

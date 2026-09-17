@@ -184,13 +184,13 @@ class AccountSecurityTest extends TestCase
         Cache::flush(); // yeni zaman penceresini simüle et
         // Telefon saati 50 sn geride: bir önceki periyodun kodu pencere (2) içinde kabul edilir.
         $previous = app(Google2FA::class)->oathTotp(decrypt($user->fresh()->two_factor_secret), app(Google2FA::class)->getTimestamp() - 2);
-        $this->post('/two-factor-challenge', ['code' => $previous])->assertRedirect('/panel');
+        $this->post('/two-factor-challenge', ['code' => $previous])->assertRedirect('/panel/baslangic');
         $this->assertAuthenticatedAs($user);
 
         // Kurtarma koduyla giriş: kod tek kullanımlık.
         $this->post('/logout');
         $this->post('/login', ['email' => $user->email, 'password' => 'gizli-sifre-123']);
-        $this->post('/two-factor-challenge', ['recovery_code' => $codes[0]])->assertRedirect('/panel');
+        $this->post('/two-factor-challenge', ['recovery_code' => $codes[0]])->assertRedirect('/panel/baslangic');
         $this->assertAuthenticatedAs($user);
         $this->assertNotContains($codes[0], $user->fresh()->recoveryCodes());
     }

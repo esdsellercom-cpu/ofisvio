@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/panel',
+    'home' => '/panel/baslangic', // personel → operasyon paneli, müşteri → organizasyon dashboard'u (LandingController)
 
     /*
     |--------------------------------------------------------------------------

@@ -111,7 +111,7 @@ class SubscriptionTest extends TestCase
         $late = Subscription::withoutTenantScope()->create(['company_id' => $acmeCo->id, 'plan_id' => $plan->id, 'status' => 'active', 'starts_on' => '2026-08-01', 'ends_on' => '2026-09-16', 'price' => 3500, 'period' => 'monthly']);
 
         // Rozet (menü) 1: yalnız bugünden ileri 30 gün; dashboard KPI + kart.
-        $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($finance)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertMatchesRegularExpression('~<span class="t">Üyelikler &amp; paketler</span>\s*<span class="c w" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertStringContainsString('<span class="k">Üyelik bitişi (30 gün)</span><span class="v">1</span>', $html);
         $this->assertStringContainsString('Yaklaşan üyelik bitişleri', $html);

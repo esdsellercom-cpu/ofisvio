@@ -56,6 +56,7 @@ class PanelMenu
         // Yalnız var olan modüller; Finans/Etkinlik/Franchise ögeleri kendi fazlarında eklenir.
         $groups = [
             ['Genel bakış', [
+                $can('booking.view', 'invoice.view', 'subscription.view', 'space.view', 'lead.view', 'event.view', 'franchise.view', 'kyc.view_status', 'notification.view', 'geo.view') ? $this->item('Operasyon paneli', route('panel.operations'), $this->routeIs('panel.operations')) : null,
                 $hasOrganization ? $this->item('Dashboard', route('panel.dashboard'), $this->routeIs('panel.dashboard')) : null,
             ]],
             ['Operasyon', [

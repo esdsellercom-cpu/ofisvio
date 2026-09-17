@@ -25,7 +25,7 @@
 
     <div class="ap" id="ap" data-shell>
         <aside class="ap-side" id="ap-side" aria-label="Panel kenar çubuğu">
-            <a href="{{ $twoFactorRequired ? route('panel.account') : route('panel.context.select') }}" class="ap-brand">
+            <a href="{{ $twoFactorRequired ? route('panel.account') : ($isStaff ? route('panel.operations') : route('panel.context.select')) }}" class="ap-brand">
                 <span class="ap-mark" aria-hidden="true">{{ mb_strtoupper(mb_substr(config('ofisvio.brand.name'), 0, 1)) }}</span>
                 <span><b>{{ config('ofisvio.brand.name') }}</b><span>Yönetim paneli</span></span>
             </a>

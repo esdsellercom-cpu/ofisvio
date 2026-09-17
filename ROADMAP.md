@@ -468,6 +468,9 @@ Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sı
   zorunluluk; `TenantContext::requiresTwoFactor` middleware ve menüyü aynı karara bağlar.
 - **İzin denetimi (S-7):** `database/seeders/data/rbac_planned_permissions.txt` + ArchitectureTest: matristeki her izin
   ya kodda kullanılır ya da gerekçeyle planlı listede; kullanılmaya başlanan izin listeden çıkarılmalı (iki yönlü).
+- **Operasyon paneli (H-5/M-3):** `/panel/operasyon` (`OperationsDashboardController`, tenant bağlamsız, bloklar izne
+  göre) + `panel/partials/ops-overview`; organizasyon dashboard'u (`/panel`) yalnız şirket/KYC; giriş hedefi
+  `/panel/baslangic` (`LandingController`: personel → operasyon, müşteri → dashboard); menüde "Operasyon paneli".
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

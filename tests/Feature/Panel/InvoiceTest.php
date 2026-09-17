@@ -96,7 +96,7 @@ class InvoiceTest extends TestCase
         $this->assertNotNull($inv->fresh()->paid_at);
         $this->assertSame(2, Payment::withoutTenantScope()->count());
         $this->assertTrue(AuditLog::query()->where('action', 'invoice.paid')->exists());
-        $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($finance)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertStringContainsString('<span class="k">Günlük ciro</span><span class="v">1.200,00 ₺</span>', $html);
         $this->assertStringContainsString('<span class="k">Aylık ciro</span><span class="v">1.200,00 ₺</span>', $html);
         $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar/{$inv->id}")->assertOk()->assertSee('DEK-1')->assertSee('Ödendi');
@@ -137,7 +137,7 @@ class InvoiceTest extends TestCase
         $this->artisan('invoices:mark-overdue')->expectsOutputToContain('1 fatura gecikmiş')->assertExitCode(0);
         $this->assertSame('overdue', $late->fresh()->status);
         $this->assertTrue(AuditLog::query()->where('action', 'invoice.overdue')->where('entity_id', $late->id)->exists());
-        $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
+        $html = $this->actingAs($finance)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertMatchesRegularExpression('~<span class="t">Tahsilat &amp; üyelik takibi</span>\s*<span class="c c" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertStringContainsString('<span class="k">Gecikmiş ödeme</span><span class="v">1</span>', $html);
         $this->assertStringContainsString('<span class="k">Bekleyen tahsilat</span><span class="v">4.000,00 ₺</span>', $html);
