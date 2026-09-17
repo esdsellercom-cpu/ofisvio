@@ -88,7 +88,7 @@ class PerfBaselineCommand extends Command
             }
         } finally {
             DB::rollBack();
-            Auth::logout();
+            Auth::forgetUser();
         }
 
         $payload = [
@@ -124,9 +124,10 @@ class PerfBaselineCommand extends Command
     private function measure(Kernel $kernel, string $path, ?User $staff): array
     {
         if ($staff !== null) {
-            Auth::login($staff);
+            // setUser/forgetUser: Login/Logout olayı tetiklenmez — ölçüm hesabı giriş geçmişine (login_events) yazılmaz.
+            Auth::setUser($staff);
         } else {
-            Auth::logout();
+            Auth::forgetUser();
         }
 
         $request = Request::create($path, 'GET', server: ['HTTP_HOST' => parse_url((string) config('app.url'), PHP_URL_HOST) ?: 'localhost']);

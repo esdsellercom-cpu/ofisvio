@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\LoginEvent;
 use Illuminate\Support\Facades\Schedule;
 
 // CMS: zamanlanmış içerik yayını. Üretimde cron: * * * * * php artisan schedule:run
@@ -17,3 +18,5 @@ Schedule::command('invoices:remind-due')->dailyAt('08:10')->withoutOverlapping()
 Schedule::command('finance:suspend-overdue')->dailyAt('00:25')->withoutOverlapping();
 // Alan tahsisleri: bitişi geçen tahsis sona erer (audit P0-2).
 Schedule::command('spaces:end-expired')->dailyAt('00:30')->withoutOverlapping();
+// Giriş geçmişi 180 gün (LoginEvent::prunable).
+Schedule::command('model:prune', ['--model' => [LoginEvent::class]])->daily();

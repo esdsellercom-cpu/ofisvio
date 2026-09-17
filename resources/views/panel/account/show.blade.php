@@ -79,4 +79,44 @@
             </form>
         </div>
     </div>
+    {{-- Oturum yönetimi ve giriş geçmişi (audit: session management, login history) --}}
+    <div class="grid g2" style="margin-top:20px">
+        <div class="card">
+            <div class="card__head"><h3>Aktif oturumlar</h3>@if ($sessions !== null)<span class="sub">{{ count($sessions) }} oturum</span>@endif
+                @if ($sessions !== null && collect($sessions)->where('current', false)->isNotEmpty())
+                    <span class="r"><form method="POST" action="{{ route('panel.account.sessions.close') }}">@csrf<button type="submit" class="btn btn--ghost btn--pill">Diğer cihazlardan çıkış</button></form></span>
+                @endif
+            </div>
+            @if ($sessions === null)
+                <div class="card__body"><p class="small muted" style="margin:0">Oturum listesi yalnız veritabanı oturum sürücüsünde tutulur (SESSION_DRIVER=database).</p></div>
+            @elseif ($sessions === [])
+                <div class="empty-state" style="border:0">Açık oturum yok.</div>
+            @else
+                <div class="rows">
+                    @foreach ($sessions as $s)
+                        <div class="row">
+                            <div class="main-t"><b>{{ $s['ip'] ?? '—' }} @if ($s['current'])<span class="pill a flat">bu cihaz</span>@endif</b><span>{{ Str::limit($s['user_agent'] ?? '—', 90) }}</span></div>
+                            <span class="rt mini">{{ $s['last_activity']->diffForHumans() }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+        <div class="card">
+            <div class="card__head"><h3>Son girişler</h3><span class="sub">Son 10 olay · 180 gün saklanır</span></div>
+            @if ($loginHistory->isEmpty())
+                <div class="empty-state" style="border:0">Henüz kayıt yok.</div>
+            @else
+                <div class="rows">
+                    @foreach ($loginHistory as $e)
+                        <div class="row">
+                            <span class="dotmark" style="background:{{ in_array($e->event, ['failed', 'lockout'], true) ? 'var(--crit)' : 'var(--good)' }}" aria-hidden="true"></span>
+                            <div class="main-t"><b>{{ $e->label() }}</b><span>{{ $e->ip ?? '—' }} · {{ Str::limit($e->user_agent ?? '—', 60) }}</span></div>
+                            <span class="rt mini">{{ $e->created_at->format('d.m.Y H:i') }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+        </div>
+    </div>
 @endsection

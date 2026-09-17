@@ -87,6 +87,44 @@ class AuthorizationService
     }
 
     /**
+     * Lokasyon görünürlüğü (audit: location-based access). Global grant varsa null (hepsi);
+     * yoksa kullanıcının bu izni LOKASYON kapsamında taşıdığı lokasyon id'leri (boş = hiçbiri).
+     * Lokasyon listeleri (alanlar vb.) bununla süzülür; başka lokasyonun verisi görünmez.
+     *
+     * @return array<int, int>|null
+     */
+    public function locationIdsWith(User $user, string $permissionName): ?array
+    {
+        $permissionId = $this->permissionId($permissionName);
+
+        if ($permissionId === null) {
+            return [];
+        }
+
+        $ids = [];
+
+        foreach ($this->grantRows($user, $permissionId) as $row) {
+            if ($row->scope === 'global' && $row->company_id === null && $row->organization_id === null && $row->location_id === null) {
+                return null;
+            }
+
+            if ($row->scope === 'location' && $row->location_id !== null) {
+                $ids[] = (int) $row->location_id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /** Global ya da en az bir lokasyonda bu izin var mı? (liste ekranlarının kapısı) */
+    public function canAnywhere(User $user, string $permissionName): bool
+    {
+        $ids = $this->locationIdsWith($user, $permissionName);
+
+        return $ids === null || $ids !== [];
+    }
+
+    /**
      * Bu izin, bu kullanıcı için, bu context'te JIT onayı gerektiriyor mu?
      *
      * Eski sürüm context'i hiç dikkate almıyordu ve kullanıcının izni taşıyan

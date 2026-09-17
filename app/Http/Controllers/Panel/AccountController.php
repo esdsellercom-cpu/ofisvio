@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Panel;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AccountSecurityService;
 use App\Services\AccountService;
 use App\Services\TenantContext;
 use Illuminate\Contracts\View\View;
@@ -22,14 +23,25 @@ use Illuminate\Http\Request;
  */
 class AccountController extends Controller
 {
-    public function __construct(private readonly TenantContext $context, private readonly AccountService $account) {}
+    public function __construct(private readonly TenantContext $context, private readonly AccountService $account, private readonly AccountSecurityService $security) {}
 
     public function show(Request $request): View
     {
         return view('panel.account.show', [
             'user' => $request->user(),
             'isStaffUser' => $this->context->isInternalStaff($request->user()),
+            'sessions' => $this->security->activeSessions($request->user(), $request->session()->getId()),
+            'loginHistory' => $this->security->loginHistory($request->user(), 10),
         ]);
+    }
+
+    /** Diğer cihazlardan çıkış (audit): şifre onayı route'ta (password.confirm); diğer oturum satırları silinir, remember token döner. */
+    public function logoutOtherDevices(Request $request): RedirectResponse
+    {
+        $n = $this->security->logoutOtherDevices($request->user(), $request->session()->getId());
+        $request->user()->save();
+
+        return redirect()->route('panel.account')->with('status', $n > 0 ? "{$n} oturum kapatıldı; bu cihaz açık kaldı." : 'Başka açık oturum yoktu.');
     }
 
     /** Panel teması (faz 38): kullanıcı tercihi veritabanında; 'system' = tercih yok. */

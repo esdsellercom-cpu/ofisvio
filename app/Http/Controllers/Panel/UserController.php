@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Panel;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\AccountSecurityService;
 use App\Services\GeoService;
 use App\Services\UserAdminService;
 use DomainException;
@@ -23,6 +24,7 @@ class UserController extends Controller
     public function __construct(
         private readonly UserAdminService $users,
         private readonly GeoService $geo,
+        private readonly AccountSecurityService $security,
     ) {}
 
     public function index(Request $request): View
@@ -66,7 +68,40 @@ class UserController extends Controller
             'roles' => $this->users->internalRoles(),
             'locationRoles' => $this->users->locationScopedRoles(),
             'locations' => $this->geo->allLocations(),
+            'loginHistory' => $this->security->loginHistory($user, 20),
+            'sessions' => $this->security->activeSessions($user, null),
         ]);
+    }
+
+    public function suspend(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate(['reason' => ['required', 'string', 'min:5', 'max:300']]);
+
+        try {
+            $this->security->suspend($request->user(), $user, $data['reason']);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return back()->with('status', $user->name.' askıya alındı; açık oturumları kapatıldı.');
+    }
+
+    public function reactivate(Request $request, User $user): RedirectResponse
+    {
+        try {
+            $this->security->reactivate($request->user(), $user);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()]);
+        }
+
+        return back()->with('status', $user->name.' yeniden etkinleştirildi.');
+    }
+
+    public function terminateSessions(Request $request, User $user): RedirectResponse
+    {
+        $n = $this->security->terminateSessions($request->user(), $user);
+
+        return back()->with('status', $n > 0 ? "{$n} oturum kapatıldı." : 'Açık oturum yoktu.');
     }
 
     public function assignRole(Request $request, User $user): RedirectResponse

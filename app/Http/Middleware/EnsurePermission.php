@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Exceptions\TenantContextException;
+use App\Services\AuthorizationService;
 use App\Services\JitAccessService;
 use App\Services\TenantContext;
 use Closure;
@@ -38,6 +39,7 @@ class EnsurePermission
     public function __construct(
         private readonly TenantContext $context,
         private readonly JitAccessService $jit,
+        private readonly AuthorizationService $authorization,
     ) {}
 
     public function handle(
@@ -91,6 +93,7 @@ class EnsurePermission
         // roller (operations_admin) aynı context'te 'global' dalından geçer.
         $context = match (true) {
             $scopeParam === 'location' => ['location_id' => $locationId],
+            $scopeParam === 'anylocation' => [], // lokasyonsuz liste ekranı; global grant yoksa aşağıda lokasyon grant'i aranır
             $scopeParam === null && $this->context->activeOrganizationId() === null => [],
             default => $this->context->toArray($user, $companyId, $locationId),
         };
@@ -107,6 +110,12 @@ class EnsurePermission
 
         foreach ($permissions as $candidate) {
             if ($this->jit->allows($user, $candidate, $context, $resourceType, $resourceId)) {
+                return $next($request);
+            }
+
+            // 'anylocation' (audit: location-based access): lokasyonsuz liste ekranı; global grant yoksa
+            // lokasyon kapsamlı grant yeter — controller AuthorizationService::locationIdsWith ile süzer.
+            if ($scopeParam === 'anylocation' && $this->authorization->canAnywhere($user, $candidate)) {
                 return $next($request);
             }
         }

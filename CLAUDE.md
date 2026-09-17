@@ -16,9 +16,9 @@ Kırmızı testi geçirmek için test **gevşetilmez**, kök neden düzeltilir. 
 düşürülmez, `@phpstan-ignore` / baseline eklenmez. `tests/Architecture/ArchitectureTest.php`
 mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerekçeli yorumla.
 
-## Zincir: auth → staff.2fa → tenant → permission (bkz. routes/panel.php)
+## Zincir: auth → account.active → verified → staff.2fa → tenant → permission (bkz. routes/panel.php)
 
-- Personel (global internal rol) doğrulanmış 2FA olmadan `/panel/hesap*` dışında hiçbir ekrana giremez (`EnsureStaffTwoFactor`; `security.require_customer_2fa` açıksa şirket sahibi/yöneticisi de). Panel `verified` ister: davetli şifre belirleyince doğrulanır. Şifre politikası `AppServiceProvider` (`Password::defaults`). Matristeki izin kodda kullanılmıyorsa `rbac_planned_permissions.txt`'de gerekçeli olmalı (ArchitectureTest). Testlerde `staff()` fixture'ı 2FA'lı personel üretir; zorunluluk testleri `staffWithoutTwoFactor()` kullanır.
+- Personel (global internal rol) doğrulanmış 2FA olmadan `/panel/hesap*` dışında hiçbir ekrana giremez (`EnsureStaffTwoFactor`; `security.require_customer_2fa` açıksa şirket sahibi/yöneticisi de). Panel `verified` ister: davetli şifre belirleyince doğrulanır. Şifre politikası `AppServiceProvider` (`Password::defaults`). Matristeki izin kodda kullanılmıyorsa `rbac_planned_permissions.txt`'de gerekçeli olmalı (ArchitectureTest). Testlerde `staff()` fixture'ı 2FA'lı personel üretir; zorunluluk testleri `staffWithoutTwoFactor()` kullanır. Hesap durumu/oturumlar/giriş geçmişi `AccountSecurityService` (`users.status`, `sessions`, `login_events`); askıdaki hesap girişte genel hata alır, açık oturumu `account.active` düşürür. Giriş olayları `RecordLoginEvent`'e gider — sentetik oturumlar (perf ölçümü) `Auth::setUser/forgetUser` kullanır. `User` `#[Fillable]` dışı alanlar (`status`, `email_verified_at`) yalnız `forceFill`.
 
 - **Yetki route'ta verilir**, controller'da değil: `->middleware('permission:<izin>[,<kapsam>[,<kaynak tipi>,<kaynak parametresi>]]')`.
   `|` alternatif izindir. İzin adları `database/seeders/data/rbac_scope_permission_matrix.csv`'den gelir; CSV tek kaynaktır.
@@ -28,7 +28,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 - **`withoutTenantScope()` her çağrısı güvenlik kararıdır**; ArchitectureTest allowlist'inde gerekçesiyle yer almalı.
 - İç içe route'larda `->scopeBindings()` zorunlu; çocuk parametre adı ebeveynin **çoğul ilişki metoduyla** eşleşmeli
   (`{kycDocument}` → `Company::kycDocuments()`, `{userRole}` → `Company::userRoles()`).
-- `permission:<izin>,location` organizasyon bağlamı istemez (lokasyon Ofisvio şubesidir); context yalnız `location_id`. Lokasyon kapsamlı internal rol (resepsiyon) `user_roles.location_id` ile atanır (`UserAdminService::locationScopedRoles`) ve 2FA zorunluluğuna girer.
+- `permission:<izin>,location` organizasyon bağlamı istemez (lokasyon Ofisvio şubesidir); context yalnız `location_id`. `permission:<izin>,anylocation` lokasyonsuz liste ekranı içindir: global YA DA herhangi bir lokasyon grant'i geçer; controller `AuthorizationService::locationIdsWith` (null = hepsi) ile süzer, yabancı lokasyonun kaydı 404 (bkz. `SpaceController`). Lokasyon kapsamlı internal rol (resepsiyon) `user_roles.location_id` ile atanır (`UserAdminService::locationScopedRoles`) ve 2FA zorunluluğuna girer.
 - Tenant sınırı ihlali **404** döner (403 kaydın varlığını sızdırır); context yoksa 409 → tarayıcıda seçim ekranı.
 - Tenant scope taşımayan modele (Content, Website) tenant rotasından erişim: parametre **int** kalır (model binding yok), servis organizasyona süzer (`ContentService::findForOrganization`), null → 404. Bkz. `SiteController`.
 - `Gate::before` yasak ("Super Admin != Root"); JIT izinleri (`requires_jit`) `allows()` ile, rolde-var-mı sorusu `can()` ile.

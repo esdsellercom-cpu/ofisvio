@@ -39,10 +39,14 @@ class SpaceService
         return $this->baseQuery()->where('location_id', $location->id)->orderBy('kind')->orderBy('sort_order')->orderBy('name')->get();
     }
 
-    /** @return Collection<int, Space> */
-    public function all(): Collection
+    /**
+     * @param  array<int, int>|null  $locationIds  null = tüm lokasyonlar; dizi = yalnız bunlar (lokasyon kapsamlı personel)
+     * @return Collection<int, Space>
+     */
+    public function all(?array $locationIds = null): Collection
     {
-        return $this->baseQuery()->with('location')->orderBy('location_id')->orderBy('kind')->orderBy('sort_order')->orderBy('name')->get();
+        return $this->baseQuery()->with('location')->when($locationIds !== null, fn (Builder $q) => $q->whereIn('location_id', $locationIds))
+            ->orderBy('location_id')->orderBy('kind')->orderBy('sort_order')->orderBy('name')->get();
     }
 
     public function find(int $id): ?Space
@@ -200,13 +204,15 @@ class SpaceService
     // ---- Doluluk ------------------------------------------------------------------
 
     /**
-     * Tür başına envanter/doluluk (tüm lokasyonlar ya da tek lokasyon).
+     * Tür başına envanter/doluluk (tüm lokasyonlar, tek lokasyon ya da lokasyon kapsamlı personelin lokasyonları).
      *
+     * @param  array<int, int>|null  $locationIds
      * @return array{total: int, slots: int, occupied: int, rate: float, by_kind: array<string, array{label: string, total: int, slots: int, occupied: int}>, ending_30d: int}
      */
-    public function occupancy(?Location $location = null): array
+    public function occupancy(?Location $location = null, ?array $locationIds = null): array
     {
-        $spaces = $this->baseQuery()->where('is_active', true)->when($location !== null, fn (Builder $q) => $q->where('location_id', $location->id))->get();
+        $spaces = $this->baseQuery()->where('is_active', true)->when($location !== null, fn (Builder $q) => $q->where('location_id', $location->id))
+            ->when($locationIds !== null, fn (Builder $q) => $q->whereIn('location_id', $locationIds))->get();
         $byKind = [];
 
         foreach (Space::KINDS as $kind => $label) {
@@ -225,20 +231,22 @@ class SpaceService
             'by_kind' => $byKind,
             'ending_30d' => SpaceAssignment::withoutTenantScope()->where('status', 'active')->whereNotNull('ends_on')
                 ->when($location !== null, fn (Builder $q) => $q->whereHas('space', fn (Builder $s) => $s->where('location_id', $location->id)))
+                ->when($locationIds !== null, fn (Builder $q) => $q->whereHas('space', fn (Builder $s) => $s->whereIn('location_id', $locationIds)))
                 ->whereDate('ends_on', '<=', Carbon::today()->addDays(30)->toDateString())->count(),
         ];
     }
 
     /**
-     * Lokasyon başına özet (alanlar ekranı).
+     * Lokasyon başına özet (alanlar ekranı); $locationIds null = hepsi.
      *
+     * @param  array<int, int>|null  $locationIds
      * @return array<int, array{location: Location, occupancy: array{total: int, slots: int, occupied: int, rate: float, by_kind: array<string, array{label: string, total: int, slots: int, occupied: int}>, ending_30d: int}}>
      */
-    public function byLocation(): array
+    public function byLocation(?array $locationIds = null): array
     {
         $out = [];
 
-        foreach (Location::query()->orderBy('city')->orderBy('sort_order')->orderBy('name')->get() as $location) {
+        foreach (Location::query()->when($locationIds !== null, fn (Builder $q) => $q->whereIn('id', $locationIds))->orderBy('city')->orderBy('sort_order')->orderBy('name')->get() as $location) {
             $summary = $this->occupancy($location);
 
             if ($summary['total'] > 0) {

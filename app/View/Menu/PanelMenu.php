@@ -4,6 +4,7 @@ namespace App\View\Menu;
 
 use App\Models\Location;
 use App\Models\User;
+use App\Services\AuthorizationService;
 use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -21,7 +22,7 @@ use Illuminate\Support\Collection;
  */
 class PanelMenu
 {
-    public function __construct(private readonly Gate $gate, private readonly Request $request) {}
+    public function __construct(private readonly Gate $gate, private readonly Request $request, private readonly AuthorizationService $authorization) {}
 
     /**
      * @param  Collection<int, Location>  $deskLocations
@@ -61,7 +62,7 @@ class PanelMenu
             ]],
             ['Operasyon', [
                 $can('geo.view') ? $this->item('Lokasyonlar & alanlar', route('panel.geo.index'), $this->routeIs('panel.geo.*')) : null,
-                $can('geo.view', 'booking.view') ? $this->item('Masalar, ofisler & odalar', route('panel.spaces.index'), $this->routeIs('panel.spaces.*')) : null,
+                $can('geo.view', 'booking.view') || $this->authorization->canAnywhere($user, 'space.view') ? $this->item('Masalar, ofisler & odalar', route('panel.spaces.index'), $this->routeIs('panel.spaces.*')) : null,
                 $can('booking.view') ? $this->item('Rezervasyonlar', route('panel.bookings.index'), $this->routeIs('panel.bookings.index'), $badges['bookings_pending'] ?? 0, 'w') : null,
                 ...$desk,
                 $can('service.view', 'service.manage') ? $this->item('Hizmet kataloğu', route('panel.services.index'), $this->routeIs('panel.services.*')) : null,

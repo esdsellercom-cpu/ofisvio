@@ -12,5 +12,5 @@
     <meta property="og:locale" content="{{ $seo['locale'] }}">
     <meta property="og:site_name" content="{{ $currentWebsite->name ?? config('ofisvio.brand.name') }}">
     <meta name="twitter:card" content="summary">
-    <script type="application/ld+json">{!! json_encode($seo['json_ld'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+    <script type="application/ld+json">{!! json_encode($seo['json_ld'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>
 @endisset

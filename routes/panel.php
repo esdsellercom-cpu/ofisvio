@@ -63,13 +63,16 @@ use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
 // 'verified' (audit S-4): e-postası doğrulanmamış hesap panele giremez; Fortify doğrulama ekranına yönlendirir.
-Route::middleware(['auth', 'verified'])->prefix('panel')->name('panel.')->group(function () {
+// 'account.active': askıya alınmış hesap açık oturumla da giremez (AccountSecurityService).
+Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name('panel.')->group(function () {
 
     // --- Hesap — 2FA zorunluluğunun DIŞINDA: kurulumun yapıldığı yer -------
     // Profil/şifre formları Fortify route'larına gider. Güvenlik sayfası
     // password.confirm ister; Fortify'ın 2FA POST'ları da aynı onayı kullanır.
     Route::get('/hesap', [AccountController::class, 'show'])->name('account');
     Route::post('/hesap/tema', [AccountController::class, 'theme'])->name('account.theme');
+    // Oturum yönetimi (audit): diğer cihazlardan çıkış şifre onayı ister.
+    Route::post('/hesap/oturumlar/kapat', [AccountController::class, 'logoutOtherDevices'])->middleware('password.confirm')->name('account.sessions.close');
     Route::get('/hesap/guvenlik', [AccountController::class, 'security'])
         ->middleware('password.confirm')
         ->name('account.security');
@@ -90,10 +93,11 @@ Route::middleware(['auth', 'verified'])->prefix('panel')->name('panel.')->group(
 
         // Faz 39 — artifact menü paritesi: alanlar (§3), raporlar (§16), entegrasyonlar (§18).
         // Masalar, ofisler & odalar (audit P0-2): envanter/doluluk space.view (ya da geo/booking görüntüleme); tahsis space.manage.
-        Route::get('/alanlar', [SpaceController::class, 'index'])->middleware('permission:space.view|geo.view|booking.view')->name('spaces.index');
-        Route::get('/alanlar/{space}', [SpaceController::class, 'show'])->where('space', '[0-9]+')->middleware('permission:space.view|space.manage')->name('spaces.show');
-        Route::post('/alanlar/{space}/tahsis', [SpaceController::class, 'assign'])->where('space', '[0-9]+')->middleware('permission:space.manage')->name('spaces.assign');
-        Route::post('/alanlar/{space}/tahsis/{assignment}/bitir', [SpaceController::class, 'end'])->where(['space' => '[0-9]+', 'assignment' => '[0-9]+'])->middleware('permission:space.manage')->name('spaces.end');
+        // 'anylocation': lokasyon yöneticisi/resepsiyon yalnız kendi lokasyonlarını görür (controller süzer, yabancı alan 404).
+        Route::get('/alanlar', [SpaceController::class, 'index'])->middleware('permission:space.view|geo.view|booking.view,anylocation')->name('spaces.index');
+        Route::get('/alanlar/{space}', [SpaceController::class, 'show'])->where('space', '[0-9]+')->middleware('permission:space.view|space.manage,anylocation')->name('spaces.show');
+        Route::post('/alanlar/{space}/tahsis', [SpaceController::class, 'assign'])->where('space', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('spaces.assign');
+        Route::post('/alanlar/{space}/tahsis/{assignment}/bitir', [SpaceController::class, 'end'])->where(['space' => '[0-9]+', 'assignment' => '[0-9]+'])->middleware('permission:space.manage,anylocation')->name('spaces.end');
         Route::get('/raporlar', [ReportController::class, 'index'])->middleware('permission:analytics.view')->name('reports.index');
         Route::get('/entegrasyonlar', [IntegrationController::class, 'index'])->middleware('permission:performance.view')->name('integrations.index');
 
@@ -227,6 +231,10 @@ Route::middleware(['auth', 'verified'])->prefix('panel')->name('panel.')->group(
             Route::get('/yeni', [UserController::class, 'create'])->name('create');
             Route::post('/', [UserController::class, 'store'])->middleware('throttle:invite')->name('store');
             Route::get('/{user}', [UserController::class, 'show'])->name('show');
+            // Hesap durumu ve oturumlar (audit): askıya al / etkinleştir / tüm oturumları kapat.
+            Route::post('/{user}/askiya-al', [UserController::class, 'suspend'])->name('suspend');
+            Route::post('/{user}/etkinlestir', [UserController::class, 'reactivate'])->name('reactivate');
+            Route::post('/{user}/oturumlari-kapat', [UserController::class, 'terminateSessions'])->name('sessions.terminate');
             Route::post('/{user}/rol', [UserController::class, 'assignRole'])->name('roles.assign');
             Route::post('/{user}/rol/{userRole}/askiya-al', [UserController::class, 'suspendRole'])->name('roles.suspend');
             Route::post('/{user}/rol/{userRole}/etkinlestir', [UserController::class, 'reactivateRole'])->name('roles.reactivate');

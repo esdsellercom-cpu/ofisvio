@@ -1,6 +1,7 @@
 <?php
 
 use App\Exceptions\TenantContextException;
+use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureStaffTwoFactor;
 use App\Http\Middleware\EnsureTenantContext;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => EnsurePermission::class,
             'staff.2fa' => EnsureStaffTwoFactor::class,
             'totp.normalize' => NormalizeTotpCode::class,
+            'account.active' => EnsureAccountActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **274/274** (Unit 12 · Feature 246 · Architecture 16) |
+| `php artisan test` | ✅ **279/279** (Unit 12 · Feature 251 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -474,6 +474,31 @@ Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sı
 - **Rezervasyon → fatura (H-6):** `InvoiceBookingOnStatusChange` dinleyicisi (otomatik keşif): şirket hesabıyla
   onaylanan rezervasyon için `InvoiceService::createForBooking` (booking_id, tek fatura), iptal/red/süre dolumunda
   ödemesiz açık fatura sistemce iptal; `finance.auto_invoice_bookings` ayarı; vitrin şirketsiz talepler fatura üretmez.
+
+### 43. Çekirdek kimlik & yetki sertleştirme ✅ (17 Eylül 2026)
+Kapsam: Login/Logout/Register/e-posta doğrulama/şifre sıfırlama/2FA (mevcut, `AuthTest` + `AccountSecurityTest`),
+oturum yönetimi, hesap durumu, giriş geçmişi, lokasyon bazlı erişim, güvenlik denetimi (`AuthCoreTest`).
+- **Giriş geçmişi:** `login_events` (Prunable 180 gün, `model:prune` günlük) — `RecordLoginEvent` dinleyicisi
+  Login/Failed/Logout/Lockout/PasswordReset/OtherDeviceLogout/2FA olaylarını ip + user agent ile yazar. Hesap
+  sayfasında "Son girişler", kullanıcı detayında "Giriş geçmişi". Perf baseline ölçümü `setUser/forgetUser`
+  kullanır (sahte giriş kaydı yok).
+- **Aktif oturumlar (S-9):** `AccountSecurityService::activeSessions` (`sessions` tablosu; yalnız
+  `SESSION_DRIVER=database`), "Diğer cihazlardan çıkış" (`password.confirm`, remember token döner, audit
+  `user.other_devices_logout`); yönetici `user.manage` ile hedefin tüm oturumlarını kapatır (`user.sessions_terminated`).
+- **Hesap durumu:** `users.status` (active/suspended, `suspended_at/_reason`); `AccountSecurityService::suspend/reactivate`
+  (kendini askıya alamaz, oturumlar silinir, audit `user.suspended`/`user.reactivated`). Askıdaki hesap
+  `Fortify::authenticateUsing`'de genel hatayla reddedilir (durum sızmaz); açık oturum `account.active` middleware'iyle
+  düşürülür (zincir: auth → account.active → verified → staff.2fa → tenant → permission).
+- **Lokasyon bazlı erişim:** `AuthorizationService::locationIdsWith(user, izin)` (null = global grant; dizi = izinli
+  lokasyonlar) + `canAnywhere`; `permission:<izin>,anylocation` kapsamı lokasyonsuz liste ekranına global YA DA lokasyon
+  kapsamlı grant'le girer; `SpaceController` listeyi/doluluğu süzer, yabancı lokasyonun alanı 404, tahsis yalnız
+  `space.manage` taşınan lokasyonda. Lokasyon yöneticisi/resepsiyon menüde "Masalar, ofisler & odalar" görür.
+- **Güvenlik denetimi (kod okuması):** CSRF (webhook HMAC'li istisna dışında tam), XSS (Blade kaçışı; markdown
+  `html_input=strip`; JSON-LD `JSON_HEX_TAG|JSON_HEX_AMP` eklendi), SQL (Eloquent/binding; statik raw ifadeler),
+  IDOR (tenant scope + `scopeBindings` + `findForCompany`, sınır ihlali 404), kütle atama (`#[Fillable]`,
+  `status`/`email_verified_at` yalnız `forceFill` — test), oturum (regenerate, secure/same-site, DB sürücüsü),
+  brute-force (login 5/dk e-posta|ip, 2FA 5/dk, lockout kaydı), yetki atlatma (`Gate::before` yasak, route-middleware
+  ArchitectureTest, JIT). Açık kalanlar: CAPTCHA (S-8), IP allowlist (S-12), KVKK saklama (S-10).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

@@ -35,7 +35,7 @@
                     @php($scoped = $u->userRoles->count() - $global->count())
                     <tr>
                         <td><a href="{{ route('panel.users.show', $u) }}">{{ $u->name }}</a></td>
-                        <td class="mono small">{{ $u->email }}</td>
+                        <td class="mono small">{{ $u->email }}@if ($u->isSuspended()) <span class="pill c flat">askıda</span>@endif</td>
                         <td class="small">
                             @foreach ($global as $r)
                                 <span class="badge badge--{{ $r->status === 'active' ? 'info' : 'muted' }}" title="{{ $r->status }}">{{ __('roles.'.$r->role->name) }}</span>

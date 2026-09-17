@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Panel;
 use App\Http\Controllers\Controller;
 use App\Models\Room;
 use App\Models\Space;
+use App\Services\AuthorizationService;
 use App\Services\BookingService;
 use App\Services\MembershipService;
 use App\Services\SpaceService;
@@ -26,18 +27,22 @@ class SpaceController extends Controller
         private readonly BookingService $bookings,
         private readonly SubscriptionService $subscriptions,
         private readonly MembershipService $members,
+        private readonly AuthorizationService $authorization,
     ) {}
 
     public function index(Request $request): View
     {
         $tab = $request->query('sekme') === 'odalar' ? 'odalar' : 'alanlar';
-        $rooms = $tab === 'odalar' ? $this->bookings->allRooms() : collect();
+        // Lokasyon kapsamlı personel (audit: location-based access): yalnız kendi lokasyonları; global → null (hepsi).
+        $scope = $this->visibleLocationIds($request);
+        $rooms = $tab === 'odalar' ? $this->bookings->allRooms()->when($scope !== null, fn ($c) => $c->whereIn('location_id', $scope)) : collect();
 
         return view('panel.spaces.index', [
             'tab' => $tab,
-            'occupancy' => $this->spaces->occupancy(),
-            'byLocation' => $tab === 'alanlar' ? $this->spaces->byLocation() : [],
-            'spaces' => $tab === 'alanlar' ? $this->spaces->all()->groupBy('location_id') : collect(),
+            'occupancy' => $this->spaces->occupancy(null, $scope),
+            'byLocation' => $tab === 'alanlar' ? $this->spaces->byLocation($scope) : [],
+            'spaces' => $tab === 'alanlar' ? $this->spaces->all($scope)->groupBy('location_id') : collect(),
+            'scoped' => $scope !== null,
             'roomsByLocation' => $rooms->groupBy(fn (Room $r) => $r->location->name),
             'kinds' => Room::KINDS,
             'spaceKinds' => Space::KINDS,
@@ -53,8 +58,8 @@ class SpaceController extends Controller
     /** Detay: tahsis geçmişi; ?sirket= seçilince o şirketin üyeleri/aktif üyelikleri forma gelir (JS'siz). */
     public function show(Request $request, int $space): View
     {
-        $record = $this->find($space);
-        $canManage = $request->user()->can('space.manage');
+        $record = $this->find($space, $request);
+        $canManage = $this->authorization->can($request->user(), 'space.manage', ['location_id' => $record->location_id]);
         $company = $canManage ? $this->bookings->companiesForDesk()->firstWhere('id', (int) $request->query('sirket', 0)) : null;
 
         return view('panel.spaces.show', [
@@ -70,7 +75,7 @@ class SpaceController extends Controller
 
     public function assign(Request $request, int $space): RedirectResponse
     {
-        $record = $this->find($space);
+        $record = $this->find($space, $request, 'space.manage');
         $data = $request->validate([
             'company_id' => ['required', 'integer'],
             'subscription_id' => ['nullable', 'integer'],
@@ -102,7 +107,7 @@ class SpaceController extends Controller
 
     public function end(Request $request, int $space, int $assignment): RedirectResponse
     {
-        $record = $this->find($space);
+        $record = $this->find($space, $request, 'space.manage');
         $target = $this->spaces->findAssignment($assignment);
 
         if ($target === null || (int) $target->space_id !== (int) $record->id) {
@@ -118,8 +123,38 @@ class SpaceController extends Controller
         return redirect()->route('panel.spaces.show', $record->id)->with('status', 'Tahsis sonlandırıldı.');
     }
 
-    private function find(int $id): Space
+    /**
+     * Alanı bulur; lokasyon kapsamlı kullanıcı için alan kendi lokasyonlarından değilse 404
+     * (varlık sızdırılmaz). $permission: hangi iznin lokasyon kapsamına bakılacağı.
+     */
+    private function find(int $id, ?Request $request = null, string $permission = 'space.view'): Space
     {
-        return $this->spaces->find($id) ?? abort(404);
+        $space = $this->spaces->find($id) ?? abort(404);
+
+        if ($request !== null) {
+            $ids = $this->authorization->locationIdsWith($request->user(), $permission);
+            // space.view global değilse: geo.view/booking.view global olan personel de tüm alanları görür.
+            $globalAlt = $permission === 'space.view' && ($this->authorization->can($request->user(), 'geo.view') || $this->authorization->can($request->user(), 'booking.view'));
+
+            if ($ids !== null && ! $globalAlt && ! in_array((int) $space->location_id, $ids, true)) {
+                abort(404);
+            }
+        }
+
+        return $space;
+    }
+
+    /** null = tüm lokasyonlar (global izin); dizi = lokasyon kapsamlı personelin lokasyonları. */
+    private function visibleLocationIds(Request $request): ?array
+    {
+        $user = $request->user();
+
+        foreach (['space.view', 'geo.view', 'booking.view'] as $permission) {
+            if ($this->authorization->locationIdsWith($user, $permission) === null) {
+                return null;
+            }
+        }
+
+        return array_values(array_unique(array_merge($this->authorization->locationIdsWith($user, 'space.view') ?? [], $this->authorization->locationIdsWith($user, 'booking.view') ?? [])));
     }
 }

@@ -30,7 +30,14 @@ class User extends Authenticatable implements MustVerifyEmail
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'suspended_at' => 'datetime',
         ];
+    }
+
+    /** Hesap askıda mı? (users.status; giriş ve açık oturumlar kesilir — AccountSecurityService) */
+    public function isSuspended(): bool
+    {
+        return $this->status === 'suspended';
     }
 
     /** Panel teması: light | dark | null (sistem tercihi). */

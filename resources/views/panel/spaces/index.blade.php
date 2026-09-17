@@ -16,6 +16,7 @@
     </div>
 
     <div class="stack" style="gap:18px">
+        @if ($scoped)<div class="note">Yalnız yetkili olduğunuz lokasyon(lar) listeleniyor.</div>@endif
         <nav class="tabbar" aria-label="Alan sekmeleri">
             <a href="{{ route('panel.spaces.index') }}" @if ($tab === 'alanlar') aria-current="page" @endif>Masalar &amp; ofisler</a>
             <a href="{{ route('panel.spaces.index', ['sekme' => 'odalar']) }}" @if ($tab === 'odalar') aria-current="page" @endif>Odalar (saatlik)</a>
