@@ -59,4 +59,18 @@ return Application::configure(basePath: dirname(__DIR__))
                 default => null,
             };
         });
+
+        // İş kuralı ihlali (DomainException) bir controller'da yakalanmamışsa (faz 52 güvenlik ağı): 500/stack trace
+        // yerine forma geri dön ve anlaşılır mesaj göster; API için 422. Ayrıntı log'a, kullanıcıya yalnız mesaj.
+        $exceptions->render(function (DomainException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            if ($request->isMethodSafe()) {
+                return null;
+            }
+
+            return back()->withErrors(['domain' => $e->getMessage()])->withInput($request->except(['password', 'password_confirmation', '_token']));
+        });
     })->create();

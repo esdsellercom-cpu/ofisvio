@@ -26,7 +26,7 @@ use Illuminate\Support\Str;
  */
 class UserAdminService
 {
-    public function __construct(private readonly PasswordBroker $passwords) {}
+    public function __construct(private readonly PasswordBroker $passwords, private readonly AuditService $audit) {}
 
     /**
      * Liste: ad/e-posta araması + sayfalama.
@@ -116,6 +116,8 @@ class UserAdminService
 
         $invited = $result['created'] && $this->passwords->sendResetLink(['email' => $email]) === PasswordBroker::RESET_LINK_SENT;
 
+        $this->audit->record($actor, 'staff.invited', 'user', $result['user']->id, [], ['email' => $email, 'role' => $role->name, 'location_id' => $locationId, 'created' => $result['created'], 'invited' => $invited]);
+
         return ['user' => $result['user'], 'created' => $result['created'], 'invited' => $invited];
     }
 
@@ -123,7 +125,10 @@ class UserAdminService
     {
         $role = $this->internalRole($roleName);
 
-        return $this->grant($user, $role, $this->locationFor($role, $locationId));
+        $userRole = $this->grant($user, $role, $this->locationFor($role, $locationId));
+        $this->audit->record($actor, 'role.assigned', 'user_role', $userRole->id, [], ['user_id' => $user->id, 'role' => $role->name, 'location_id' => $userRole->location_id]);
+
+        return $userRole;
     }
 
     /** Lokasyon kapsamlı rol lokasyon ister, global rol lokasyon almaz. */
@@ -158,12 +163,14 @@ class UserAdminService
 
         $userRole->status = 'suspended';
         $userRole->save();
+        $this->audit->record($actor, 'role.suspended', 'user_role', $userRole->id, ['status' => 'active'], ['status' => 'suspended', 'user_id' => $userRole->user_id, 'role_id' => $userRole->role_id]);
     }
 
     public function reactivateRole(UserRole $userRole): void
     {
         $userRole->status = 'active';
         $userRole->save();
+        $this->audit->record(null, 'role.reactivated', 'user_role', $userRole->id, ['status' => 'suspended'], ['status' => 'active', 'user_id' => $userRole->user_id, 'role_id' => $userRole->role_id]);
     }
 
     /** Davet/sıfırlama bağlantısını yeniden gönderir (şifre görülmez). */

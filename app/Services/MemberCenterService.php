@@ -87,7 +87,7 @@ class MemberCenterService
     public function directory(User $viewer, array $filters = []): array
     {
         $companies = $this->companies->visibleTo($viewer);
-        $rows = $this->members->membersOfCompanies($companies)->load('profile');
+        $rows = $this->members->membersOfCompanies($companies)->load('profile.avatar');
         $finance = $this->financeByCompany($companies->modelKeys());
         $contracts = $this->activeContractsByCompany($companies->modelKeys());
         $q = mb_strtolower(trim((string) ($filters['q'] ?? '')));
@@ -636,13 +636,18 @@ class MemberCenterService
             'extra_charge' => ExtraCharge::query()->where('company_id', $companyId)->pluck('id')->all(),
             'company' => [$companyId],
         ];
-        $sets['asset'] = Asset::query()->whereIn('space_assignment_id', $sets['space_assignment'])->pluck('id')->all();
+        $assignmentIds = $sets['space_assignment'];
 
-        $query = AuditLog::query()->with('actor')->where(function ($q) use ($sets) {
+        $query = AuditLog::query()->with('actor')->where(function ($q) use ($sets, $assignmentIds) {
             foreach ($sets as $type => $ids) {
                 if ($ids !== []) {
                     $q->orWhere(fn ($w) => $w->where('entity_type', $type)->whereIn('entity_id', $ids));
                 }
+            }
+
+            // Demirbaş teslim/iade: iade sonrası demirbaş tahsise bağlı kalmaz; kayıt before/after'daki tahsis id'sinden bulunur.
+            if ($assignmentIds !== []) {
+                $q->orWhere(fn ($w) => $w->where('entity_type', 'asset')->where(fn ($x) => $x->whereIn('after->space_assignment_id', $assignmentIds)->orWhereIn('before->space_assignment_id', $assignmentIds)));
             }
         });
 

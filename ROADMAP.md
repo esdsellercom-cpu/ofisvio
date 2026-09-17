@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **312/312** (Unit 12 · Feature 284 · Architecture 16) |
+| `php artisan test` | ✅ **318/318** (Unit 12 · Feature 290 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -747,6 +747,46 @@ yalnız profil, sözleşme ve ek harcamayı yazar, kalanını birleştirir.
   rotalara gider; `App\Support\PanelReturn` ile `return` (yalnız `/panel/` yolu) profile döner. Tahsilat modalı
   `collections/partials/modal-payment` paylaşımlı.
 - Migrasyon `2026_09_18_000029_member_center`. Testler `MemberCenterTest` (3).
+
+### 52. Üretim denetimi — çalışmayan fonksiyon yok, güvenlik, veri bütünlüğü, API merkezi ✅ (18 Eylül 2026)
+Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
+- **`PanelSmokeTest`**: parametresiz her panel GET rotası (52) beş rol için 500 vermeden açılır; kimliksiz istek her
+  rotada girişe yönlenir. **`IdorProbeTest`**: şirket sahibi başka şirketin/organizasyonun fatura, makbuz/PDF,
+  üyelik, üye profili, sözleşme dosyası, şirket sayfası, tahsilat/ek harcama/düzenleme rotalarına id değiştirerek
+  ulaşamaz (403/404), global personel görür. **`CriticalFlowsTest`**: üye → hizmet → sözleşme → tahsis(+demirbaş) →
+  fatura → tahsilat → makbuz uçtan uca (negatif/aşan tutar reddi, tahsis bitince demirbaş iadesi, tahsilat iptali
+  fiziksel silmez, 13 audit olayı, aktivite izi) ve blog → SEO/GEO/şema → iç bağlantı → yayın (head, Article +
+  FAQPage JSON-LD, sitemap, gelen bağlantı, skor/GEO rozeti). **`SystemCenterTest`**: API merkezi maskeleme, test
+  bağlantısı, sağlık, yetkiler, DomainException güvenlik ağı. Rota referans taraması: tanımsız `route()` yok.
+- **Audit log tamamlandı**: `AuditService` aktör verilmezse oturumdaki kullanıcıyı yazar; eklenen olaylar
+  `staff.invited role.assigned role.suspended role.reactivated membership.invited membership.suspended
+  membership.reactivated content.created content.updated content.deleted content.status_changed location.created
+  location.updated location.published location.deleted website.* company.created company.updated
+  integration.tested system.health_checked` (tahsilat/fatura/tahsis/demirbaş/belge/sözleşme/ek harcama/ayar zaten
+  vardı; giriş/çıkış `login_events`). IP + user agent her kayıtta.
+- **Veri bütünlüğü**: lokasyon silme koruması (alan/oda/rezervasyon/demirbaş varsa cascade ile geçmiş silinmez →
+  pasife alma); `Media::isInUse` OG görseli, üye avatarı, hizmet ve alan kapağını da sayar; eksik indeksler
+  (`documents company_id+created_at`, `user_roles company_id+status`, `payments invoice_id+status`,
+  `contents parent_id`, `extra_charges invoice_id`, `contracts status+ends_on`); üye dizini avatar N+1 giderildi.
+- **Hata yönetimi**: yakalanmayan `DomainException` forma anlaşılır mesajla döner (JSON 422); GET'te genel hata
+  sayfası (ayrıntı log'da). Hata sayfaları 403/404/419/429/500/503 mevcut; APP_DEBUG durumu Sistem sağlığında.
+- **Frontend**: form gönderiminde düğmeler devre dışı + `aria-busy` (çift tıklama koruması, geri gelince sıfırlanır;
+  `data-no-busy` ile kapatılır).
+- **API & Entegrasyonlar** `/panel/ayarlar/api` (`settings.view`; test `settings.manage`): kategori bazlı
+  (çekirdek, e-posta, SMS & WhatsApp, ödeme & e-Fatura, AI, SEO & Analytics, depolama & güvenlik, webhook);
+  projede gerçekten kullanılan sağlayıcılar (`config/integrations.php` + veritabanı/önbellek/kuyruk/zamanlayıcı/
+  e-posta/depolama/ClamAV/webhook). Secret'lar **yalnız env** (Integration Gateway kuralı; ArchitectureTest), panelde
+  maskeli + env adı; **Bağlantıyı test et** gerçek yoklama (`ConnectionTester`: Gateway/SSRF korumalı istek, DB,
+  önbellek, kuyruk sayaçları, SMTP soketi, disk yazma, clamd, zamanlayıcı kalp atışı) → `integration_logs` + audit.
+  Kullanılmayan servisler (Mapbox, S3, OAuth) sahte alan olarak eklenmez.
+- **Sistem sağlığı** `/panel/ayarlar/saglik`: `ofisvio:doctor` kontrolleri (tek kaynak) Çalışıyor/Uyarı/Hata
+  etiketleriyle + son bağlantı testleri; "Yeniden kontrol et".
+- Taramada doğrulananlar (değişiklik gerekmedi): kod/yapılandırmada gömülü secret yok; CSP/HSTS/X-Frame/Referrer
+  başlıkları; login/2FA/JIT/webhook/yükleme hız sınırları; CSRF; oturum çerezi bayrakları doctor'da; yüklemeler
+  MIME + sihirli bayt + boyut + ClamAV + sha256, SVG/HTML reddi, dosya adı slug, özel disk; finans tutarları
+  sunucuda (kuruş), negatif/aşan tutar reddi; markdown `html_input=strip`; ham `<head>` kodu yalnız JIT'li
+  Geliştirici sekmesi; silme korumaları (alan, demirbaş, plan, hizmet, site, medya); mass assignment `$fillable`.
+- Migrasyon `2026_09_18_000030_audit_indexes`. Testler +6 (PanelSmoke 1, IdorProbe 1, CriticalFlows 2, SystemCenter 2).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

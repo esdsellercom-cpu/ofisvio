@@ -213,7 +213,23 @@
     update();
   }
 
-  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); }
+  // Gönderim durumu (faz 52): form gönderilince düğmeler devre dışı + aria-busy (çift tıklama koruması, "işlem gerçekleşti mi"
+  // belirsizliği yok). Submitter'ın name/value'su form verisine girsin diye devre dışı bırakma bir tık sonraya ertelenir;
+  // 20 sn sonra (sunucu yanıt vermezse) yeniden etkin. data-no-busy ile kapatılır.
+  function initBusyForms() {
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!(form instanceof HTMLFormElement) || form.hasAttribute('data-no-busy') || e.defaultPrevented) return;
+      if (form.getAttribute('data-busy') === '1') { e.preventDefault(); return; }
+      form.setAttribute('data-busy', '1');
+      var buttons = Array.prototype.slice.call(form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])'));
+      setTimeout(function () { buttons.forEach(function (b) { b.disabled = true; b.setAttribute('aria-busy', 'true'); b.classList.add('is-busy'); }); }, 0);
+      setTimeout(function () { form.removeAttribute('data-busy'); buttons.forEach(function (b) { b.disabled = false; b.removeAttribute('aria-busy'); b.classList.remove('is-busy'); }); }, 20000);
+    }); // kabarcık evresi: hedef dinleyiciler (confirm/preventDefault) önce koşar
+    window.addEventListener('pageshow', function () { document.querySelectorAll('form[data-busy]').forEach(function (f) { f.removeAttribute('data-busy'); f.querySelectorAll('[aria-busy]').forEach(function (b) { b.disabled = false; b.removeAttribute('aria-busy'); b.classList.remove('is-busy'); }); }); });
+  }
+
+  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); initBusyForms(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

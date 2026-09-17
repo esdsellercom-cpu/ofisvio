@@ -436,3 +436,7 @@ dialog.modal .field .label { font-size: 11.5px; }
 @media (max-width: 1100px) { .ve-body { grid-template-columns: 232px minmax(0, 1fr) 280px; } }
 @media (max-width: 900px) { .ve-body { grid-template-columns: 1fr; grid-template-rows: auto minmax(360px, 1fr) auto; } .ve-left, .ve-right { max-height: 40vh; } }
 .ve [hidden] { display: none !important; }
+
+/* Gönderim durumu (faz 52) */
+.btn.is-busy, [aria-busy="true"].btn { opacity: .6; cursor: progress; position: relative; }
+.btn.is-busy::after { content: "…"; margin-left: 4px; }

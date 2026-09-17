@@ -16,6 +16,8 @@ use Illuminate\Support\Str;
  */
 class WebsiteService
 {
+    public function __construct(private readonly AuditService $audit) {}
+
     /** @return Collection<int, Website> */
     public function all(): Collection
     {
@@ -78,6 +80,9 @@ class WebsiteService
         ]);
         $website->save();
 
+        $this->audit->record(null, 'website.created', 'website', $website->id, [], ['name' => $website->name]);
+        $this->audit->record(null, 'website.updated', 'website', $website->id, [], ['name' => $website->name]);
+
         return $website;
     }
 
@@ -88,6 +93,7 @@ class WebsiteService
      */
     public function delete(Website $website): void
     {
+        $this->audit->record(null, 'website.deleted', 'website', $website->id, ['name' => $website->name, 'domain' => $website->domain], []);
         if ($website->is_default) {
             throw new DomainException('Varsayılan site (Ofisvio vitrini) silinemez.');
         }
@@ -109,6 +115,8 @@ class WebsiteService
         $website->hero_media_id = $mediaId;
         $website->save();
 
+        $this->audit->record(null, 'website.hero_updated', 'website', $website->id, [], ['name' => $website->name]);
+
         return $website;
     }
 
@@ -117,6 +125,8 @@ class WebsiteService
     {
         $website->theme = $this->theme($theme);
         $website->save();
+
+        $this->audit->record(null, 'website.theme_updated', 'website', $website->id, [], ['name' => $website->name]);
 
         return $website;
     }
@@ -161,6 +171,8 @@ class WebsiteService
         $website->nav_links = $links === [] ? null : $links;
         $website->save();
 
+        $this->audit->record(null, 'website.nav_updated', 'website', $website->id, [], ['name' => $website->name]);
+
         return $website;
     }
 
@@ -189,6 +201,8 @@ class WebsiteService
         $website->fill($data);
         $website->save();
 
+        $this->audit->record(null, 'website.seo_updated', 'website', $website->id, [], ['name' => $website->name]);
+
         return $website;
     }
 
@@ -213,6 +227,8 @@ class WebsiteService
             'announcement_until' => $this->blankToNull($data['announcement_until'] ?? null),
         ]);
         $website->save();
+
+        $this->audit->record(null, 'website.settings_updated', 'website', $website->id, [], ['name' => $website->name]);
 
         return $website;
     }
@@ -242,6 +258,8 @@ class WebsiteService
         $website->fill($data);
         $website->save();
 
+        $this->audit->record(null, 'website.cache_settings_updated', 'website', $website->id, [], ['name' => $website->name]);
+
         return $website;
     }
 
@@ -254,6 +272,8 @@ class WebsiteService
     {
         $website->fill($data);
         $website->save();
+
+        $this->audit->record(null, 'website.entity_updated', 'website', $website->id, [], ['name' => $website->name]);
 
         return $website;
     }

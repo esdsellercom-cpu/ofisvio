@@ -40,7 +40,7 @@ class ContentService
 
     private const WORDS_PER_MINUTE = 200;
 
-    public function __construct(private readonly ContentCache $cache) {}
+    public function __construct(private readonly ContentCache $cache, private readonly AuditService $audit) {}
 
     // -----------------------------------------------------------------
     // Okuma (vitrin)
@@ -274,6 +274,7 @@ class ContentService
         $content->draft?->delete();
         $content->delete();
         $this->cache->invalidate($content->website);
+        $this->audit->record($actor, 'content.deleted', 'content', $content->id, ['title' => $content->title, 'slug' => $content->slug, 'status' => $content->status->value], []);
 
         if ($wasLive) {
             event(new ContentPublicationChanged($content, false));
@@ -318,6 +319,7 @@ class ContentService
 
             $this->snapshot($content, $author);
             $this->cache->invalidate($website);
+            $this->audit->record($author, 'content.created', 'content', $content->id, [], ['kind' => $content->kind->value, 'slug' => $content->slug, 'title' => $content->title]);
 
             return $content;
         });
@@ -420,6 +422,7 @@ class ContentService
             }
 
             $content->save();
+            $this->audit->record($editor, 'content.updated', 'content', $content->id, ['title' => $content->getOriginal('title'), 'slug' => $content->getOriginal('slug')], ['title' => $content->title, 'slug' => $content->slug]);
 
             // Ebeveynin slug'ı değiştiyse çocukların denormalize yolu güncellenir.
             Content::query()->where('parent_id', $content->id)->where('parent_slug', '!=', $content->slug)->update(['parent_slug' => $content->slug]);
@@ -558,7 +561,7 @@ class ContentService
             throw new DomainException('Zamanlama için gelecekte bir tarih gerekir.');
         }
 
-        return DB::transaction(function () use ($actor, $content, $target, $note, $scheduledFor, $wasLive) {
+        return DB::transaction(function () use ($actor, $content, $target, $note, $scheduledFor, $wasLive, $current) {
             $content->status = $target;
 
             switch ($target) {
@@ -592,6 +595,7 @@ class ContentService
 
             $content->save();
             $this->cache->invalidate($content->website);
+            $this->audit->record($actor, 'content.status_changed', 'content', $content->id, ['status' => $current->value], ['status' => $target->value, 'note' => $note]);
 
             // Yayın olayı (faz 44): yayına girdi ya da yayından düştü — commit sonrası (IndexNow dinler).
             if ($target === ContentStatus::PUBLISHED || $wasLive) {

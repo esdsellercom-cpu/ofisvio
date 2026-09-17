@@ -60,6 +60,7 @@ use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
 use App\Http\Controllers\Panel\SpaceController;
 use App\Http\Controllers\Panel\SubscriptionController;
+use App\Http\Controllers\Panel\SystemController;
 use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
@@ -238,6 +239,11 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
         // Ayar merkezi (§31–33): settings.view görür, settings.manage yazar; ?lokasyon= üzerine yazma.
         Route::get('/ayarlar', [SettingsController::class, 'index'])->middleware('permission:settings.view|settings.manage')->name('settings.index');
         Route::put('/ayarlar', [SettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
+        // API & Entegrasyonlar merkezi + Sistem sağlığı (faz 52): görüntüleme settings.view; test/yeniden kontrol settings.manage.
+        Route::get('/ayarlar/api', [SystemController::class, 'api'])->middleware('permission:settings.view|settings.manage')->name('settings.api');
+        Route::post('/ayarlar/api/{key}/test', [SystemController::class, 'test'])->where('key', '[a-z_]+')->middleware(['permission:settings.manage', 'throttle:20,1'])->name('settings.api.test');
+        Route::get('/ayarlar/saglik', [SystemController::class, 'health'])->middleware('permission:settings.view|settings.manage')->name('settings.health');
+        Route::post('/ayarlar/saglik', [SystemController::class, 'recheck'])->middleware('permission:settings.manage')->name('settings.health.recheck');
 
         // Bildirim merkezi (§16–18): kurallar, alıcılar, şablonlar, günlük; gelen kutusu her kullanıcı.
         Route::prefix('bildirimler')->name('notifications.')->group(function () {

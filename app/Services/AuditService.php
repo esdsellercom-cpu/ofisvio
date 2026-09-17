@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Genel denetim kaydı (master prompt §46): actor · action · entity · before/after ·
@@ -35,6 +36,9 @@ class AuditService
         $changedKeys = array_keys(array_filter($after, fn ($v, $k) => ! array_key_exists($k, $before) || $before[$k] !== $v, ARRAY_FILTER_USE_BOTH));
         $before = $this->mask(array_intersect_key($before, array_flip($changedKeys)));
         $after = $this->mask(array_intersect_key($after, array_flip($changedKeys)));
+
+        // Aktör verilmediyse oturumdaki kullanıcı (faz 52): servisler HTTP'den bağımsız kalır, kimlik yine de yazılır; konsol/kuyrukta null.
+        $actor ??= Auth::user();
 
         return AuditLog::create([
             'actor_id' => $actor?->id,

@@ -117,6 +117,8 @@ class Media extends Model
     /** Herhangi bir yerde kullanılıyor mu (silme koruması)? */
     public function isInUse(): bool
     {
-        return $this->contents()->exists() || $this->heroOf()->exists() || $this->locationLinks()->exists() || $this->coverOf()->exists();
+        return $this->contents()->exists() || $this->heroOf()->exists() || $this->locationLinks()->exists() || $this->coverOf()->exists()
+            || Content::query()->where('og_media_id', $this->id)->exists() || MemberProfile::query()->where('avatar_media_id', $this->id)->exists()
+            || Service::query()->where('cover_media_id', $this->id)->exists() || Space::query()->where('cover_media_id', $this->id)->exists();
     }
 }

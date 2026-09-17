@@ -2,8 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\Asset;
+use App\Models\Booking;
 use App\Models\Location;
+use App\Models\Room;
 use App\Models\Service;
+use App\Models\Space;
 use App\Models\Website;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
@@ -23,7 +27,7 @@ use Illuminate\Support\Str;
  */
 class GeoService
 {
-    public function __construct(private readonly SeoSettingsService $seoSettings) {}
+    public function __construct(private readonly SeoSettingsService $seoSettings, private readonly AuditService $audit) {}
 
     /** @return Collection<int, Location> */
     public function publishedLocations(): Collection
@@ -54,6 +58,8 @@ class GeoService
         $location->is_published = false;
         $location->save();
 
+        $this->audit->record(null, 'location.created', 'location', $location->id, [], ['name' => $location->name]);
+
         return $location;
     }
 
@@ -82,6 +88,21 @@ class GeoService
             throw new DomainException('Vitrindeki şube silinemez; önce vitrinden kaldırın.');
         }
 
+        // Veri bütünlüğü (faz 52): alan/oda/rezervasyon/demirbaş kaydı olan lokasyon silinmez — cascade ile operasyon ve
+        // finans geçmişi (tahsis, rezervasyon → fatura) sessizce yok olmasın. Pasife alınır.
+        $linked = [
+            'alan' => Space::query()->where('location_id', $location->id)->exists(),
+            'oda' => Room::query()->where('location_id', $location->id)->exists(),
+            'rezervasyon' => Booking::withoutTenantScope()->where('location_id', $location->id)->exists(),
+            'demirbaş' => Asset::query()->where('location_id', $location->id)->exists(),
+        ];
+        $blocking = array_keys(array_filter($linked));
+
+        if ($blocking !== []) {
+            throw new DomainException('Bu lokasyona bağlı kayıt var ('.implode(', ', $blocking).'); silinemez, pasife alın.');
+        }
+
+        $this->audit->record(null, 'location.deleted', 'location', $location->id, ['name' => $location->name], []);
         $location->delete();
     }
 
@@ -154,6 +175,8 @@ class GeoService
     {
         $location->is_published = $published;
         $location->save();
+
+        $this->audit->record(null, 'location.published', 'location', $location->id, [], ['published' => $published]);
 
         return $location;
     }
@@ -317,6 +340,8 @@ class GeoService
     {
         $location->fill($data);
         $location->save();
+
+        $this->audit->record(null, 'location.updated', 'location', $location->id, [], ['name' => $location->name]);
 
         return $location;
     }

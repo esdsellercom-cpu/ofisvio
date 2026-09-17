@@ -34,7 +34,7 @@ class MembershipService
         'owner', 'legal_representative', 'company_admin', 'accountant', 'employee', 'viewer',
     ];
 
-    public function __construct(private readonly PasswordBroker $passwords) {}
+    public function __construct(private readonly PasswordBroker $passwords, private readonly AuditService $audit) {}
 
     /**
      * Şirketin üyeleri: user_roles (company kapsamlı) + kullanıcı + rol.
@@ -148,6 +148,8 @@ class MembershipService
             $invited = $this->passwords->sendResetLink(['email' => $email]) === PasswordBroker::RESET_LINK_SENT;
         }
 
+        $this->audit->record($inviter, 'membership.invited', 'user_role', $result['role']->id, [], ['company_id' => $company->id, 'user_id' => $result['user']->id, 'role' => $roleName, 'created' => $result['created'], 'invited' => $invited]);
+
         return ['user' => $result['user'], 'role' => $result['role'], 'invited' => $invited];
     }
 
@@ -168,6 +170,7 @@ class MembershipService
 
         $userRole->status = 'suspended';
         $userRole->save();
+        $this->audit->record($actor, 'membership.suspended', 'user_role', $userRole->id, ['status' => 'active'], ['status' => 'suspended', 'company_id' => $company->id]);
     }
 
     public function reactivate(Company $company, UserRole $userRole): void
@@ -178,5 +181,6 @@ class MembershipService
 
         $userRole->status = 'active';
         $userRole->save();
+        $this->audit->record(null, 'membership.reactivated', 'user_role', $userRole->id, ['status' => 'suspended'], ['status' => 'active', 'company_id' => $company->id]);
     }
 }

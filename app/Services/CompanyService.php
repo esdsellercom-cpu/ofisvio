@@ -23,10 +23,8 @@ use RuntimeException;
  */
 class CompanyService
 {
-    public function __construct(
-        private readonly AuthorizationService $authorization,
-        private readonly TenantContext $context,
-    ) {}
+    public function __construct(private readonly AuthorizationService $authorization,
+        private readonly TenantContext $context, private readonly AuditService $audit) {}
 
     /**
      * Aktif organizasyondaki, kullanıcının görebildiği şirketler.
@@ -75,6 +73,7 @@ class CompanyService
             ]);
 
             $this->assignOwner($creator, $company);
+            $this->audit->record($creator, 'company.created', 'company', $company->id, [], ['legal_name' => $company->legal_name, 'organization_id' => $company->organization_id]);
 
             return $company;
         });
@@ -91,6 +90,8 @@ class CompanyService
         $company->legal_name = trim($data['legal_name']);
         $company->tax_number = ($data['tax_number'] ?? null) !== null && trim((string) $data['tax_number']) !== '' ? trim((string) $data['tax_number']) : null;
         $company->save();
+
+        $this->audit->record(null, 'company.updated', 'company', $company->id, [], ['legal_name' => $company->legal_name, 'tax_number' => $company->tax_number]);
 
         return $company;
     }
