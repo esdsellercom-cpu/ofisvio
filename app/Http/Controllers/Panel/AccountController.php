@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Panel;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\AccountService;
 use App\Services\TenantContext;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 /**
@@ -19,7 +22,7 @@ use Illuminate\Http\Request;
  */
 class AccountController extends Controller
 {
-    public function __construct(private readonly TenantContext $context) {}
+    public function __construct(private readonly TenantContext $context, private readonly AccountService $account) {}
 
     public function show(Request $request): View
     {
@@ -27,6 +30,15 @@ class AccountController extends Controller
             'user' => $request->user(),
             'isStaffUser' => $this->context->isInternalStaff($request->user()),
         ]);
+    }
+
+    /** Panel teması (faz 38): kullanıcı tercihi veritabanında; 'system' = tercih yok. */
+    public function theme(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['theme' => ['required', 'in:system,'.implode(',', User::THEMES)]]);
+        $this->account->setTheme($request->user(), $data['theme'] === 'system' ? null : $data['theme']);
+
+        return back();
     }
 
     public function security(Request $request): View

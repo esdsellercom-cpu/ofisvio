@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\KycDocumentStatus;
 use App\Models\KycDocument;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use RuntimeException;
 
@@ -80,6 +81,27 @@ class KycQueueService
             ->pluck('pending', 'organization_id')
             ->map(fn ($n) => (int) $n)
             ->all();
+    }
+
+    /**
+     * Menü rozeti (faz 38): kuyruğun tamamı için sayım alt sorgusu — personel + global
+     * kyc.view_status; pendingCounts ile aynı sınır, yalnız ADET (PanelBadgeService tek
+     * sorguda birleştirir). Sınıf başlığındaki allowlist gerekçesi geçerlidir.
+     *
+     * @return Builder<KycDocument>
+     */
+    public function queueQuery(User $user): Builder
+    {
+        if (! $this->context->isInternalStaff($user)) {
+            throw new RuntimeException('Organizasyonlar arası KYC sayımı yalnızca personel içindir.');
+        }
+
+        $this->requireStatusPermission($user, null);
+
+        return KycDocument::withoutTenantScope()
+            ->join('companies', 'companies.id', '=', 'kyc_documents.company_id')
+            ->whereIn('kyc_documents.status', array_map(fn (KycDocumentStatus $s) => $s->value, self::QUEUE_STATUSES))
+            ->whereNull('companies.deleted_at');
     }
 
     private function requireStatusPermission(User $user, ?int $organizationId): void

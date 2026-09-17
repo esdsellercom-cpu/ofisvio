@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **252/252** (Unit 10 · Feature 227 · Architecture 15) |
+| `php artisan test` | ✅ **256/256** (Unit 10 · Feature 231 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -397,6 +397,21 @@ makesOffer (URL'li), sitemap ve hizmet sayfaları (`/cozumler`, `/cozum/{slug}`:
 rezervasyona bağlı odalar) hizmet tablosundan; kodda hizmet adı dizisi yok. Önbellek: hizmet/ilişki
 değişince site sürümleri düşer. `ServiceTest` (ekle→vitrin, bağla→etiket, kaldır→düşer, pasif, önbellek,
 tenant izolasyonu). Metin anahtarı `solutions_lede` eklendi (sabit cümle kalktı).
+
+### 38. Panel kabuğu — "Kolektif Panel" kalıbı ✅ (17 Eylül 2026, dashboard prompt)
+Kabuk `layouts/panel.blade.php` + `public/css/panel.css` (ofisvio.css'ten sonra; tasarım
+token'larını panel paletine eşler → var olan bileşenler yeniden yazılmadan geçer) + `public/js/panel.js`
+(dar ekranda kenar menüsü, tema düğmesi; depolama yok). 252px kenar menüsü: gruplu (Genel bakış ·
+Operasyon · Müşteri · Dijital · Sistem · Hesap), sırayla numaralı, rozetli; `App\View\Menu\PanelMenu`
+yalnız var olan modülleri izne göre üretir (ölü öge yok), 2FA kurulmamış personel yalnız Kurulum grubunu
+görür. Rozetler (`PanelBadgeService`): bekleyen onay, yeni talep, başarısız bildirim, bekleyen KYC,
+okunmamış — izne göre istenir, **tek sorguda** sayılır (sorgu bütçesi değişmedi). Üst çubuk: arama
+(`/panel/ara`, `PanelSearchService`: rezervasyon/talep/şirket/kullanıcı, yalnız izinli kümeler),
+organizasyon bağlamı, tema (koyu/açık/sistem — `users.ui_theme`, `POST /panel/hesap/tema`), zil, kullanıcı.
+Dashboard: personel için KPI şeridi + kartlar (bugünkü rezervasyonlar, onay bekleyenler, yeni talepler,
+lokasyon performansı) gerçek servis toplamlarından, blok yalnız izinle; müşteri için şirket sayaçları.
+`PanelShellTest` (menü/rozet/KPI, 2FA kapısı, arama izinleri, tema). Ayrıca panelde `ofisvio.js`
+artık yükleniyor (sürükle-bırak sıralama panelde çalışmıyordu).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

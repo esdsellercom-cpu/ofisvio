@@ -571,6 +571,17 @@ class BookingService
             ->paginate($perPage)->withQueryString();
     }
 
+    /**
+     * Menü rozeti (faz 38): onay bekleyen rezervasyon alt sorgusu — yalnız booking.view
+     * (global) rotasından; PanelBadgeService tek sorguda sayar.
+     *
+     * @return Builder<Booking>
+     */
+    public function pendingQuery(): Builder
+    {
+        return Booking::withoutTenantScope()->whereIn('status', [BookingStatus::REQUESTED->value, BookingStatus::PENDING_APPROVAL->value]);
+    }
+
     /** Sekme sayaçları. @return array<string, int> */
     public function tabCounts(): array
     {

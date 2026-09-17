@@ -34,6 +34,7 @@ use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\RoomController;
+use App\Http\Controllers\Panel\SearchController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\ServiceController;
 use App\Http\Controllers\Panel\SettingsController;
@@ -51,6 +52,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
     // Profil/şifre formları Fortify route'larına gider. Güvenlik sayfası
     // password.confirm ister; Fortify'ın 2FA POST'ları da aynı onayı kullanır.
     Route::get('/hesap', [AccountController::class, 'show'])->name('account');
+    Route::post('/hesap/tema', [AccountController::class, 'theme'])->name('account.theme');
     Route::get('/hesap/guvenlik', [AccountController::class, 'security'])
         ->middleware('password.confirm')
         ->name('account.security');
@@ -61,6 +63,9 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         // --- Context'siz ekranlar ---------------------------------------
         Route::get('/organizasyon', [ContextController::class, 'select'])->name('context.select');
         Route::post('/organizasyon', [ContextController::class, 'switch'])->middleware('throttle:context-switch')->name('context.switch');
+
+        // Üst çubuk araması (faz 38): kümeler izne göre serviste süzülür; ek route izni yok.
+        Route::get('/ara', SearchController::class)->name('search');
 
         // Talepler / CRM v1 — siteden gelen teklif ve ön rezervasyon talepleri (audit bulgusu: ekranı yoktu).
         Route::prefix('talepler')->name('leads.')->group(function () {

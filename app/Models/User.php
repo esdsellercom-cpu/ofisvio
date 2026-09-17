@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'ui_theme'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
 class User extends Authenticatable
 {
@@ -31,6 +31,9 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'datetime',
         ];
     }
+
+    /** Panel teması: light | dark | null (sistem tercihi). */
+    public const THEMES = ['light', 'dark'];
 
     /** 2FA kurulmuş VE doğrulanmış mı? (Kurulmuş ama doğrulanmamış = kapalı sayılır.) */
     public function hasConfirmedTwoFactor(): bool
