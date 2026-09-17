@@ -43,30 +43,26 @@ class SiteBlocksTest extends TestCase
         $seed = json_decode((string) file_get_contents(database_path('seeders/data/site_blocks.json')), true);
         $this->assertArrayNotHasKey('solutions', config('ofisvio'));
         $this->assertArrayNotHasKey('pricing_note', config('ofisvio'));
+        // Çözüm kartları artık Hizmetler modülünden (faz 4); bloklar: dahil olanlar, planlar, footer, fiyat notu.
         $this->get('/')->assertOk()->assertSee('Sanal Ofis')->assertSee($seed['blocks']['pricing_note']);
         $this->actingAs($admin)->get('/panel/icerik')->assertOk()->assertSee('/panel/icerik/bloklar', false);
-        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('CMS kaydı')->assertSee('Sanal Ofis | Prestijli');
+        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('CMS kaydı')->assertSee('Fiber ve yedek hat');
+        $this->assertArrayNotHasKey('solutions', $seed['blocks']);
 
-        $this->actingAs($admin)->put('/panel/icerik/bloklar/solutions', ['text' => "Sanal Ofis Plus | Tescil + çağrı + kargo | ₺990/ay'dan | evet\nGünlük Masa | Sözleşmesiz | ₺450/gün'den | hayır"])
-            ->assertRedirect('/panel/icerik/bloklar')->assertSessionHasNoErrors();
+        $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/solutions', ['text' => 'A | B | C | evet'])->assertSessionHasErrors('solutions'); // blok yok
         $this->actingAs($admin)->put('/panel/icerik/bloklar/pricing_note', ['text' => 'Fiyatlar KDV dahildir.'])->assertRedirect();
         $this->actingAs($admin)->put('/panel/icerik/bloklar/footer_columns', ['text' => 'Kurumsal | Hakkımızda, İletişim'])->assertRedirect();
 
         $home = $this->get('http://localhost/')->assertOk()->getContent();
-        $this->assertStringContainsString('Sanal Ofis Plus', $home);
-        $this->assertStringContainsString('Günlük Masa', $home);
-        $this->assertStringNotContainsString('Hazır Ofis</h3>', $home, 'Seed listesi tamamen ezildi.');
         $this->assertStringContainsString('Fiyatlar KDV dahildir.', $home);
         $this->assertStringContainsString('amiral ürün', $home);
         $this->assertStringNotContainsString('>Kariyer<', $home, 'Footer sütunları ezildi.');
         $this->assertStringContainsString('>Hakkımızda<', $home);
 
-        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('CMS kaydı')->assertSee('Sanal Ofis Plus | Tescil + çağrı + kargo | ₺990/ay&#039;dan | evet', false);
-
         // Boş metin: kayıt silinir, bölüm vitrinden kalkar (kodda ticari varsayılan yok); seed yeniden getirir.
-        $this->actingAs($admin)->put('/panel/icerik/bloklar/solutions', ['text' => ''])->assertRedirect();
-        $this->assertSame(0, SiteBlock::where('key', 'solutions')->count());
-        $this->get('http://localhost/')->assertOk()->assertDontSee('id="cozumler"', false)->assertDontSee('Sanal Ofis Plus');
+        $this->actingAs($admin)->put('/panel/icerik/bloklar/amenities', ['text' => ''])->assertRedirect();
+        $this->assertSame(0, SiteBlock::where('key', 'amenities')->count());
+        $this->get('http://localhost/')->assertOk()->assertDontSee('id="dahil"', false)->assertDontSee('Fiber ve yedek hat');
         $this->seed(SiteBlockSeeder::class);
         app(ContentCache::class)->invalidate(Website::query()->default()->firstOrFail());
         $this->get('http://localhost/')->assertOk()->assertSee('Hazır Ofis');
@@ -181,16 +177,16 @@ class SiteBlocksTest extends TestCase
         $admin = $this->staff('system_admin');
         $ops = $this->staff('operations_admin'); // content.edit var, publish yok
 
-        $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/solutions', ['text' => 'Eksik | alan'])->assertSessionHasErrors('solutions');
+        $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/amenities', ['text' => 'Eksik alan'])->assertSessionHasErrors('amenities');
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Tek hücre'])->assertSessionHasErrors('plan_rows');
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/bilinmeyen', ['text' => 'x | y'])->assertSessionHasErrors('bilinmeyen');
-        $this->assertSame(6, SiteBlock::count(), 'Bozuk satırlar seed kayıtlarını değiştirmedi.');
+        $this->assertSame(5, SiteBlock::count(), 'Bozuk satırlar seed kayıtlarını değiştirmedi.');
 
         $this->actingAs($admin)->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Şirket tescil adresi | Dahil | Opsiyonel | Dahil | —'])->assertRedirect();
         $this->assertSame(['Dahil', 'Opsiyonel', 'Dahil', '—'], SiteBlock::where('key', 'plan_rows')->firstOrFail()->data[0]['cells']);
 
         $this->actingAs($ops)->get('/panel/icerik/bloklar')->assertForbidden();
-        $this->actingAs($ops)->put('/panel/icerik/bloklar/solutions', ['text' => 'A | B | C | evet'])->assertForbidden();
+        $this->actingAs($ops)->put('/panel/icerik/bloklar/amenities', ['text' => 'A | B'])->assertForbidden();
 
         // Müşteri sitesi bloklardan etkilenmez (kendi ana sayfası).
         $acme = $this->organization('Acme');

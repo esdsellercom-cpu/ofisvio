@@ -29,7 +29,7 @@ class SeoService
     public function __construct(
         private readonly ContentService $contents,
         private readonly GeoService $geo,
-        private readonly SiteBlockService $blocks,
+        private readonly ServiceService $services,
     ) {}
 
     /**
@@ -44,7 +44,7 @@ class SeoService
             null,
             $location->path(),
             $location->name.' · '.$location->city,
-            $location->geo_meta_description ?: ($location->name.' — '.$location->address_line.'. '.implode(', ', $location->tags ?? [])),
+            $location->geo_meta_description ?: ($location->name.' — '.$location->address_line.'. '.implode(', ', $location->serviceNames())),
         );
         $head['json_ld'] = $this->geo->locationJsonLd($website, $location);
 
@@ -243,29 +243,25 @@ class SeoService
     }
 
     /**
-     * Service düğümleri (faz 17): vitrin "çözümler" bloğundan; fiyat metni
+     * Service düğümleri (faz 17 → faz 4): Hizmetler modülünden; fiyat metni
      * ("₺790/ay'dan") sayıya çevrilmez — Offer yalnız description taşır.
      *
      * @return array<int, array<string, mixed>>
      */
     private function serviceNodes(Website $website): array
     {
-        $solutions = (array) ($this->blocks->all($website)['solutions'] ?? []);
         $nodes = [];
 
-        foreach ($solutions as $s) {
-            if (! is_array($s) || empty($s['title'])) {
-                continue;
-            }
-
+        foreach ($this->services->active($website) as $service) {
             $nodes[] = [
                 '@type' => 'Service',
-                'name' => (string) $s['title'],
-                'description' => (string) ($s['desc'] ?? ''),
-                'serviceType' => (string) $s['title'],
+                'name' => $service->name,
+                'url' => $website->baseUrl().$service->path(),
+                'description' => (string) ($service->summary ?? ''),
+                'serviceType' => $service->name,
                 'provider' => ['@id' => $website->baseUrl().'/#organization'],
                 'areaServed' => ['@type' => 'Country', 'name' => 'Türkiye'],
-                'offers' => ['@type' => 'Offer', 'description' => (string) ($s['price'] ?? ''), 'priceCurrency' => 'TRY'],
+                'offers' => ['@type' => 'Offer', 'description' => (string) ($service->price_text ?? ''), 'priceCurrency' => 'TRY'],
             ];
         }
 
@@ -324,6 +320,15 @@ class SeoService
             }
             foreach ($locations as $location) {
                 $entries[] = ['loc' => $base.$location->path(), 'lastmod' => $location->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.7'];
+            }
+
+            // Hizmet sayfaları (faz 4).
+            $services = $this->services->active($website);
+            if ($services->isNotEmpty()) {
+                $entries[] = ['loc' => $base.'/cozumler', 'lastmod' => null, 'changefreq' => 'monthly', 'priority' => '0.8'];
+            }
+            foreach ($services as $service) {
+                $entries[] = ['loc' => $base.$service->path(), 'lastmod' => $service->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.7'];
             }
         }
 

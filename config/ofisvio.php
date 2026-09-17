@@ -38,6 +38,7 @@ return [
         'hero_accent' => 'bugün',
         'hero_title_after' => 'hazır olsun.',
         'hero_lede' => 'Tescile uygun adres, karşılanan çağrılar ve evraklar, dakikası hesap edilmiş toplantı odaları. Tek sözleşme, tüm lokasyonlara erişim.',
+        'solutions_lede' => 'Hepsi aynı altyapıyı paylaşır: resepsiyon, fiber, evrak ve kargo karşılama, şubeler arası geçiş hakkı dahildir.',
         'solutions_title' => 'Çalışma biçiminize göre dört başlangıç noktası',
         'journey_title' => 'Adresiniz altı adımda tescile hazır',
         'journey_lede' => 'Her adımın durumunu panelinizden canlı görürsünüz. Belgeleriniz incelenirken nerede olduğunuzu tahmin etmeniz gerekmez.',

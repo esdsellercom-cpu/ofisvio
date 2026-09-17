@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Location;
+use App\Models\Service;
 use App\Models\Website;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
@@ -40,7 +41,7 @@ class GeoService
     /**
      * Yeni şube (geo.edit): yayında DEĞİL açılır; vitrine geo.publish alır.
      *
-     * @param  array{name: string, city?: string|null, region?: string|null, address_line?: string|null, badge?: string|null, tags?: array<int, string>|null, price_from?: string|null, sort_order?: int|null}  $data
+     * @param  array{name: string, city?: string|null, region?: string|null, address_line?: string|null, badge?: string|null, price_from?: string|null, sort_order?: int|null}  $data
      */
     public function create(array $data): Location
     {
@@ -54,10 +55,10 @@ class GeoService
     }
 
     /**
-     * Künye alanları (geo.edit): ad, şehir, bölge, adres, rozet, etiketler, fiyat metni, sıra, operasyon.
+     * Künye alanları (geo.edit): ad, şehir, bölge, adres, rozet, fiyat metni, sıra, operasyon. Hizmetler ServiceService::syncLocation.
      * Slug DEĞİŞMEZ (dış bağlantılar ve sitemap kırılmasın).
      *
-     * @param  array{name: string, city?: string|null, region?: string|null, address_line?: string|null, badge?: string|null, tags?: array<int, string>|null, price_from?: string|null, sort_order?: int|null, is_active?: bool}  $data
+     * @param  array{name: string, city?: string|null, region?: string|null, address_line?: string|null, badge?: string|null, price_from?: string|null, sort_order?: int|null, is_active?: bool}  $data
      */
     public function updateBasics(Location $location, array $data): Location
     {
@@ -87,15 +88,12 @@ class GeoService
      */
     private function basics(array $data): array
     {
-        $tags = array_values(array_filter(array_map('trim', (array) ($data['tags'] ?? []))));
-
         return [
             'name' => trim((string) $data['name']),
             'city' => $this->blank($data['city'] ?? null),
             'region' => $this->blank($data['region'] ?? null),
             'address_line' => $this->blank($data['address_line'] ?? null),
             'badge' => $this->blank($data['badge'] ?? null),
-            'tags' => $tags === [] ? null : $tags,
             'price_from' => $this->blank($data['price_from'] ?? null),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
         ];
@@ -205,8 +203,11 @@ class GeoService
             $business['openingHours'] = array_values($location->opening_hours);
         }
 
-        if (! empty($location->tags)) {
-            $business['makesOffer'] = array_map(fn (string $tag) => ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $tag]], $location->tags);
+        // Sunulan hizmetler (faz 4): ilişkisel — Offer/Service düğümleri hizmet sayfasına bağlanır.
+        $offers = $location->services->where('is_active', true)->map(fn (Service $s) => ['@type' => 'Offer', 'itemOffered' => ['@type' => 'Service', 'name' => $s->name, 'url' => $website->baseUrl().$s->path()]])->values()->all();
+
+        if ($offers !== []) {
+            $business['makesOffer'] = $offers;
         }
 
         $breadcrumb = [

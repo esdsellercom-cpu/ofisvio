@@ -35,6 +35,7 @@ use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SeoController;
+use App\Http\Controllers\Panel\ServiceController;
 use App\Http\Controllers\Panel\SettingsController;
 use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteBuilderController;
@@ -103,6 +104,16 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 Route::post('/iptal', [BookingDeskController::class, 'cancel'])
                     ->middleware('permission:booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.cancel');
             });
+        });
+
+        // Hizmetler modülü (faz 4): service.view listeler, service.manage yazar; personel, tenant context'siz.
+        Route::prefix('hizmetler')->name('services.')->group(function () {
+            Route::get('/', [ServiceController::class, 'index'])->middleware('permission:service.view|service.manage')->name('index');
+            Route::get('/yeni', [ServiceController::class, 'create'])->middleware('permission:service.manage')->name('create');
+            Route::post('/', [ServiceController::class, 'store'])->middleware('permission:service.manage')->name('store');
+            Route::get('/{service}/duzenle', [ServiceController::class, 'edit'])->middleware('permission:service.manage')->name('edit');
+            Route::put('/{service}', [ServiceController::class, 'update'])->middleware('permission:service.manage')->name('update');
+            Route::delete('/{service}', [ServiceController::class, 'destroy'])->middleware('permission:service.manage')->name('destroy');
         });
 
         // Ayar merkezi (§31–33): settings.view görür, settings.manage yazar; ?lokasyon= üzerine yazma.

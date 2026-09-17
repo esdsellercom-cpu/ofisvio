@@ -24,7 +24,7 @@ class LocationController extends Controller
     {
         abort_if($this->website->isTenantSite(), 404); // lokasyonlar operatörün, müşteri sitesinde yok
 
-        return view('site.locations', ['locations' => $this->geo->publishedLocations()]);
+        return view('site.locations', ['locations' => $this->geo->publishedLocations()->load('services')]);
     }
 
     public function show(string $slug): View
@@ -35,6 +35,6 @@ class LocationController extends Controller
 
         abort_if($location === null, 404);
 
-        return view('site.location', ['location' => $location->load('cover'), 'gallery' => $this->media->gallery($location)]);
+        return view('site.location', ['location' => $location->load(['cover', 'services']), 'gallery' => $this->media->gallery($location)]);
     }
 }

@@ -49,11 +49,11 @@
                     </div>
                 @endif
 
-                @if (! empty($location->tags))
+                @if ($location->services->where('is_active', true)->isNotEmpty())
                     <div>
                         <div class="label" style="margin-bottom:8px">Çözümler</div>
                         <div style="display:flex;flex-wrap:wrap;gap:6px">
-                            @foreach ($location->tags as $tag)<span class="tag">{{ $tag }}</span>@endforeach
+                            @foreach ($location->services->where('is_active', true) as $service)<a href="{{ $service->path() }}" class="tag">{{ $service->name }}</a>@endforeach
                         </div>
                     </div>
                 @endif

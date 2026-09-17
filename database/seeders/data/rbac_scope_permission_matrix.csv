@@ -109,6 +109,12 @@ booking,booking.approve,location_manager,location,no,no,
 booking,booking.manage,operations_admin,global,no,no,giris/tamamlandi/gelmedi/yeniden planlama/ic not
 booking,booking.manage,location_manager,location,no,no,
 booking,booking.manage,reception,location,no,no,masada giris/tamamlandi/gelmedi
+services,service.view,system_admin,global,no,no,hizmet katalogu
+services,service.view,operations_admin,global,no,no,
+services,service.view,super_admin,global,no,no,
+services,service.manage,system_admin,global,no,no,
+services,service.manage,operations_admin,global,no,no,
+services,service.manage,super_admin,global,no,no,
 settings,settings.view,system_admin,global,no,no,ayar merkezi
 settings,settings.view,operations_admin,global,no,no,
 settings,settings.view,super_admin,global,no,no,

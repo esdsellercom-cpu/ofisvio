@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -12,7 +13,7 @@ class Location extends Model
 {
     protected $fillable = [
         'name', 'slug', 'city', 'region', 'address_line', 'badge',
-        'tags', 'price_from', 'is_active', 'is_published', 'sort_order',
+        'price_from', 'is_active', 'is_published', 'sort_order',
         'latitude', 'longitude', 'district', 'postal_code', 'phone', 'opening_hours',
         'geo_description', 'geo_meta_description', 'cover_media_id',
     ];
@@ -20,7 +21,6 @@ class Location extends Model
     protected $casts = [
         'is_active' => 'boolean',
         'is_published' => 'boolean',
-        'tags' => 'array',
         'opening_hours' => 'array',
         'sort_order' => 'integer',
         'latitude' => 'float',
@@ -45,6 +45,22 @@ class Location extends Model
     public function mediaLinks(): HasMany
     {
         return $this->hasMany(LocationMedia::class)->orderBy('category')->orderBy('sort_order');
+    }
+
+    /**
+     * Sunulan hizmetler (faz 4) — ilişkisel; etiket dizisi yok.
+     *
+     * @return BelongsToMany<Service, $this>
+     */
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(Service::class, 'location_service')->withPivot('sort_order')->withTimestamps()->orderBy('services.sort_order')->orderBy('services.name');
+    }
+
+    /** Aktif hizmet adları (kart etiketleri, süzgeç). @return array<int, string> */
+    public function serviceNames(): array
+    {
+        return $this->services->where('is_active', true)->pluck('name')->values()->all();
     }
 
     public function hasCoordinates(): bool

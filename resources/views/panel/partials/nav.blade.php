@@ -45,7 +45,7 @@
     </div>
 @endcanany
 
-@canany(['website.view', 'website.manage', 'seo.view', 'geo.view'])
+@canany(['website.view', 'website.manage', 'seo.view', 'geo.view', 'service.view', 'service.manage'])
     <div class="panel-nav__group">
         <span class="panel-nav__label">Site</span>
         @canany(['website.view', 'website.manage'])
@@ -57,6 +57,9 @@
         @can('geo.view')
             <a href="{{ route('panel.geo.index') }}" {!! $active('panel.geo.*') !!}>GEO &amp; lokasyonlar</a>
         @endcan
+        @canany(['service.view', 'service.manage'])
+            <a href="{{ route('panel.services.index') }}" {!! $active('panel.services.*') !!}>Hizmetler</a>
+        @endcanany
     </div>
 @endcanany
 

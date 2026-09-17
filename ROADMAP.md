@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **249/249** (Unit 10 · Feature 224 · Architecture 15) |
+| `php artisan test` | ✅ **252/252** (Unit 10 · Feature 227 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -386,6 +386,17 @@ korunur, eski dosya kullanılmıyorsa silinir), kaldır. Vitrin: lokasyon sayfas
 kategori galerisi, kartlarda kapak; `site.partials.picture` (`srcset`/`sizes`/`loading=lazy`/
 `decoding=async`); og:image + LocalBusiness image kapaktan. Kodda görsel yolu yok; görsel yoksa boş
 durum kutusu. Her değişiklikte site önbellekleri düşer. `LocationMediaTest` (3 test, 7 adımlı senaryo).
+
+### 37. Hizmet modülü ✅ (17 Eylül 2026, faz 4 prompt)
+`services` (ad, slug, özet, Markdown açıklama, fiyat metni, rezervasyon türü → odalar, amiral, aktif,
+sıra, kapak) + `location_service` (ilişkisel). Taşıma: `site_blocks.solutions` ve `locations.tags`
+→ hizmetler/ilişki, ardından kaldırıldı (veri kaybı yok). Admin `/panel/hizmetler` (service.view/manage);
+lokasyon künyesi yalnız var olan hizmetlerden **seçer** (yeni hizmet buradan açılmaz). Vitrin: çözüm
+kartları, hero süzgeci, teklif formu seçenekleri, lokasyon kart/sayfa etiketleri, JSON-LD Service +
+makesOffer (URL'li), sitemap ve hizmet sayfaları (`/cozumler`, `/cozum/{slug}`: sunan lokasyonlar +
+rezervasyona bağlı odalar) hizmet tablosundan; kodda hizmet adı dizisi yok. Önbellek: hizmet/ilişki
+değişince site sürümleri düşer. `ServiceTest` (ekle→vitrin, bağla→etiket, kaldır→düşer, pasif, önbellek,
+tenant izolasyonu). Metin anahtarı `solutions_lede` eklendi (sabit cümle kalktı).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

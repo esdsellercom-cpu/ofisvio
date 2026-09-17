@@ -7,6 +7,7 @@ use App\Models\Content;
 use App\Models\Website;
 use App\Services\ContentCache;
 use App\Services\SeoService;
+use Database\Seeders\ServiceSeeder;
 use Database\Seeders\SiteBlockSeeder;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,9 +77,10 @@ class SeoEngineTest extends TestCase
 
         // Service düğümleri (faz 17): Ofisvio ana sayfası, vitrin bloğundan (veritabanı).
         $this->seed(SiteBlockSeeder::class);
+        $this->seed(ServiceSeeder::class); // Service düğümleri Hizmetler modülünden (faz 4)
         app(ContentCache::class)->invalidate($this->site);
         $home = $this->get('/')->assertOk()->getContent();
-        $this->assertStringContainsString('"@type":"Service","name":"Sanal Ofis"', $home);
+        $this->assertStringContainsString('"@type":"Service","name":"Sanal Ofis","url":"'.config('app.url').'/cozum/sanal-ofis"', $home);
         $this->assertStringContainsString('"@type":"WebSite"', $home);
         // Liste sayfalarının başlığı iskelet composer'ında ezilmez (faz 18 düzeltmesi).
         $list = $this->get('/blog')->assertOk()->getContent();

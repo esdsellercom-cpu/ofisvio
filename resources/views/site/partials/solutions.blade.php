@@ -1,35 +1,36 @@
-@if (! empty($blocks['solutions']))
+{{-- Çözümler: HİZMET kayıtlarından (faz 4). Aktif hizmet yoksa bölüm basılmaz. Kart → hizmet sayfası. --}}
+@if ($services->isNotEmpty())
 <section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section">
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">01 — Çözümler</p>
             <h2 class="h2" style="max-width:24ch">{{ $s['title'] ?? $texts['solutions_title'] }}</h2>
         </div>
-        <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">
-            Hepsi aynı altyapıyı paylaşır: resepsiyon, fiber, evrak ve kargo karşılama, şubeler arası geçiş hakkı dahildir.
-        </p>
+        @if (($s['lede'] ?? $texts['solutions_lede']) !== '')
+            <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">{{ $s['lede'] ?? $texts['solutions_lede'] }}</p>
+        @endif
     </div>
 
     <div class="grid-auto">
-        @foreach ($blocks['solutions'] as $item)
-            <a href="#teklif" class="card card--link" data-solution-pick="{{ $item['title'] }}">
-                <div class="shot" style="aspect-ratio:4/3">
-                    <span class="shot__note">{{ $item['key'] }} · 800×600</span>
-                </div>
+        @foreach ($services as $service)
+            <a href="{{ $service->path() }}" class="card card--link" data-solution-pick="{{ $service->name }}">
+                @if ($service->cover)
+                    @include('site.partials.picture', ['media' => $service->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block'])
+                @else
+                    <div class="shot" style="aspect-ratio:4/3"><span class="shot__note">{{ $service->slug }}</span></div>
+                @endif
                 <div class="card__body">
                     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
-                        <h3 class="h3">{{ $item['title'] }}</h3>
-                        @if ($item['flagship'])
-                            {{-- Amiral ürün işareti: backend'in modellediği süreç (KYC → adres
-                                 tahsisi) tam olarak bu ürün içindir. --}}
+                        <h3 class="h3">{{ $service->name }}</h3>
+                        @if ($service->is_flagship)
                             <span class="label" style="color:var(--brand);flex:none">amiral ürün</span>
                         @else
                             <span style="width:7px;height:7px;border-radius:99px;background:var(--brand);flex:none"></span>
                         @endif
                     </div>
-                    <p class="body-muted" style="margin:0;flex:1">{{ $item['desc'] }}</p>
+                    <p class="body-muted" style="margin:0;flex:1">{{ $service->summary }}</p>
                     <div class="card__foot">
-                        <span class="mono" style="font-size:13px;color:var(--brand)">{{ $item['price'] }}</span>
+                        <span class="mono" style="font-size:13px;color:var(--brand)">{{ $service->price_text ?? ($service->booking_kind ? 'saatlik · rezervasyon' : '') }}</span>
                         <span style="font-size:14px;font-weight:600">{{ $texts['cta_solution'] }}</span>
                     </div>
                 </div>

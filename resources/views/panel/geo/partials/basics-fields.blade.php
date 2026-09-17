@@ -18,9 +18,6 @@
     <label class="field"><span class="label">Rozet (kısa vurgu)</span>
         <input class="control" type="text" name="badge" value="{{ old('badge', $loc?->badge) }}" maxlength="120" placeholder="amiral kat · 14. kat terası">
     </label>
-    <label class="field"><span class="label">Çözümler (virgülle)</span>
-        <input class="control" type="text" name="tags" value="{{ old('tags', implode(', ', $loc?->tags ?? [])) }}" maxlength="300" placeholder="Sanal Ofis, Coworking">
-    </label>
     <label class="field"><span class="label">Fiyat metni</span>
         <input class="control mono" type="text" name="price_from" value="{{ old('price_from', $loc?->price_from) }}" maxlength="48" placeholder="Masa ₺4.900/ay">
     </label>
@@ -28,3 +25,16 @@
         <input class="control mono" type="number" name="sort_order" value="{{ old('sort_order', $loc?->sort_order ?? 0) }}" min="0" max="9999">
     </label>
 </div>
+{{-- Hizmetler: Hizmetler modülündeki gerçek kayıtlardan SEÇİM; burada yeni hizmet oluşturulmaz. --}}
+<fieldset style="border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px">
+    <legend class="label">Sunulan hizmetler</legend>
+    @php($selected = collect(old('services', $loc?->services?->pluck('id')->all() ?? []))->map(fn ($v) => (int) $v)->all())
+    <div class="grid-auto" style="--min:180px;--gap:8px">
+        @forelse ($allServices as $service)
+            <label class="checkbox-row"><input type="checkbox" name="services[]" value="{{ $service->id }}" @checked(in_array($service->id, $selected, true))><span>{{ $service->name }}@unless ($service->is_active) <span class="small muted">(pasif)</span>@endunless</span></label>
+        @empty
+            <span class="small muted">Henüz hizmet yok.</span>
+        @endforelse
+    </div>
+    <p class="small muted" style="margin:8px 0 0">Yeni hizmet gerekiyorsa <a href="{{ route('panel.services.index') }}">Hizmetler</a> modülünden oluşturun.</p>
+</fieldset>

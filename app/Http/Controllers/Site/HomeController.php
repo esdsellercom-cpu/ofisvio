@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Services\BookingService;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
+use App\Services\ServiceService;
 use App\Services\SiteBlockService;
 use App\Services\SiteBuilderService;
 use App\Support\ActivationJourney;
@@ -32,6 +33,7 @@ class HomeController extends Controller
         private readonly CurrentWebsite $website,
         private readonly BookingService $bookings,
         private readonly SiteBuilderService $builder,
+        private readonly ServiceService $services,
     ) {}
 
     public function __invoke(): View
@@ -61,7 +63,7 @@ class HomeController extends Controller
             ]);
         }
 
-        $locations = Location::published()->with('cover')->get();
+        $locations = Location::published()->with(['cover', 'services'])->get();
 
         return view('site.home', [
             'locations' => $locations,
@@ -71,6 +73,8 @@ class HomeController extends Controller
             'bookingDays' => $this->bookingDays(),
             // Rezervasyona açık gerçek odalar + onay politikasından türeyen rozet (booking engine v2).
             'bookableRooms' => $this->bookings->bookableRooms(true),
+            // Çözüm kartları: Hizmetler modülü (faz 4).
+            'services' => $this->services->active($this->website->get())->load('cover'),
             'bookingBadge' => $this->bookings->confirmationBadge(),
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'homePosts' => $this->contents->livePosts($this->website->get(), 6),

@@ -11,6 +11,7 @@ use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\GeoService;
 use App\Services\JitAccessService;
+use App\Services\ServiceService;
 use App\Services\WebsiteService;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -38,6 +39,7 @@ class GeoController extends Controller
         private readonly WebsiteService $websites,
         private readonly ContentCache $cache,
         private readonly JitAccessService $jit,
+        private readonly ServiceService $services,
         private readonly AuthorizationService $authorization,
     ) {}
 
@@ -67,12 +69,12 @@ class GeoController extends Controller
 
     public function edit(Location $location): View
     {
-        return view('panel.geo.location', ['location' => $location]);
+        return view('panel.geo.location', ['location' => $location->load('services'), 'allServices' => $this->services->all()]);
     }
 
     public function create(): View
     {
-        return view('panel.geo.create');
+        return view('panel.geo.create', ['allServices' => $this->services->all()]);
     }
 
     public const BASICS_RULES = [
@@ -81,7 +83,8 @@ class GeoController extends Controller
         'region' => ['nullable', 'string', 'max:64'],
         'address_line' => ['nullable', 'string', 'max:255'],
         'badge' => ['nullable', 'string', 'max:120'],
-        'tags' => ['nullable', 'string', 'max:300'], // virgülle
+        'services' => ['nullable', 'array', 'max:50'], // var olan hizmet id'leri (Hizmetler modülü)
+        'services.*' => ['integer'],
         'price_from' => ['nullable', 'string', 'max:48'],
         'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
         'is_active' => ['sometimes', 'boolean'],
@@ -94,6 +97,7 @@ class GeoController extends Controller
 
         try {
             $location = $this->geo->create($this->basicsPayload($validated));
+            $this->services->syncLocation($request->user(), $location, array_map('intval', (array) ($validated['services'] ?? [])));
         } catch (DomainException $e) {
             return back()->withErrors(['name' => $e->getMessage()])->withInput();
         }
@@ -107,6 +111,8 @@ class GeoController extends Controller
         $validated = $request->validate(self::BASICS_RULES);
 
         $this->geo->updateBasics($location, $this->basicsPayload($validated) + ['is_active' => (bool) ($validated['is_active'] ?? false)]);
+        // Hizmetler: yalnız seçim (Hizmetler modülünde var olanlar); lokasyon ekranı hizmet oluşturmaz.
+        $this->services->syncLocation($request->user(), $location, array_map('intval', (array) ($validated['services'] ?? [])));
         $this->cache->invalidate($this->contents->defaultWebsite());
 
         return redirect()->route('panel.geo.edit', $location)->with('status', $location->name.' künyesi güncellendi.');
@@ -126,7 +132,7 @@ class GeoController extends Controller
 
     /**
      * @param  array<string, mixed>  $validated
-     * @return array{name: string, city: string|null, region: string|null, address_line: string|null, badge: string|null, tags: array<int, string>, price_from: string|null, sort_order: int}
+     * @return array{name: string, city: string|null, region: string|null, address_line: string|null, badge: string|null, price_from: string|null, sort_order: int}
      */
     private function basicsPayload(array $validated): array
     {
@@ -136,7 +142,6 @@ class GeoController extends Controller
             'region' => $validated['region'] ?? null,
             'address_line' => $validated['address_line'] ?? null,
             'badge' => $validated['badge'] ?? null,
-            'tags' => array_values(array_filter(array_map('trim', explode(',', (string) ($validated['tags'] ?? ''))))),
             'price_from' => $validated['price_from'] ?? null,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
         ];

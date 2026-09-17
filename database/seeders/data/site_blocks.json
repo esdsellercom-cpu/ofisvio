@@ -6,36 +6,6 @@
         "tagline": "Sanal ofis ve esnek çalışma alanı operatörü. Levent, İstanbul merkezli."
     },
     "blocks": {
-        "solutions": [
-            {
-                "key": "sanal-ofis",
-                "title": "Sanal Ofis",
-                "desc": "Prestijli tescil adresi, gelen çağrı ve kargo karşılama, aylık evrak bildirimi.",
-                "price": "₺790/ay'dan",
-                "flagship": true
-            },
-            {
-                "key": "hazir-ofis",
-                "title": "Hazır Ofis",
-                "desc": "2–40 kişilik kilitli ofisler; mobilya, dolap ve marka tabelası kurulu şekilde teslim.",
-                "price": "₺13.900/ay'dan",
-                "flagship": false
-            },
-            {
-                "key": "coworking",
-                "title": "Coworking",
-                "desc": "Sabit ya da serbest masa; tüm şubelerde geçerli üyelik ve aylık toplantı kredisi.",
-                "price": "₺2.500/ay'dan",
-                "flagship": false
-            },
-            {
-                "key": "gun-gecisi",
-                "title": "Gün Geçişi",
-                "desc": "Sözleşmesiz günlük kullanım. Hızlı internet, telefon kabini, gün boyu ikram.",
-                "price": "₺390/gün'den",
-                "flagship": false
-            }
-        ],
         "amenities": [
             {
                 "title": "Fiber ve yedek hat",
@@ -159,27 +129,27 @@
                 "items": [
                     {
                         "label": "Sanal Ofis",
-                        "href": "#cozumler"
+                        "href": "/cozum/sanal-ofis"
                     },
                     {
                         "label": "Hazır Ofis",
-                        "href": "#cozumler"
+                        "href": "/cozum/hazir-ofis"
                     },
                     {
                         "label": "Coworking",
-                        "href": "#cozumler"
+                        "href": "/cozum/coworking"
                     },
                     {
                         "label": "Gün Geçişi",
-                        "href": "#cozumler"
+                        "href": "/cozum/gun-gecisi"
                     },
                     {
                         "label": "Toplantı Odası",
-                        "href": "#toplanti"
+                        "href": "/cozum/toplanti-odasi"
                     },
                     {
                         "label": "Etkinlik Alanı",
-                        "href": "#toplanti"
+                        "href": "/cozum/etkinlik-alani"
                     }
                 ]
             },

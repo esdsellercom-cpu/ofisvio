@@ -3,6 +3,7 @@
 namespace Tests\Feature\Panel;
 
 use App\Models\Location;
+use App\Models\Service;
 use App\Models\Website;
 use App\Services\GeoService;
 use Database\Seeders\LocationSeeder;
@@ -138,11 +139,12 @@ class GeoEngineTest extends TestCase
 
         // Aç (gizli), künye, vitrinde görünmez.
         $this->actingAs($ops)->get('/panel/geo/lokasyon-yeni')->assertOk()->assertSee('Şubeyi aç');
-        $this->actingAs($ops)->post('/panel/geo/lokasyon', ['name' => 'Ankara Çankaya', 'city' => 'Ankara', 'region' => 'Ankara', 'address_line' => 'Atatürk Blv. 1', 'tags' => 'Sanal Ofis, Coworking', 'price_from' => 'Masa ₺3.900/ay', 'sort_order' => 5])
+        $serviceIds = Service::query()->whereIn('name', ['Sanal Ofis', 'Coworking'])->orderBy('sort_order')->pluck('id')->all();
+        $this->actingAs($ops)->post('/panel/geo/lokasyon', ['name' => 'Ankara Çankaya', 'city' => 'Ankara', 'region' => 'Ankara', 'address_line' => 'Atatürk Blv. 1', 'services' => $serviceIds, 'price_from' => 'Masa ₺3.900/ay', 'sort_order' => 5])
             ->assertRedirect()->assertSessionHasNoErrors();
         $loc = Location::where('slug', 'ankara-cankaya')->firstOrFail();
         $this->assertFalse($loc->is_published);
-        $this->assertSame(['Sanal Ofis', 'Coworking'], $loc->tags);
+        $this->assertSame(['Sanal Ofis', 'Coworking'], $loc->serviceNames()); // ilişkisel (location_service), etiket dizisi yok
         $this->get('http://localhost/lokasyonlar')->assertOk()->assertDontSee('Ankara Çankaya');
 
         // Aynı ad -> tekil slug.

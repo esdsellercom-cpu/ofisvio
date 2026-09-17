@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Room;
 use App\Models\SiteBlock;
 use App\Models\User;
 use App\Models\Website;
@@ -22,7 +21,6 @@ class SiteBlockService
 {
     /** blok anahtarı => [etiket, alan başlıkları] — veri yalnız site_blocks tablosundan (SiteBlockSeeder açılışta doldurur) */
     public const BLOCKS = [
-        'solutions' => ['label' => 'Çözümler', 'fields' => ['Başlık', 'Açıklama', 'Fiyat', 'Amiral (evet/hayır)']],
         'amenities' => ['label' => 'Dahil olanlar', 'fields' => ['Başlık', 'Açıklama']],
         'plans' => ['label' => 'Üyelik planları (sütunlar)', 'fields' => ['Plan', 'Fiyat']],
         'plan_rows' => ['label' => 'Üyelik karşılaştırma satırları', 'fields' => ['Özellik', 'Plan başına hücre…']],
@@ -38,6 +36,7 @@ class SiteBlockService
         'hero_title_after' => 'Hero başlık (vurgudan sonra)',
         'hero_lede' => 'Hero açıklama',
         'solutions_title' => 'Çözümler başlığı',
+        'solutions_lede' => 'Çözümler açıklaması',
         'journey_title' => 'Nasıl çalışır başlığı',
         'journey_lede' => 'Nasıl çalışır açıklaması',
         'locations_title' => 'Lokasyonlar başlığı',
@@ -68,7 +67,7 @@ class SiteBlockService
     /** Boş bırakılınca bölümü gizleyen (varsayılana dönmeyen) metinler. */
     public const OPTIONAL_TEXT_KEYS = ['lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
 
-    public function __construct(private readonly ContentCache $cache, private readonly BookingService $bookings) {}
+    public function __construct(private readonly ContentCache $cache, private readonly ServiceService $services) {}
 
     /**
      * Ana sayfa metinleri: kayıt (texts bloğu) config varsayılanının üstüne.
@@ -142,27 +141,13 @@ class SiteBlockService
     }
 
     /**
-     * Talep formundaki "Çözüm" seçenekleri: çözümler + toplantı odası başlıkları (veritabanından).
+     * Teklif formu / süzgeç seçenekleri: aktif hizmet adları (faz 4 — Hizmetler modülü tek kaynak).
      *
      * @return array<int, string>
      */
     public function solutionOptions(?Website $website): array
     {
-        $all = $this->all($website);
-        $titles = [];
-
-        foreach ((array) $all['solutions'] as $s) {
-            if (is_array($s) && ! empty($s['title'])) {
-                $titles[] = (string) $s['title'];
-            }
-        }
-
-        // Toplantı odası: gerçek oda kaydı varsa (booking engine) teklif formunda seçenek olarak sunulur.
-        if ($this->bookings->hasBookableRooms($website)) {
-            $titles[] = Room::KINDS['meeting'];
-        }
-
-        return array_values(array_unique($titles));
+        return $this->services->names($website);
     }
 
     /** Bloğun düzenleme metni (kayıt yoksa boş). */
@@ -229,11 +214,6 @@ class SiteBlockService
             $n = $i + 1;
 
             $rows[] = match ($key) {
-                'solutions' => $this->cellsOrFail($cells, 4, $n, $expected, fn () => [
-                    'key' => str($cells[0])->slug()->toString(),
-                    'title' => $cells[0], 'desc' => $cells[1], 'price' => $cells[2],
-                    'flagship' => in_array(mb_strtolower($cells[3]), ['evet', 'e', 'yes', '1'], true),
-                ]),
                 'amenities' => $this->cellsOrFail($cells, 2, $n, $expected, fn () => ['title' => $cells[0], 'desc' => $cells[1]]),
                 'plans' => $this->cellsOrFail($cells, 2, $n, $expected, fn () => ['name' => $cells[0], 'price' => $cells[1]]),
                 'plan_rows' => count($cells) >= 2
@@ -314,7 +294,6 @@ class SiteBlockService
     private function rowToCells(string $key, array $row): array
     {
         return match ($key) {
-            'solutions' => [(string) $row['title'], (string) $row['desc'], (string) $row['price'], ! empty($row['flagship']) ? 'evet' : 'hayır'],
             'amenities' => [(string) $row['title'], (string) $row['desc']],
             'plans' => [(string) $row['name'], (string) $row['price']],
             'plan_rows' => array_merge([(string) $row['label']], array_map('strval', (array) $row['cells'])),

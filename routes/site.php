@@ -17,6 +17,7 @@ use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadController;
 use App\Http\Controllers\Site\LocationController;
 use App\Http\Controllers\Site\SeoController;
+use App\Http\Controllers\Site\ServiceController;
 use Illuminate\Support\Facades\Route;
 
 // public.cache: misafire public+ETag, oturum açmışa private/no-store (faz 12).
@@ -54,6 +55,10 @@ Route::get('/robots.txt', [SeoController::class, 'robots'])->middleware('public.
 Route::get('/sitemap.xml', [SeoController::class, 'sitemap'])->middleware('public.cache')->name('site.sitemap');
 
 // GEO (faz 16): lokasyon sayfaları — yalnızca Ofisvio vitrini (müşteri sitesinde 404).
+// Hizmetler (faz 4): liste + detay (hizmet ↔ lokasyon ilişkisi).
+Route::get('/cozumler', [ServiceController::class, 'index'])->middleware('public.cache')->name('site.services');
+Route::get('/cozum/{slug}', [ServiceController::class, 'show'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.service');
+
 Route::get('/lokasyonlar', [LocationController::class, 'index'])->middleware('public.cache')->name('site.locations');
 Route::get('/lokasyon/{slug}', [LocationController::class, 'show'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.location');
 
@@ -61,5 +66,5 @@ Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cac
 Route::get('/blog/etiket/{tag}', [ContentController::class, 'tag'])->where('tag', '[a-z0-9-]+')->middleware('public.cache')->name('site.tag');
 Route::get('/blog/kategori/{category}', [ContentController::class, 'category'])->where('category', '[a-z0-9-]+')->middleware('public.cache')->name('site.category');
 Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
-Route::get('/{parent}/{slug}', [ContentController::class, 'childPage'])->where(['parent' => '(?!panel$|login$|logout$|blog$|lokasyon$|lokasyonlar$|rezervasyon$|up$)[a-z0-9-]+', 'slug' => '[a-z0-9-]+'])->middleware('public.cache')->name('site.page.child');
-Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|rezervasyon$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');
+Route::get('/{parent}/{slug}', [ContentController::class, 'childPage'])->where(['parent' => '(?!panel$|login$|logout$|blog$|lokasyon$|lokasyonlar$|cozum$|cozumler$|rezervasyon$|up$)[a-z0-9-]+', 'slug' => '[a-z0-9-]+'])->middleware('public.cache')->name('site.page.child');
+Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|cozumler$|rezervasyon$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

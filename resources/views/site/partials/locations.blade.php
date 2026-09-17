@@ -21,7 +21,7 @@
             <article class="card"
                      data-location
                      data-region="{{ $loc->region }}"
-                     data-tags="{{ implode('|', $loc->tags ?? []) }}">
+                     data-tags="{{ implode('|', $loc->serviceNames()) }}">
                 @if ($loc->cover)
                     <div style="position:relative">
                         @include('site.partials.picture', ['media' => $loc->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
@@ -37,8 +37,8 @@
                     <h3 class="h3"><a href="{{ route('site.location', $loc->slug) }}">{{ $loc->name }}</a></h3>
                     <p class="body-muted" style="margin:0;font-size:14.5px;flex:1">{{ $loc->address_line }}</p>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
-                        @foreach ($loc->tags ?? [] as $tag)
-                            <span class="tag">{{ $tag }}</span>
+                        @foreach ($loc->services->where('is_active', true) as $service)
+                            <a href="{{ $service->path() }}" class="tag">{{ $service->name }}</a>
                         @endforeach
                     </div>
                     <div class="card__foot" style="margin-top:12px">

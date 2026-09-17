@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Location;
+use App\Models\Service;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
@@ -38,8 +39,12 @@ class LocationSeeder extends Seeder
 
     public function run(): void
     {
-        foreach (self::LOCATIONS as $i => [$name, $city, $region, $address, $badge, $tags, $price]) {
-            Location::updateOrCreate(
+        // Hizmet kataloğu önce (lokasyon → hizmet ilişkisi ada göre kurulur; yeni hizmet burada AÇILMAZ).
+        $this->call(ServiceSeeder::class);
+        $services = Service::query()->pluck('id', 'name');
+
+        foreach (self::LOCATIONS as $i => [$name, $city, $region, $address, $badge, $serviceNames, $price]) {
+            $location = Location::updateOrCreate(
                 ['slug' => Str::slug($name)],
                 [
                     'name' => $name,
@@ -47,13 +52,17 @@ class LocationSeeder extends Seeder
                     'region' => $region,
                     'address_line' => $address,
                     'badge' => $badge,
-                    'tags' => $tags,
                     'price_from' => $price,
                     'is_active' => true,
                     'is_published' => true,
                     'sort_order' => $i + 1,
                 ]
             );
+
+            // Yalnız ilişki yoksa kur: panelden değiştirilen hizmet seçimi re-seed'de korunur.
+            if ($location->services()->count() === 0) {
+                $location->services()->sync(collect($serviceNames)->map(fn (string $n) => $services[$n] ?? null)->filter()->values()->mapWithKeys(fn ($id, $i) => [$id => ['sort_order' => $i + 1]])->all());
+            }
         }
 
         // $command non-nullable: db:seed / Seeder::call() / $this->seed() set eder (bkz. RolePermissionSeeder).

@@ -18,7 +18,7 @@
                             <span class="body-muted" style="font-size:14px">{{ $location->address_line }}</span>
                             <div class="card__foot">
                                 <span class="mono small" style="color:var(--brand)">{{ $location->price_from }}</span>
-                                <span class="small muted">{{ implode(' · ', $location->tags ?? []) }}</span>
+                                <span class="small muted">{{ implode(' · ', $location->serviceNames()) }}</span>
                             </div>
                         </div>
                     </a>

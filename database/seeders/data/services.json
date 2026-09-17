@@ -1,0 +1,52 @@
+{
+    "services": [
+        {
+            "name": "Sanal Ofis",
+            "summary": "Prestijli tescil adresi, gelen çağrı ve kargo karşılama, aylık evrak bildirimi.",
+            "price_text": "₺790/ay'dan",
+            "is_flagship": true,
+            "booking_kind": null,
+            "sort_order": 1
+        },
+        {
+            "name": "Hazır Ofis",
+            "summary": "2–40 kişilik kilitli ofisler; mobilya, dolap ve marka tabelası kurulu şekilde teslim.",
+            "price_text": "₺13.900/ay'dan",
+            "is_flagship": false,
+            "booking_kind": null,
+            "sort_order": 2
+        },
+        {
+            "name": "Coworking",
+            "summary": "Sabit ya da serbest masa; tüm şubelerde geçerli üyelik ve aylık toplantı kredisi.",
+            "price_text": "₺2.500/ay'dan",
+            "is_flagship": false,
+            "booking_kind": null,
+            "sort_order": 3
+        },
+        {
+            "name": "Gün Geçişi",
+            "summary": "Sözleşmesiz günlük kullanım. Hızlı internet, telefon kabini, gün boyu ikram.",
+            "price_text": "₺390/gün'den",
+            "is_flagship": false,
+            "booking_kind": null,
+            "sort_order": 4
+        },
+        {
+            "name": "Toplantı Odası",
+            "summary": "Saatlik kiralanan, projektör ve beyaz tahta donanımlı toplantı odaları; canlı uygunluk ve çevrimiçi rezervasyon.",
+            "price_text": null,
+            "is_flagship": false,
+            "booking_kind": "meeting",
+            "sort_order": 5
+        },
+        {
+            "name": "Etkinlik Alanı",
+            "summary": "Eğitim, lansman ve atölye için saatlik etkinlik alanları; oturma düzeni ve ikram desteği.",
+            "price_text": null,
+            "is_flagship": false,
+            "booking_kind": "event",
+            "sort_order": 6
+        }
+    ]
+}

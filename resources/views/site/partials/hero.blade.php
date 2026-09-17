@@ -27,7 +27,7 @@
                     <span class="label">Çözüm</span>
                     <select class="control" data-filter-type>
                         <option value="Tümü">Hepsi</option>
-                        {{-- Çözüm seçenekleri vitrin bloklarından (solutions) + gerçek oda varsa toplantı odası. --}}
+                        {{-- Çözüm seçenekleri Hizmetler modülünden (aktif hizmet adları). --}}
                         @foreach ($leadOptions as $opt)
                             <option value="{{ $opt }}">{{ $opt }}</option>
                         @endforeach
