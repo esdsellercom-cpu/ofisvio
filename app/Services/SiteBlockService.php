@@ -185,6 +185,14 @@ class SiteBlockService
         $this->cache->invalidate($website);
     }
 
+    /** Biçimi doğrular, kaydetmez (editör taslağı): hata DomainException. pricing_note serbest metindir. */
+    public function parseOrFail(string $key, string $text): void
+    {
+        if ($key !== 'pricing_note') {
+            $this->parse($key, $text);
+        }
+    }
+
     /**
      * Önizleme için blok metnini çözer, kaydetmez (görsel editör global taslağı). Bozuk satır → boş liste.
      *

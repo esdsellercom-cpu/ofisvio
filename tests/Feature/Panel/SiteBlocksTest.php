@@ -46,7 +46,9 @@ class SiteBlocksTest extends TestCase
         // Çözüm kartları artık Hizmetler modülünden (faz 4); bloklar: dahil olanlar, planlar, footer, fiyat notu.
         $this->get('/')->assertOk()->assertSee('Sanal Ofis')->assertSee($seed['blocks']['pricing_note']);
         $this->actingAs($admin)->get('/panel/icerik')->assertOk()->assertSee('/panel/icerik/bloklar', false);
-        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('CMS kaydı')->assertSee('Fiber ve yedek hat');
+        // Faz 50: /bloklar blok kütüphanesidir (düzenleme formu yok); veri listeleri görsel editörde ilgili bölümden düzenlenir.
+        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Blok kütüphanesi')->assertDontSee('name="text"', false);
+        $this->actingAs($admin)->get('/panel/icerik/tasarim')->assertOk()->assertSee('Fiber ve yedek hat');
         $this->assertArrayNotHasKey('solutions', $seed['blocks']);
 
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/solutions', ['text' => 'A | B | C | evet'])->assertSessionHasErrors('solutions'); // blok yok
@@ -78,7 +80,7 @@ class SiteBlocksTest extends TestCase
         Room::create(['location_id' => Location::published()->firstOrFail()->id, 'name' => 'Toplantı A', 'kind' => 'meeting', 'capacity' => 4, 'hourly_rate' => 0, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
         $seedPhone = json_decode((string) file_get_contents(database_path('seeders/data/site_blocks.json')), true)['website']['contact_phone'];
         $this->get('/')->assertOk()->assertSee('Şirketinizin adresi')->assertSee($seedPhone);
-        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Hero başlık (1. satır)');
+        $this->actingAs($admin)->get('/panel/icerik/tasarim')->assertOk()->assertSee('Hero başlık (1. satır)'); // metinler editörde (global panel)
 
         // Metinler: değişen saklanır, varsayılanla aynı olan saklanmaz.
         $this->actingAs($admin)->put('/panel/icerik/bloklar/metinler', [
@@ -135,7 +137,7 @@ class SiteBlocksTest extends TestCase
         $this->assertStringContainsString('Cmt 09:00–14:00', $home);
 
         // Menü etiketleri, CTA'lar, teklif vaatleri ve WhatsApp mesajı metin bloğundan; boş vaat satırı gizlenir.
-        $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Menü: Çözümler')->assertSee('WhatsApp ön yazılı mesaj');
+        $this->actingAs($admin)->get('/panel/icerik/tasarim')->assertOk()->assertSee('Menü: Çözümler')->assertSee('WhatsApp ön yazılı mesaj');
         $this->actingAs($admin)->put('/panel/icerik/bloklar/metinler', [
             'nav_solutions' => 'Hizmetler', 'cta_header' => 'Fiyat iste', 'cta_hero' => 'Müsaitlik', 'lead_title' => 'Bize yazın',
             'lead_claim_2' => '', 'whatsapp_message' => 'Selam Ofisvio',
@@ -185,8 +187,8 @@ class SiteBlocksTest extends TestCase
         $this->actingAs($admin)->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Şirket tescil adresi | Dahil | Opsiyonel | Dahil | —'])->assertRedirect();
         $this->assertSame(['Dahil', 'Opsiyonel', 'Dahil', '—'], SiteBlock::where('key', 'plan_rows')->firstOrFail()->data[0]['cells']);
 
-        $this->actingAs($ops)->get('/panel/icerik/bloklar')->assertForbidden();
-        $this->actingAs($ops)->put('/panel/icerik/bloklar/amenities', ['text' => 'A | B'])->assertForbidden();
+        $this->actingAs($ops)->get('/panel/icerik/bloklar')->assertOk(); // kütüphane content.edit ile görülür
+        $this->actingAs($ops)->put('/panel/icerik/bloklar/amenities', ['text' => 'A | B'])->assertForbidden(); // doğrudan canlı yazım yalnız content.publish
 
         // Müşteri sitesi bloklardan etkilenmez (kendi ana sayfası).
         $acme = $this->organization('Acme');

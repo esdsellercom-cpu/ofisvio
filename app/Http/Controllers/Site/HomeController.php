@@ -55,10 +55,10 @@ class HomeController extends Controller
             $request->attributes->set('ofv.editor', true);
         }
 
-        return $this->render(true, $request->boolean('editor'), $request->integer('revision') ?: null);
+        return $this->render(true, $request->boolean('editor'), $request->integer('revision') ?: null, $request->integer('preset') ?: null);
     }
 
-    private function render(bool $preview, bool $editor = false, ?int $revision = null): View
+    private function render(bool $preview, bool $editor = false, ?int $revision = null, ?int $preset = null): View
     {
         // Müşteri sitesi (Host eşleşti): Ofisvio pazarlama blokları DEĞİL,
         // o sitenin kendi sayfa/yazıları.
@@ -75,6 +75,7 @@ class HomeController extends Controller
         $locations = Location::published()->with(['cover', 'services'])->get();
         $site = $this->website->get();
         $sections = match (true) {
+            $preset !== null => $this->builder->presetForPreview($site, $preset),
             $editor => $this->builder->draftForEditor($site),
             $revision !== null => $this->builder->revisionForPreview($site, $revision),
             $preview => $this->builder->draftForPreview($site),
@@ -88,6 +89,10 @@ class HomeController extends Controller
 
             if ($globals['footer_columns'] !== '') {
                 $blocks['footer_columns'] = $this->blocks->parseForPreview('footer_columns', $globals['footer_columns']);
+            }
+
+            foreach ($globals['blocks'] as $key => $text) {
+                $blocks[$key] = $key === 'pricing_note' ? $text : $this->blocks->parseForPreview($key, $text);
             }
         }
 
@@ -110,6 +115,7 @@ class HomeController extends Controller
             'editor' => $editor,
             'editorTemplates' => $editor ? $this->builder->templates($site) : [],
             'revisionPreview' => $revision,
+            'presetPreview' => $preset,
             // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).
             'blocks' => $blocks,
         ]);

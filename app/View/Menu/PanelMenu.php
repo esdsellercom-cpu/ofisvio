@@ -87,7 +87,7 @@ class PanelMenu
                 $can(...$contentPerms) ? $this->item('Yazılar', route('panel.content.index', ['kind' => 'post']), $kind('post')) : null,
                 $can(...$contentPerms) ? $this->item('İçerik takvimi', route('panel.content.calendar'), $this->routeIs('panel.content.calendar')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Ana sayfa tasarımı', route('panel.content.builder.index'), $this->routeIs('panel.content.builder.*')) : null,
-                $can('content.publish') ? $this->item('Metinler & bloklar', route('panel.content.blocks'), $this->routeIs('panel.content.blocks')) : null,
+                $can('content.edit', 'content.publish') ? $this->item('Blok kütüphanesi', route('panel.content.blocks'), $this->routeIs('panel.content.blocks*')) : null,
                 $can('content.edit') ? $this->item('Menü & tema', route('panel.content.menu'), $this->routeIs('panel.content.menu')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Medya kütüphanesi', route('panel.content.media.index'), $this->routeIs('panel.content.media.*')) : null,
                 $can('website.view', 'website.manage') ? $this->item('Websiteler', route('panel.websites.index'), $this->routeIs('panel.websites.*')) : null,

@@ -7,6 +7,7 @@ use App\Content\SeoAnalyzer;
 use App\Enums\ContentKind;
 use App\Http\Controllers\Controller;
 use App\Models\Media;
+use App\Models\SiteBlockPreset;
 use App\Models\SiteSection;
 use App\Models\Website;
 use App\Services\ContentService;
@@ -65,6 +66,13 @@ class SiteBuilderController extends Controller
             'texts' => $website ? array_merge($this->blocks->texts($website), $this->builder->globalsDraft($website)['texts']) : [],
             'textKeys' => SiteBlockService::TEXT_KEYS,
             'footerColumns' => $website ? ($this->builder->globalsDraft($website)['footer_columns'] ?: $this->blocks->text($website, 'footer_columns')) : '',
+            // Vitrin veri listeleri (faz 50; eski /bloklar formları): ilgili bölüm seçilince sağ panelde, taslak → yayın.
+            'dataBlocks' => $website ? collect(SiteBuilderService::DATA_BLOCKS)->mapWithKeys(fn (string $k) => [$k => $this->builder->globalsDraft($website)['blocks'][$k] ?? $this->blocks->text($website, $k)])->all() : [],
+            'dataBlockSections' => SiteBuilderService::DATA_BLOCK_SECTIONS,
+            'dataBlockMeta' => SiteBlockService::BLOCKS + ['pricing_note' => ['label' => 'Fiyat notu', 'fields' => ['Serbest metin']]],
+            'usage' => $website ? $this->builder->usage($website) : ['presets' => [], 'types' => []],
+            'categories' => SiteBlockPreset::CATEGORIES,
+            'add' => (string) $request->query('ekle', ''),
             'mediaOptions' => $website ? $this->media->all($website)->map(fn (Media $m) => ['id' => $m->id, 'url' => $m->url(), 'thumb' => $m->urlFor(400), 'alt' => (string) $m->alt, 'name' => $m->original_name, 'w' => $m->width, 'h' => $m->height])->values()->all() : [],
             'pages' => $pages,
             'pageTemplates' => PageTemplates::catalog(),

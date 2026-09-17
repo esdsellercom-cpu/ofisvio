@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\ContentKind;
+use App\Models\Content;
 use App\Models\Media;
 use App\Models\SiteBlockPreset;
 use App\Models\SiteRevision;
@@ -208,10 +210,13 @@ class SiteBuilderService
         }
 
         $existing = $this->draft($website)->keyBy('id');
+        $presets = $this->presets($website)->keyBy('id');
+        $presetOriginal = $presets->map(fn (SiteBlockPreset $p) => $p->settings ?? [])->all(); // aynı global bloğa bağlı birden çok bölüm: yalnız DEĞİŞEN yazar
+        $updatedPresets = [];
         $seenTypes = [];
         $stats = ['sections' => 0, 'created' => 0, 'deleted' => 0, 'uploaded' => count($mediaByToken)];
 
-        DB::transaction(function () use ($actor, $website, $rows, $existing, $mediaByToken, &$seenTypes, &$stats, $payload, $siteImage) {
+        DB::transaction(function () use ($actor, $website, $rows, $existing, $presets, $presetOriginal, &$updatedPresets, $mediaByToken, &$seenTypes, &$stats, $payload, $siteImage) {
             $keep = [];
             $anchors = [];
 
@@ -247,8 +252,23 @@ class SiteBuilderService
                     throw new DomainException('Bitiş, başlangıçtan sonra olmalı.');
                 }
 
+                // Kayıtlı bloğa bağlı bölüm: bağ yalnız aynı tipteki mevcut bloğa; GLOBAL blokta düzenleme bloğun kendisine
+                // yazılır (tüm kullanımlar güncellenir), normal blok bağı yalnız kaynak bilgisi taşır.
+                $presetId = (int) ($row['preset_id'] ?? 0);
+                $preset = $presetId > 0 && $presets->has($presetId) && $presets[$presetId]->type === $type ? $presets[$presetId] : null;
+
+                if ($preset !== null && $preset->is_global) {
+                    if ($settings !== $presetOriginal[$preset->id]) {
+                        $preset->forceFill(['settings' => $settings])->save();
+                        $updatedPresets[$preset->id] = true;
+                        $this->audit->record($actor, 'site.preset_updated', 'site_block_preset', $preset->id, ['settings' => $presetOriginal[$preset->id]], ['settings' => $settings, 'via' => 'editor']);
+                    }
+
+                    $settings = $preset->settings ?? []; // bağlı bölüm daima bloğun güncel ayarını taşır
+                }
+
                 $attributes = [
-                    'type' => $type, 'anchor' => $anchor === '' ? null : $anchor, 'sort_order' => $i + 1,
+                    'type' => $type, 'anchor' => $anchor === '' ? null : $anchor, 'sort_order' => $i + 1, 'preset_id' => $preset?->id,
                     'is_visible' => filter_var($row['is_visible'] ?? true, FILTER_VALIDATE_BOOL),
                     'hide_on_mobile' => filter_var($row['hide_on_mobile'] ?? false, FILTER_VALIDATE_BOOL),
                     'hide_on_desktop' => filter_var($row['hide_on_desktop'] ?? false, FILTER_VALIDATE_BOOL),
@@ -286,6 +306,11 @@ class SiteBuilderService
                 }
             }
 
+            // Güncellenen global blok: aynı bloğa bağlı diğer bölümler de (bu kayıtta erken işlenenler dahil) eşitlenir.
+            foreach (array_keys($updatedPresets) as $presetId) {
+                SiteSection::query()->where('website_id', $website->id)->where('preset_id', $presetId)->update(['settings' => json_encode($presets[$presetId]->settings ?? [])]);
+            }
+
             if (is_array($payload['globals'] ?? null)) {
                 $this->saveGlobalsDraft($website, $payload['globals']);
 
@@ -299,7 +324,11 @@ class SiteBuilderService
             }
         });
 
-        $this->audit->record($actor, 'site.draft_applied', 'website', $website->id, [], $stats);
+        if ($updatedPresets !== []) {
+            $this->cache->invalidate($website); // global blok yayındaki kullanımlarda da çizim anında değişir
+        }
+
+        $this->audit->record($actor, 'site.draft_applied', 'website', $website->id, [], $stats + ['global_presets' => array_keys($updatedPresets)]);
 
         return $stats;
     }
@@ -327,14 +356,30 @@ class SiteBuilderService
     /**
      * Global (header/footer/üst şerit) metin taslağı: yayınlanana kadar yalnız önizlemede; yayın SiteBlockService'e yazar.
      *
-     * @return array{texts: array<string, string>, footer_columns: string}
+     * Vitrin veri listeleri (dahil olanlar, planlar, plan satırları, fiyat notu) da buradadır: editörde ilgili bölüm
+     * seçilince düzenlenir (`globals.blocks`), footer sütunları footer'da.
+     *
+     * @return array{texts: array<string, string>, footer_columns: string, blocks: array<string, string>}
      */
     public function globalsDraft(Website $website): array
     {
         $raw = (array) ($website->builder_globals ?? []);
+        $blocks = [];
 
-        return ['texts' => array_map('strval', array_intersect_key((array) ($raw['texts'] ?? []), SiteBlockService::TEXT_KEYS)), 'footer_columns' => (string) ($raw['footer_columns'] ?? '')];
+        foreach (self::DATA_BLOCKS as $key) {
+            if (isset($raw['blocks'][$key])) {
+                $blocks[$key] = (string) $raw['blocks'][$key];
+            }
+        }
+
+        return ['texts' => array_map('strval', array_intersect_key((array) ($raw['texts'] ?? []), SiteBlockService::TEXT_KEYS)), 'footer_columns' => (string) ($raw['footer_columns'] ?? ''), 'blocks' => $blocks];
     }
+
+    /** Editörde bölüm üstünden düzenlenen vitrin veri listeleri (SiteBlockService blokları; footer ayrı). */
+    public const DATA_BLOCKS = ['amenities', 'plans', 'plan_rows', 'pricing_note'];
+
+    /** Veri listesi → bağlı olduğu bölüm tipi (editör sağ paneli). */
+    public const DATA_BLOCK_SECTIONS = ['amenities' => ['amenities'], 'pricing' => ['plans', 'plan_rows', 'pricing_note']];
 
     /** @param  array<string, mixed>  $globals */
     private function saveGlobalsDraft(Website $website, array $globals): void
@@ -358,8 +403,22 @@ class SiteBuilderService
         if ($footer !== null && trim($footer) === trim($this->blocks->text($website, 'footer_columns'))) {
             $footer = null;
         }
-        $draft = $texts === [] && $footer === null ? null : ['texts' => $texts, 'footer_columns' => $footer];
-        $website->forceFill(['builder_globals' => $draft])->save();
+
+        $blocks = [];
+
+        foreach (self::DATA_BLOCKS as $key) {
+            if (array_key_exists($key, (array) ($globals['blocks'] ?? []))) {
+                $value = mb_substr((string) $globals['blocks'][$key], 0, 8000);
+
+                if (trim($value) !== trim($this->blocks->text($website, $key))) {
+                    $this->blocks->parseOrFail($key, $value); // biçim hatası kaydı durdurur
+                    $blocks[$key] = $value;
+                }
+            }
+        }
+
+        $draft = $texts === [] && $footer === null && $blocks === [] ? null : array_filter(['texts' => $texts, 'footer_columns' => $footer, 'blocks' => $blocks], fn ($v) => $v !== null && $v !== []);
+        $website->forceFill(['builder_globals' => $draft ?: null])->save();
     }
 
     /** Yayın anında global taslağı canlıya yazar ve temizler (content.publish rotasından). */
@@ -379,6 +438,12 @@ class SiteBuilderService
             $this->blocks->update($actor, $website, 'footer_columns', (string) $raw['footer_columns']);
         }
 
+        foreach ((array) ($raw['blocks'] ?? []) as $key => $text) {
+            if (in_array($key, self::DATA_BLOCKS, true)) {
+                $this->blocks->update($actor, $website, (string) $key, (string) $text);
+            }
+        }
+
         $website->forceFill(['builder_globals' => null])->save();
     }
 
@@ -390,8 +455,8 @@ class SiteBuilderService
         return SiteBlockPreset::query()->where('website_id', $website->id)->orderBy('name')->get();
     }
 
-    /** @param  array<string, mixed>  $settings */
-    public function savePreset(User $actor, Website $website, string $name, string $type, array $settings): SiteBlockPreset
+    /** @param  array<string, mixed>  $settings  boş = tipin varsayılanı (kütüphaneden "yeni blok şablonu") */
+    public function savePreset(User $actor, Website $website, string $name, string $type, array $settings, string $category = 'ozel', bool $global = false): SiteBlockPreset
     {
         if (! SectionLibrary::exists($type)) {
             throw new DomainException('Tanımsız bölüm tipi.');
@@ -407,13 +472,16 @@ class SiteBuilderService
             throw new DomainException('En fazla 60 kayıtlı blok.');
         }
 
-        $preset = SiteBlockPreset::query()->create(['website_id' => $website->id, 'name' => $name, 'type' => $type, 'settings' => $this->normalizeSettings($type, $settings), 'created_by' => $actor->id]);
-        $this->audit->record($actor, 'site.preset_saved', 'site_block_preset', $preset->id, [], ['type' => $type, 'name' => $name]);
+        $preset = SiteBlockPreset::query()->create([
+            'website_id' => $website->id, 'name' => $name, 'type' => $type, 'category' => isset(SiteBlockPreset::CATEGORIES[$category]) ? $category : 'ozel', 'is_global' => $global,
+            'settings' => $this->normalizeSettings($type, $settings === [] ? SectionLibrary::defaults($type) : $settings), 'created_by' => $actor->id,
+        ]);
+        $this->audit->record($actor, 'site.preset_saved', 'site_block_preset', $preset->id, [], ['type' => $type, 'name' => $name, 'category' => $preset->category, 'global' => $global]);
 
         return $preset;
     }
 
-    public function deletePreset(User $actor, Website $website, int $id): void
+    public function findPreset(Website $website, int $id): SiteBlockPreset
     {
         $preset = SiteBlockPreset::query()->where('website_id', $website->id)->find($id);
 
@@ -421,8 +489,80 @@ class SiteBuilderService
             throw new DomainException('Kayıtlı blok bulunamadı.');
         }
 
-        $preset->delete();
+        return $preset;
+    }
+
+    /** Ad / kategori / global bayrağı (kütüphane). Global kapatılınca bağlı bölümler kendi kopyalarıyla kalır. */
+    public function updatePreset(User $actor, Website $website, int $id, string $name, string $category, bool $global): SiteBlockPreset
+    {
+        $preset = $this->findPreset($website, $id);
+        $name = mb_substr(trim($name), 0, 80);
+
+        if ($name === '') {
+            throw new DomainException('Blok adı gerekli.');
+        }
+
+        $before = ['name' => $preset->name, 'category' => $preset->category, 'is_global' => $preset->is_global];
+        $preset->fill(['name' => $name, 'category' => isset(SiteBlockPreset::CATEGORIES[$category]) ? $category : 'ozel', 'is_global' => $global])->save();
+        $this->cache->invalidate($website); // global blok vitrinde çizim anında çözülür
+        $this->audit->record($actor, 'site.preset_updated', 'site_block_preset', $preset->id, $before, ['name' => $name, 'category' => $preset->category, 'is_global' => $global]);
+
+        return $preset;
+    }
+
+    public function duplicatePreset(User $actor, Website $website, int $id): SiteBlockPreset
+    {
+        $source = $this->findPreset($website, $id);
+
+        return $this->savePreset($actor, $website, mb_substr($source->name.' (kopya)', 0, 80), $source->type, $source->settings ?? [], $source->category, false);
+    }
+
+    /** Siler; bağlı bölümler bloğun son ayarını kendi kopyası olarak alır (sayfa bozulmaz). */
+    public function deletePreset(User $actor, Website $website, int $id): void
+    {
+        $preset = $this->findPreset($website, $id);
+
+        DB::transaction(function () use ($preset) {
+            foreach ($preset->sections as $section) {
+                $section->forceFill(['preset_id' => null, 'settings' => $preset->is_global ? ($preset->settings ?? []) : ($section->settings ?? [])])->save();
+            }
+
+            $preset->delete();
+        });
+        $this->cache->invalidate($website);
         $this->audit->record($actor, 'site.preset_deleted', 'site_block_preset', $id, ['name' => $preset->name], []);
+    }
+
+    /**
+     * Kütüphane kullanım raporu: kayıtlı blok → taslak/yayın bölümleri; bileşen tipi → ana sayfa bölümü ve
+     * gövdesinde aynı adlı CMS bloğu (:::tip) geçen sayfalar.
+     *
+     * @return array{presets: array<int, array{draft: array<int, int>, published: int}>, types: array<string, array{section: int|null, pages: array<int, array{id: int, title: string}>}>}
+     */
+    public function usage(Website $website): array
+    {
+        $draft = $this->draft($website);
+        $latest = SiteRevision::query()->where('website_id', $website->id)->orderByDesc('number')->first();
+        $published = collect($latest === null ? [] : (array) $latest->snapshot);
+        $out = ['presets' => [], 'types' => []];
+
+        foreach ($this->presets($website) as $preset) {
+            $out['presets'][$preset->id] = [
+                'draft' => $draft->where('preset_id', $preset->id)->pluck('id')->values()->all(),
+                'published' => $published->where('preset_id', $preset->id)->count(),
+            ];
+        }
+
+        $pages = Content::query()->where('website_id', $website->id)->where('kind', ContentKind::PAGE->value)->where('body', 'like', '%:::%')->get(['id', 'title', 'body']);
+
+        foreach (array_keys(SectionLibrary::types()) as $type) {
+            $out['types'][$type] = [
+                'section' => $draft->firstWhere('type', $type)?->id,
+                'pages' => $pages->filter(fn (Content $p) => str_contains((string) $p->body, ':::'.$type))->map(fn (Content $p) => ['id' => $p->id, 'title' => $p->title])->values()->all(),
+            ];
+        }
+
+        return $out;
     }
 
     /**
@@ -439,10 +579,18 @@ class SiteBuilderService
         }
 
         foreach ($this->presets($website) as $preset) {
-            $rows[] = ['type' => $preset->type, 'anchor' => null, 'is_visible' => true, 'settings' => $preset->settings ?? [], 'preset' => $preset->id];
+            $rows[] = ['type' => $preset->type, 'anchor' => null, 'is_visible' => true, 'settings' => $preset->settings ?? [], 'preset' => $preset->id, 'preset_id' => $preset->is_global ? $preset->id : null];
         }
 
         return $this->renderable($rows, true);
+    }
+
+    /** Kütüphane blok önizlemesi (`?preset=ID`): yalnız o blok, gerçek bileşenle. @return array<int, array<string, mixed>> */
+    public function presetForPreview(Website $website, int $id): array
+    {
+        $preset = SiteBlockPreset::query()->where('website_id', $website->id)->find($id);
+
+        return $preset === null ? [] : $this->renderable([['type' => $preset->type, 'anchor' => null, 'is_visible' => true, 'settings' => $preset->settings ?? [], 'preset' => $preset->id]], true);
     }
 
     /** Eski revizyonun vitrin görünümü (önizleme `?revision=N`). @return array<int, array<string, mixed>> */
@@ -648,10 +796,19 @@ class SiteBuilderService
         $now = Carbon::now();
         $out = [];
         $mediaIds = [];
+        $presetIds = array_values(array_unique(array_filter(array_map(fn ($r) => is_array($r) ? (int) ($r['preset_id'] ?? 0) : 0, $rows))));
+        // Global kayıtlı blok: ayar çizim anında bloktan okunur → blok değişince her kullanım (yayın dahil) güncellenir.
+        $globalPresets = $presetIds === [] ? collect() : SiteBlockPreset::query()->whereIn('id', $presetIds)->where('is_global', true)->get()->keyBy('id');
 
         foreach ($rows as $i => $row) {
             if (! is_array($row) || ! SectionLibrary::exists((string) ($row['type'] ?? ''))) {
                 continue;
+            }
+
+            $linked = isset($row['preset_id']) && $globalPresets->has((int) $row['preset_id']) && $globalPresets[(int) $row['preset_id']]->type === $row['type'] ? $globalPresets[(int) $row['preset_id']] : null;
+
+            if ($linked !== null) {
+                $row['settings'] = $linked->settings ?? [];
             }
 
             if (! $all) {
@@ -684,6 +841,7 @@ class SiteBuilderService
                 'type' => (string) $row['type'], 'anchor' => isset($row['anchor']) ? (string) $row['anchor'] : null, 'settings' => $settings,
                 'hide_on_mobile' => (bool) ($row['hide_on_mobile'] ?? false), 'hide_on_desktop' => (bool) ($row['hide_on_desktop'] ?? false),
                 'id' => $id, 'is_visible' => (bool) ($row['is_visible'] ?? true), 'locked' => (bool) ($row['locked'] ?? false), 'label' => isset($row['label']) ? (string) $row['label'] : null, 'preset' => isset($row['preset']) ? (int) $row['preset'] : null,
+                'preset_id' => isset($row['preset_id']) ? (int) $row['preset_id'] : null, 'preset_global' => $linked !== null,
                 'style' => SectionStyle::inline((array) ($settings['style'] ?? [])), 'style_class' => SectionStyle::classes((array) ($settings['style'] ?? [])), 'media_css' => SectionStyle::media($settings, $selector), 'media' => [],
             ];
         }

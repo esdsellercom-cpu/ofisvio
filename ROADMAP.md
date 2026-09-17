@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **306/306** (Unit 12 · Feature 278 · Architecture 16) |
+| `php artisan test` | ✅ **309/309** (Unit 12 · Feature 281 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -693,6 +693,29 @@ anlık görüntü (`site_revisions`) → vitrin; `SectionLibrary` bileşenleri; 
   Uygula → çerçevede önizleme; dış AI sağlayıcı yok (bağlanınca aynı öneri arayüzü). Uydurma içerik üretmez.
 - Migrasyon `2026_09_18_000027_visual_editor` (`site_sections.locked/label`, `websites.builder_globals`,
   `site_block_presets`). Testler `VisualEditorTest` (5); `SiteBuilderTest` değişmeden geçer.
+
+### 50. Blok kütüphanesi — `/panel/icerik/bloklar` ile `/tasarim` tek düzenleme yüzeyi ✅ (18 Eylül 2026)
+Aynı işlev iki yerde tekrar etmez: **düzenleme yalnız görsel editörde**. `/panel/icerik/bloklar` artık
+**Blok Kütüphanesi / Şablonlar** (content.edit|publish görür):
+- **Kayıtlı bloklar & şablonlar:** ad, kategori (Hero · Hizmetler · CTA · SSS · Referanslar · İletişim · Blog · Footer
+  · İçerik · Özel), **🌐 global / normal**, kullanım (ana sayfa taslak/yayın sayısı), **Tasarımda düzenle** (bölüm
+  sayfadaysa `?secim=`, değilse `?ekle=preset:ID` ile editörde ekler), Önizle (imzalı `site.preview?preset=ID`,
+  gerçek bileşen, cihaz seçici), Kopyala, Ad/kategori/global (modal), Sil (bağlı bölümler kendi kopyasıyla kalır),
+  **+ Yeni blok şablonu** (tip + ad + kategori + global → tipin varsayılanıyla oluşur, editörde açılır).
+- **Hazır bileşenler:** `SectionLibrary` kataloğu; kullanım = ana sayfa bölümü + gövdesinde `:::tip` geçen sayfalar;
+  Tasarımda düzenle / Tasarıma ekle / Şablon oluştur.
+- **Global blok:** `site_sections.preset_id` bağı; `is_global` bloklarda ayar çizim anında bloktan okunur (yayındaki
+  anlık görüntü dahil, yeniden yayın olmadan); editörde bağlı bölüm düzenlenince `applyDraft` bloğa yazar ve tüm
+  bağlı bölümleri eşitler (aynı kayıtta yalnız DEĞİŞEN yazar); "Bağı kopar" bölümü kopyaya çevirir; global kapatılır
+  ya da blok silinirse kullanımlar son ayarı kopya olarak alır. Normal blok eklenince kopyalanır.
+- **Editör ↔ kütüphane:** editör üst çubuğunda **+ Blok ekle** aynı kataloğu (`panel.content._block-catalog`, picker
+  modu) pencerede açar ("Kütüphaneyi yönet →"); Kayıtlı sekmesi kategori/global rozetlerini gösterir.
+- **Eski /bloklar formları kaldırıldı:** 33 site metni editörde inline (`data-ofv-global`) ve Header panelinde
+  "Diğer site metinleri" ile; veri listeleri (dahil olanlar, planlar, plan satırları, fiyat notu) editörde **ilgili
+  bölüm seçilince** (`SiteBuilderService::DATA_BLOCK_SECTIONS`) düzenlenir → `builder_globals.blocks` taslağı →
+  önizleme → yayınla (`SiteBlockService::update`); biçim hatası kaydı durdurur. `PUT /bloklar/metinler` ve
+  `PUT /bloklar/{blok}` faz 10 servis uç noktası olarak kalır (content.publish, form yok).
+- Migrasyon `2026_09_18_000028_block_library`. Menü: "Blok kütüphanesi". Testler `BlockLibraryTest` (3).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

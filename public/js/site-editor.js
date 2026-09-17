@@ -15,14 +15,15 @@
     var AREA_TEXTS = { header: ['nav_solutions', 'nav_journey', 'nav_locations', 'nav_meeting', 'nav_pricing', 'cta_header', 'topbar', 'cta_topbar'], topbar: ['topbar', 'cta_topbar'], footer: [] };
 
     /* ---------- Durum ---------- */
-    var state = { sections: JSON.parse(JSON.stringify(cfg.sections || [])), texts: Object.assign({}, cfg.texts || {}), footerColumns: cfg.footerColumns || '', heroMedia: '' };
+    var state = { sections: JSON.parse(JSON.stringify(cfg.sections || [])), texts: Object.assign({}, cfg.texts || {}), footerColumns: cfg.footerColumns || '', heroMedia: '', blocks: Object.assign({}, cfg.dataBlocks || {}) };
+    var DATA_SECTIONS = cfg.dataBlockSections || {}, DATA_META = cfg.dataBlockMeta || {};
     var uploads = {}; // token → File
     var history = [], future = [];
     var dirty = false, newSeq = 0, selection = null, device = cfg.device || 'desktop', frameWin = null, stale = {};
     var frame = $('[data-frame]'), frameWrap = $('[data-frame-wrap]'), rightBody = $('[data-right-body]'), rightHead = $('[data-right-head]'), rightTabs = $('[data-right-tabs]');
     var rightTab = 'content';
 
-    function snapshot() { return JSON.stringify({ sections: state.sections, texts: state.texts, footerColumns: state.footerColumns, heroMedia: state.heroMedia }); }
+    function snapshot() { return JSON.stringify({ sections: state.sections, texts: state.texts, footerColumns: state.footerColumns, heroMedia: state.heroMedia, blocks: state.blocks }); }
     var lastSnapshot = snapshot(); // son onaylı durum; commit öncesi hali yığına gider
     function commit() { history.push(lastSnapshot); lastSnapshot = snapshot(); if (history.length > 80) history.shift(); future = []; setDirty(true); updateUndo(); }
     function updateUndo() { $('[data-undo]').disabled = history.length === 0; $('[data-redo]').disabled = future.length === 0; }
@@ -30,7 +31,8 @@
     function toast(msg) { var t = $('[data-toast]'); t.textContent = msg; t.hidden = false; clearTimeout(t._t); t._t = setTimeout(function () { t.hidden = true; }, 2200); }
     function sec(id) { for (var i = 0; i < state.sections.length; i++) if (String(state.sections[i].id) === String(id)) return state.sections[i]; return null; }
     function secIndex(id) { for (var i = 0; i < state.sections.length; i++) if (String(state.sections[i].id) === String(id)) return i; return -1; }
-    function label(id, type) { var s = sec(id); return (s && s.label) || (LIB[type || (s && s.type)] || { label: type }).label; }
+    function label(id, type) { var s = sec(id); var p = s && s.preset_id ? PRESETS[s.preset_id] : null; return (s && s.label) || (p && p.global ? p.name : null) || (LIB[type || (s && s.type)] || { label: type }).label; }
+    function linkedGlobal(s) { var p = s && s.preset_id ? PRESETS[s.preset_id] : null; return p && p.global ? p : null; }
     function fdoc() { return frameWin ? frameWin.document : null; }
     function fnode(id) { var d = fdoc(); return d ? d.querySelector('[data-ofv-section="' + id + '"]') : null; }
     function api() { return frameWin && frameWin.OfisvioFrame ? frameWin.OfisvioFrame : null; }
@@ -151,12 +153,12 @@
         var id = 'n' + (++newSeq);
         var frag = fdoc().importNode(tpl.content, true), el = frag.querySelector('[data-ofv-section]');
         el.setAttribute('data-ofv-section', id); el.id = 'sec-' + id;
-        var row = { id: id, type: type, anchor: null, is_visible: true, hide_on_mobile: false, hide_on_desktop: false, locked: false, label: null, settings: Object.keys(settings).length ? settings : JSON.parse(JSON.stringify(defaultsFor(type))), publish_from: null, publish_until: null };
+        var row = { id: id, type: type, anchor: null, is_visible: true, hide_on_mobile: false, hide_on_desktop: false, locked: false, label: null, preset_id: presetId && PRESETS[presetId].global ? presetId : null, settings: Object.keys(settings).length ? settings : JSON.parse(JSON.stringify(defaultsFor(type))), publish_from: null, publish_until: null };
         if (index === null || index === undefined || index >= state.sections.length) { state.sections.push(row); a.container().appendChild(frag); }
         else { var before = fnode(state.sections[index].id); state.sections.splice(index, 0, row); a.container().insertBefore(frag, before); }
         a.clearEmpty(); a.makeDraggable(el); applySectionStyle(row);
         commit(); renderLayers(); select({ kind: 'section', section: id }); el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        toast(def.label + ' eklendi (taslak; kaydedin).');
+        toast((row.preset_id ? '🌐 Global blok bağlandı' : def.label + ' eklendi') + ' (taslak; kaydedin).');
     }
     function defaultsFor(type) { return (cfg.defaults || {})[type] || {}; }
     function moveSection(id, index) {
@@ -202,6 +204,7 @@
         if (api() && !(sel && sel.kind === 'field')) api().stopEdit();
         if (sel && sel.section && api()) api().select(sel.section);
         if (sel && sel.kind === 'image') rightTab = 'content';
+        if (sel && sel.section && rightTab === 'seo') rightTab = 'content'; // SEO sekmesi sayfa düzeyidir
         if (sel && sel.kind === 'field') rightTab = 'content';
         renderRight(); renderLayers();
     }
@@ -216,7 +219,10 @@
         if (!s && selection.area) { renderGlobalPanel(selection.area); return; }
         if (!s) { renderPageInfo(); return; }
         var def = LIB[s.type];
-        rightHead.innerHTML = '<b>' + esc(label(s.id)) + '</b><span class="small muted">' + esc(def.label) + ' · ' + esc(def.source) + (s.locked ? ' · 🔒 kilitli' : '') + '</span>';
+        var g = linkedGlobal(s);
+        rightHead.innerHTML = '<b>' + esc(label(s.id)) + '</b><span class="small muted">' + esc(def.label) + ' · ' + esc(def.source) + (s.locked ? ' · 🔒 kilitli' : '') + '</span>' + (g ? '<span class="small" style="margin-top:4px"><span class="pill g flat">🌐 Global blok: ' + esc(g.name) + '</span> değişiklik tüm kullanımlara yansır · <button type="button" class="btn btn--quiet" data-detach>Bağı kopar</button></span>' : '');
+        var det = rightHead.querySelector('[data-detach]');
+        if (det) det.addEventListener('click', function () { if (!window.confirm('Bağ koparılsın mı? Bu bölüm kendi kopyasıyla devam eder; global blok değişince artık güncellenmez.')) return; s.preset_id = null; commit(); renderRight(); renderLayers(); });
         setRightTabs(true);
         var html = '';
         if (rightTab === 'content') html = contentPanel(s, def);
@@ -255,6 +261,11 @@
         var keys = Object.keys(def.fields);
         if (!keys.length) h += '<p class="small muted">Bu bölümün alanı yok; verisi gerçek kayıtlardan gelir (' + esc(def.source) + ').</p>';
         keys.forEach(function (k) { var f = def.fields[k]; var g = def.texts && def.texts[k] && !s.settings[k] ? '<span class="small muted" style="display:block;margin:-4px 0 6px">Boş: global metin "' + esc(state.texts[def.texts[k]] || '') + '" kullanılır.</span>' : ''; h += fieldControl(k, f, s.settings[k]) + g; });
+        // Vitrin veri listeleri (dahil olanlar, planlar…): site geneli veri, bu bölümde düzenlenir; taslak → yayın.
+        (DATA_SECTIONS[s.type] || []).forEach(function (key) {
+            var meta = DATA_META[key] || { label: key, fields: [] };
+            h += '<div class="ve-group" style="margin-top:10px"><p class="eyebrow">🌐 ' + esc(meta.label) + ' <span class="muted" style="font-weight:400">(site verisi)</span></p><textarea class="control mono" rows="' + (key === 'pricing_note' ? 2 : 6) + '" data-block="' + key + '">' + esc(state.blocks[key] || '') + '</textarea><span class="small muted">' + (key === 'pricing_note' ? 'Üyelik tablosunun yanındaki kısa not.' : 'Her satır bir kayıt: <code>' + esc((meta.fields || []).join(' | ')) + '</code>. Boş = kod varsayılanı.') + ' Kaydedince önizlemede, yayınlayınca sitede.</span></div>';
+        });
         h += '<div class="ve-group" style="margin-top:12px"><p class="eyebrow">Etiket &amp; çapa</p><div class="ve-row"><input class="control" type="text" placeholder="Katman adı" maxlength="80" data-meta="label" value="' + esc(s.label || '') + '"><input class="control mono" type="text" placeholder="çapa (#…)" maxlength="40" pattern="[a-z0-9-]*" data-meta="anchor" value="' + esc(s.anchor || '') + '"></div></div>';
         h += '<div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="btn btn--ghost" data-preset-save>Blok olarak kaydet</button>' + (def.unique ? '' : '<button type="button" class="btn btn--ghost" data-act="duplicate">Kopyala</button>') + '<button type="button" class="btn btn--ghost" data-act="delete" style="color:var(--danger)">Sil</button></div>';
         return h;
@@ -323,7 +334,9 @@
         } else {
             h += '<p class="small muted" style="margin:0 0 8px">Menü etiketleri bölüm çapalarına bağlıdır; gizli bölümün bağlantısı basılmaz.</p>';
             AREA_TEXTS.header.forEach(function (k) { h += '<label class="ve-field"><span class="label">' + esc(TEXT_KEYS[k] || k) + '</span><input class="control" type="text" maxlength="500" data-global="texts.' + k + '" value="' + esc(state.texts[k] || '') + '"></label>'; });
-            h += '<p class="small muted">Logo/marka adı ve duyuru şeridi: <a href="/panel/websiteler">Site ayarları</a>. Diğer tüm vitrin metinleri: <a href="/panel/icerik/bloklar">Metinler</a>.</p>';
+            h += '<details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:600">Diğer site metinleri (bölüm başlıkları, CTA etiketleri, teklif vaatleri, WhatsApp mesajı)</summary><div style="margin-top:8px">';
+            Object.keys(TEXT_KEYS).forEach(function (k) { if (AREA_TEXTS.header.indexOf(k) !== -1) return; h += '<label class="ve-field"><span class="label">' + esc(TEXT_KEYS[k]) + '</span><input class="control" type="text" maxlength="500" data-global="texts.' + k + '" value="' + esc(state.texts[k] || '') + '"></label>'; });
+            h += '</div></details><p class="small muted">Logo/marka adı ve duyuru şeridi: <a href="/panel/websiteler">Site ayarları</a>. Hazır bileşenler ve kayıtlı bloklar: <a href="/panel/icerik/bloklar">Blok kütüphanesi</a>.</p>';
         }
         rightBody.innerHTML = h;
         $$('[data-global]', rightBody).forEach(function (inp) {
@@ -349,6 +362,7 @@
             inp.addEventListener('input', function () { onSet(s, inp.getAttribute('data-set'), inp.value, inp); });
             if (inp.tagName === 'SELECT') inp.addEventListener('change', function () { onSet(s, inp.getAttribute('data-set'), inp.value, inp); });
         });
+        $$('[data-block]', rightBody).forEach(function (ta) { ta.addEventListener('input', function () { state.blocks[ta.getAttribute('data-block')] = ta.value; markStale(s.id); commitDebounced(); }); });
         $$('[data-meta]', rightBody).forEach(function (inp) {
             var ev = inp.type === 'checkbox' ? 'change' : 'input';
             inp.addEventListener(ev, function () {
@@ -487,7 +501,7 @@
         var h = '<li class="ve-layer ve-layer--global" data-layer-global="header"><span class="ve-layer__grip">▤</span><span class="ve-layer__name">Header &amp; üst şerit</span></li>';
         state.sections.forEach(function (s) {
             var def = LIB[s.type] || { label: s.type, fields: {} }, on = selection && String(selection.section) === String(s.id);
-            h += '<li class="ve-layer' + (on ? ' is-selected' : '') + (s.is_visible ? '' : ' is-hidden') + '" draggable="' + (s.locked ? 'false' : 'true') + '" data-layer="' + s.id + '"><span class="ve-layer__grip" title="Sürükle">⋮⋮</span><span class="ve-layer__name" title="' + esc(def.label) + '">' + esc(label(s.id)) + (stale[s.id] ? ' <span class="pill w flat" title="Kaydedince yeniden çizilir">↻</span>' : '') + '</span><span class="ve-layer__acts"><button type="button" data-act="toggle" title="Göster/gizle">' + (s.is_visible ? '◉' : '○') + '</button><button type="button" data-act="lock" title="Kilitle">' + (s.locked ? '🔒' : '🔓') + '</button>' + (def.unique ? '' : '<button type="button" data-act="duplicate" title="Kopyala">⧉</button>') + '<button type="button" data-act="delete" title="Sil">×</button></span></li>';
+            h += '<li class="ve-layer' + (on ? ' is-selected' : '') + (s.is_visible ? '' : ' is-hidden') + '" draggable="' + (s.locked ? 'false' : 'true') + '" data-layer="' + s.id + '"><span class="ve-layer__grip" title="Sürükle">⋮⋮</span><span class="ve-layer__name" title="' + esc(def.label) + '">' + (linkedGlobal(s) ? '🌐 ' : '') + esc(label(s.id)) + (stale[s.id] ? ' <span class="pill w flat" title="Kaydedince yeniden çizilir">↻</span>' : '') + '</span><span class="ve-layer__acts"><button type="button" data-act="toggle" title="Göster/gizle">' + (s.is_visible ? '◉' : '○') + '</button><button type="button" data-act="lock" title="Kilitle">' + (s.locked ? '🔒' : '🔓') + '</button>' + (def.unique ? '' : '<button type="button" data-act="duplicate" title="Kopyala">⧉</button>') + '<button type="button" data-act="delete" title="Sil">×</button></span></li>';
             if (on) Object.keys(def.fields).forEach(function (k) { if (['text', 'textarea', 'media', 'media_list', 'cta', 'markdown'].indexOf(def.fields[k].type) !== -1) h += '<li class="ve-layer ve-layer--child" data-layer-field="' + esc(k) + '" data-layer-sec="' + s.id + '"><span class="ve-layer__name">' + esc(def.fields[k].label) + '</span></li>'; });
         });
         h += '<li class="ve-layer ve-layer--global" data-layer-global="footer"><span class="ve-layer__grip">▤</span><span class="ve-layer__name">Footer</span></li>';
@@ -516,7 +530,7 @@
     }
 
     /* ---------- Palet ---------- */
-    $$('[data-add-type]').forEach(function (chip) {
+    $$('[data-left-panel] [data-add-type]').forEach(function (chip) {
         chip.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/ofv', chip.getAttribute('data-add-type')); e.dataTransfer.effectAllowed = 'copy'; });
         chip.addEventListener('click', function (e) { if (e.target.closest('form')) return; var at = selection && selection.section ? secIndex(selection.section) + 1 : state.sections.length; addSection(chip.getAttribute('data-add-type'), at); });
     });
@@ -526,7 +540,7 @@
     $$('[data-left-tabs] button').forEach(function (b) { b.addEventListener('click', function () { $$('[data-left-tabs] button').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); $$('[data-left-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-left-panel') !== b.getAttribute('data-tab'); }); if (b.getAttribute('data-tab') === 'layers') renderLayers(); }); });
     $$('[data-device]').forEach(function (b) { b.addEventListener('click', function () { device = b.getAttribute('data-device'); $$('[data-device]').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); frameWrap.setAttribute('data-device', device); if (selection && rightTab === 'design') renderRight(); }); });
     function restore(json) {
-        var st = JSON.parse(json); state.sections = st.sections; state.texts = st.texts; state.footerColumns = st.footerColumns; state.heroMedia = st.heroMedia;
+        var st = JSON.parse(json); state.sections = st.sections; state.texts = st.texts; state.footerColumns = st.footerColumns; state.heroMedia = st.heroMedia; state.blocks = st.blocks || {};
         resyncFrame(); renderLayers(); renderRight(); setDirty(true); updateUndo(); lastSnapshot = snapshot();
     }
     $('[data-undo]').addEventListener('click', function () { if (!history.length) return; future.push(snapshot()); restore(history.pop()); });
@@ -574,7 +588,7 @@
 
     function save(then) {
         if (api()) api().stopEdit();
-        var payload = { sections: state.sections.map(function (s) { var r = JSON.parse(JSON.stringify(s)); if (String(r.id).indexOf('n') === 0) r.id = null; return r; }), globals: { texts: state.texts, footer_columns: state.footerColumns, hero_media: state.heroMedia || '' } };
+        var payload = { sections: state.sections.map(function (s) { var r = JSON.parse(JSON.stringify(s)); if (String(r.id).indexOf('n') === 0) r.id = null; return r; }), globals: { texts: state.texts, footer_columns: state.footerColumns, hero_media: state.heroMedia || '', blocks: state.blocks } };
         var form = $('[data-save-form]');
         $('[data-payload]').value = JSON.stringify(payload);
         $('[data-save-then]').value = then;
@@ -658,6 +672,20 @@
     }
     var aiRun = $('[data-ai-run]');
     if (aiRun) { aiRun.addEventListener('click', runAi); $('[data-ai-input]').addEventListener('keydown', function (e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runAi(); }); $('[data-ai-help]').addEventListener('click', function () { aiOut.hidden = false; aiOut.innerHTML = '<b>✦ Örnek komutlar</b><ul><li>Hero bölümünü daha modern yap</li><li>Bu bölüme 3 kart ekle (özellikler)</li><li>SSS ekle · Referanslar ekle · Galeri ekle · Harita ekle</li><li>Bu bölümü mobilde iki kolona çevir · Tablette 2 kolon</li><li>Referanslar bölümünü koyu yap · Ortala · Daralt</li><li>Bu görseli değiştir</li><li>Hizmetler başlığı: Çözümlerimiz</li><li>SSS bölümünü gizle · Yukarı taşı</li></ul>'; }); }
+
+    /* ---------- Blok kütüphanesi penceresi (+ Blok ekle) ve kütüphaneden gelen ?ekle= ---------- */
+    var libModal = document.getElementById('modal-block-library');
+    if (libModal) {
+        libModal.addEventListener('click', function (e) {
+            var b = e.target.closest('[data-modal-add]'); if (!b || b.disabled) return;
+            var at = selection && selection.section ? secIndex(selection.section) + 1 : state.sections.length;
+            addSection(b.getAttribute('data-add-type'), at); libModal.close();
+        });
+        $$('[data-add-type]', libModal).forEach(function (chip) { chip.addEventListener('dragstart', function (e) { e.dataTransfer.setData('text/ofv', chip.getAttribute('data-add-type')); e.dataTransfer.effectAllowed = 'copy'; libModal.close(); }); });
+    }
+    var pendingAdd = cfg.add || '';
+    var readyBefore = window.OfisvioEditor.frameReady;
+    window.OfisvioEditor.frameReady = function (win) { readyBefore(win); if (pendingAdd) { var what = pendingAdd; pendingAdd = ''; addSection(what, state.sections.length); window.history.replaceState(null, '', location.pathname + location.search.replace(/[?&]ekle=[^&]*/, '').replace(/^&/, '?')); } };
 
     /* ---------- Başlangıç ---------- */
     updateUndo();

@@ -325,7 +325,13 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             });
 
             // Vitrin blokları (faz 10): doğrudan canlıya çıkar -> content.publish.
-            Route::get('/bloklar', [SiteBlockController::class, 'index'])->middleware('permission:content.publish')->name('blocks');
+            // Blok kütüphanesi (faz 50): liste/önizleme content.edit|publish; şablon işlemleri content.edit. Düzenleme görsel editörde.
+            Route::get('/bloklar', [SiteBlockController::class, 'index'])->middleware('permission:content.edit|content.publish')->name('blocks');
+            Route::post('/bloklar/kayitli', [SiteBlockController::class, 'presetStore'])->middleware('permission:content.edit')->name('blocks.preset.store');
+            Route::put('/bloklar/kayitli/{preset}', [SiteBlockController::class, 'presetUpdate'])->where('preset', '[0-9]+')->middleware('permission:content.edit')->name('blocks.preset.update');
+            Route::post('/bloklar/kayitli/{preset}/kopyala', [SiteBlockController::class, 'presetDuplicate'])->where('preset', '[0-9]+')->middleware('permission:content.edit')->name('blocks.preset.duplicate');
+            Route::delete('/bloklar/kayitli/{preset}', [SiteBlockController::class, 'presetDestroy'])->where('preset', '[0-9]+')->middleware('permission:content.edit')->name('blocks.preset.destroy');
+            Route::get('/bloklar/kayitli/{preset}/onizleme', [SiteBlockController::class, 'presetPreview'])->where('preset', '[0-9]+')->middleware('permission:content.edit|content.publish')->name('blocks.preset.preview');
             Route::put('/bloklar/metinler', [SiteBlockController::class, 'updateTexts'])->middleware('permission:content.publish')->name('blocks.texts');
             Route::put('/bloklar/{block}', [SiteBlockController::class, 'update'])->where('block', '[a-z_]+')->middleware('permission:content.publish')->name('blocks.update');
             Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');

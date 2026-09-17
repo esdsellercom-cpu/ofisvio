@@ -9,12 +9,13 @@
     @if (! $website)
         <div class="empty-state" style="margin:24px">Site yok.</div>
     @else
-    @php($sectionRows = $sections->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'anchor' => $s->anchor, 'is_visible' => $s->is_visible, 'hide_on_mobile' => $s->hide_on_mobile, 'hide_on_desktop' => $s->hide_on_desktop, 'locked' => $s->locked, 'label' => $s->label, 'settings' => $s->settings ?? [], 'publish_from' => $s->publish_from?->format('Y-m-d\TH:i'), 'publish_until' => $s->publish_until?->format('Y-m-d\TH:i')])->values())
+    @php($sectionRows = $sections->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'anchor' => $s->anchor, 'is_visible' => $s->is_visible, 'hide_on_mobile' => $s->hide_on_mobile, 'hide_on_desktop' => $s->hide_on_desktop, 'locked' => $s->locked, 'label' => $s->label, 'preset_id' => $s->preset_id, 'settings' => $s->settings ?? [], 'publish_from' => $s->publish_from?->format('Y-m-d\TH:i'), 'publish_until' => $s->publish_until?->format('Y-m-d\TH:i')])->values())
     @php($config = [
         'websiteId' => $website->id,
         'library' => $library, 'groups' => $groups, 'defaults' => $defaults, 'ctaActions' => $ctaActions, 'styleKeys' => $styleKeys, 'fieldStyleKeys' => $fieldStyleKeys,
         'sections' => $sectionRows, 'texts' => $texts, 'textKeys' => $textKeys, 'footerColumns' => $footerColumns,
-        'media' => $mediaOptions, 'presets' => $presets->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'type' => $p->type, 'settings' => $p->settings ?? []])->values(),
+        'media' => $mediaOptions, 'presets' => $presets->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'type' => $p->type, 'category' => $p->category, 'global' => $p->is_global, 'settings' => $p->settings ?? []])->values(),
+        'dataBlocks' => $dataBlocks, 'dataBlockSections' => $dataBlockSections, 'dataBlockMeta' => $dataBlockMeta, 'add' => $add,
         'canPublish' => auth()->user()->can('content.publish'), 'device' => $device, 'selected' => $selected,
         'frameUrl' => $frameUrl, 'revisionPreviewBase' => $revisionPreviewBase, 'previewUrl' => $previewUrl,
     ])
@@ -32,6 +33,8 @@
                 <span class="badge badge--warn" data-dirty-badge hidden>kaydedilmedi</span>
             </div>
             <div class="ve-top__group">
+                <button type="button" class="btn btn--brand" data-modal-open="#modal-block-library">+ Blok ekle</button>
+                <span class="ve-sep"></span>
                 <button type="button" class="btn btn--ghost" data-undo title="Geri al (Ctrl+Z)" disabled>↶ Geri al</button>
                 <button type="button" class="btn btn--ghost" data-redo title="Yinele (Ctrl+Y)" disabled>↷ Yinele</button>
                 <span class="ve-sep"></span>
@@ -84,11 +87,11 @@
                         <ol class="ve-layers" data-layers></ol>
                     </div>
                     <div data-left-panel="presets" hidden>
-                        <p class="small muted" style="margin:0 0 8px">Seçili bölümü sağ panelden <b>Blok olarak kaydet</b> ile ekleyin; buradan sayfaya sürükleyin/ekleyin.</p>
+                        <p class="small muted" style="margin:0 0 8px">Seçili bölümü sağ panelden <b>Blok olarak kaydet</b> ile ekleyin; buradan sayfaya sürükleyin/ekleyin. Kategori, global bayrağı, önizleme, kullanım: <a href="{{ route('panel.content.blocks') }}">Blok kütüphanesi</a>.</p>
                         <div class="ve-palette" data-preset-list>
                             @forelse ($presets as $p)
                                 <div class="ve-chip ve-chip--preset" draggable="true" data-add-type="preset:{{ $p->id }}">
-                                    <span class="ve-chip__icon" aria-hidden="true">{{ $library[$p->type]['icon'] ?? '▣' }}</span><span style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">{{ $p->name }}</b><span class="small muted">{{ $library[$p->type]['label'] ?? $p->type }}</span></span>
+                                    <span class="ve-chip__icon" aria-hidden="true">{{ $library[$p->type]['icon'] ?? '▣' }}</span><span style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">{{ $p->is_global ? '🌐 ' : '' }}{{ $p->name }}</b><span class="small muted">{{ $library[$p->type]['label'] ?? $p->type }} · {{ $categories[$p->category] ?? $p->category }}</span></span>
                                     <form method="POST" action="{{ route('panel.content.builder.preset.destroy', [$website, $p->id]) }}" onsubmit="return confirm('Kayıtlı blok silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--quiet" title="Sil">×</button></form>
                                 </div>
                             @empty
@@ -172,6 +175,12 @@
             <div data-upload-slot></div>
         </form>
         <form method="POST" action="{{ route('panel.content.builder.preset.store', $website) }}" data-preset-form hidden>@csrf<input type="hidden" name="name"><input type="hidden" name="type"><input type="hidden" name="settings"></form>
+
+        {{-- + Blok ekle: kütüphane (aynı katalog partial'ı; ekleme JS ile çerçeveye) --}}
+        <dialog class="modal" id="modal-block-library" style="width:min(1080px,calc(100vw - 32px))">
+            <div class="modal__head"><h2>Blok kütüphanesi</h2><div style="display:flex;gap:8px;align-items:center"><a href="{{ route('panel.content.blocks') }}" class="btn btn--ghost btn--pill">Kütüphaneyi yönet →</a><button type="button" class="btn btn--quiet" data-modal-close>×</button></div></div>
+            <div class="modal__body" data-block-library>@include('panel.content._block-catalog', ['mode' => 'picker'])</div>
+        </dialog>
 
         {{-- + Yeni sayfa --}}
         @can('content.create')

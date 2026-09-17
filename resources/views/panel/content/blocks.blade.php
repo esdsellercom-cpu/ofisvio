@@ -1,75 +1,54 @@
 @extends('layouts.panel')
 
-@section('title', 'Ana sayfa')
+@section('title', 'Blok kütüphanesi')
 
+{{-- Blok kütüphanesi (faz 50): düzenleme YOK — hazır bileşenler + kayıtlı şablonlar; kategori, global/normal, kullanım,
+     önizleme, kopyalama, ad/kategori, silme, "Tasarımda düzenle" → görsel editör. Metinler ve veri listeleri editörde. --}}
 @section('content')
     <div class="panel-head">
         <div>
             <p class="eyebrow"><a href="{{ route('panel.content.index') }}">İçerik</a> · {{ $website->name }}</p>
-            <h1 class="h2">Ana sayfa</h1>
+            <h1 class="h2">Blok kütüphanesi</h1>
+            <p class="small muted" style="margin:6px 0 0">Hazır bileşenler ve kayıtlı şablonlar. Düzenleme sayfa üzerinde yapılır: <a href="{{ route('panel.content.builder.index', ['website' => $website->id]) }}">Ana sayfa tasarımı</a>@if ($hasChanges) <span class="badge badge--warn">yayınlanmamış değişiklik</span>@endif</p>
         </div>
         <div class="panel-head__actions">
-            <a href="{{ $website->baseUrl() }}" class="btn btn--ghost" target="_blank" rel="noopener">Vitrini aç ↗</a>
+            <form method="GET" class="inline-form"><select class="control" name="kategori" onchange="this.form.requestSubmit()"><option value="">Tüm kategoriler</option>@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected($category === $k)>{{ $l }}</option>@endforeach</select></form>
+            <a href="{{ route('panel.content.builder.index', ['website' => $website->id]) }}" class="btn btn--ghost">Tasarım editörü</a>
+            @can('content.edit')<button type="button" class="btn btn--brand" data-modal-open="#modal-preset-new">+ Yeni blok şablonu</button>@endcan
         </div>
     </div>
 
-    <p class="body-muted" style="margin:0 0 22px;max-width:76ch">
-        Ana sayfadaki listeler. Her satır bir kayıt, alanlar <code>|</code> ile ayrılır. Kaydetmek bloğu <strong>hemen canlıya</strong> çıkarır
-        (yayın akışı yok; bu yüzden yalnız yayın yetkisi). Kutuyu boşaltıp kaydedince blok kod varsayılanına (config) döner.
-    </p>
+    @error('builder')<div class="notice notice--error" role="alert" style="margin-bottom:16px"><span class="notice__dot" aria-hidden="true"></span><div>{{ $message }}</div></div>@enderror
 
-    <form method="POST" action="{{ route('panel.content.blocks.texts') }}" class="panel stack" style="gap:12px;margin-bottom:24px">
-        @csrf @method('PUT')
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap">
-            <p class="eyebrow" style="margin:0">Metinler (hero, bölüm başlıkları)</p>
-            @if (in_array('texts', $overridden, true))<span class="badge badge--ok">CMS kaydı</span>@else<span class="badge badge--muted">kod varsayılanı</span>@endif
-        </div>
-        <div class="grid-auto" style="--min:260px;--gap:12px">
-            @foreach ($textKeys as $key => $label)
-                <label class="field" @if (str_ends_with($key, '_lede')) style="grid-column:1/-1" @endif>
-                    <span class="label">{{ $label }}</span>
-                    @if (str_ends_with($key, '_lede'))
-                        <textarea class="control" name="{{ $key }}" maxlength="300" style="min-height:64px">{{ old($key, $homeTexts[$key]) }}</textarea>
-                    @else
-                        <input class="control" type="text" name="{{ $key }}" value="{{ old($key, $homeTexts[$key]) }}" maxlength="300">
-                    @endif
-                </label>
-            @endforeach
-        </div>
-        <p class="small muted" style="margin:0">Boş bırakılan ya da varsayılanla aynı olan alan saklanmaz (kod varsayılanı geçerli kalır).</p>
-        <div><button type="submit" class="btn btn--brand">Metinleri yayınla</button></div>
-    </form>
+    <div class="note small" style="margin-bottom:18px"><b>🌐 Global blok</b> bağlı olduğu her yerde aynıdır; editörde düzenlenince tüm kullanımlar (yayın dahil) güncellenir. <b>Normal blok</b> sayfaya kopyalanır, yalnız o sayfayı etkiler. Header ve footer zaten global alanlardır (editörde tıklayın).</div>
 
-    @foreach ($blocks as $key => $meta)
-        <form method="POST" action="{{ route('panel.content.blocks.update', $key) }}" class="panel stack" style="gap:10px;margin-bottom:18px">
-            @csrf @method('PUT')
-            <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap">
-                <p class="eyebrow" style="margin:0">{{ $meta['label'] }}</p>
-                @if (in_array($key, $overridden, true))
-                    <span class="badge badge--ok">CMS kaydı</span>
-                @else
-                    <span class="badge badge--muted">kod varsayılanı</span>
-                @endif
+    @include('panel.content._block-catalog', ['mode' => 'library'])
+
+    @can('content.edit')
+    <dialog class="modal" id="modal-preset-new">
+        <form method="POST" action="{{ route('panel.content.blocks.preset.store') }}" data-modal-form>@csrf
+            <div class="modal__head"><h2>Yeni blok şablonu</h2><button type="button" class="btn btn--quiet" data-modal-close>×</button></div>
+            <div class="modal__body stack" style="gap:10px">
+                <label class="field"><span class="label">Ad</span><input class="control" type="text" name="name" required maxlength="80"></label>
+                <label class="field"><span class="label">Bileşen</span><select class="control" name="type">@foreach ($library as $type => $def)<option value="{{ $type }}">{{ $def['label'] }} — {{ $def['description'] }}</option>@endforeach</select></label>
+                <label class="field"><span class="label">Kategori</span><select class="control" name="category">@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected($k === 'ozel')>{{ $l }}</option>@endforeach</select></label>
+                <label class="checkbox-row"><input type="checkbox" name="is_global" value="1"><span><b>Global blok</b> — bağlı tüm kullanımlar birlikte güncellenir</span></label>
+                <p class="small muted" style="margin:0">Şablon tipin varsayılan içeriğiyle oluşturulur ve editörde sayfaya eklenir; orada düzenleyip kaydedin.</p>
             </div>
-            <label class="field">
-                <span class="label">Satır biçimi: <code>{{ implode(' | ', $meta['fields']) }}</code></span>
-                <textarea class="control mono" name="text" style="min-height:{{ 40 + 24 * max(3, substr_count($texts[$key], "\n") + 1) }}px;font-size:13.5px" @error($key) aria-invalid="true" @enderror>{{ old('text', $texts[$key]) }}</textarea>
-            </label>
-            @error($key)<p class="small" style="color:var(--danger);margin:0">{{ $message }}</p>@enderror
-            <div><button type="submit" class="btn btn--brand">Kaydet ve yayınla</button></div>
+            <div class="modal__foot"><button type="button" class="btn btn--ghost" data-modal-close>Vazgeç</button><button type="submit" class="btn btn--brand">Oluştur ve editörde aç</button></div>
         </form>
-    @endforeach
-
-    <form method="POST" action="{{ route('panel.content.blocks.update', 'pricing_note') }}" class="panel stack" style="gap:10px">
-        @csrf @method('PUT')
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap">
-            <p class="eyebrow" style="margin:0">Fiyat notu</p>
-            @if (in_array('pricing_note', $overridden, true))<span class="badge badge--ok">CMS kaydı</span>@else<span class="badge badge--muted">kod varsayılanı</span>@endif
-        </div>
-        <label class="field"><span class="label">Üyelik tablosunun yanında görünen kısa not</span>
-            <textarea class="control" name="text" maxlength="300" style="min-height:64px" @error('pricing_note') aria-invalid="true" @enderror>{{ old('text', $texts['pricing_note']) }}</textarea>
-        </label>
-        @error('pricing_note')<p class="small" style="color:var(--danger);margin:0">{{ $message }}</p>@enderror
-        <div><button type="submit" class="btn btn--brand">Kaydet ve yayınla</button></div>
-    </form>
+    </dialog>
+    <dialog class="modal" id="modal-preset-edit">
+        <form method="POST" data-modal-form>@csrf @method('PUT')
+            <div class="modal__head"><h2 data-modal-title data-default="Bloğu düzenle">Bloğu düzenle</h2><button type="button" class="btn btn--quiet" data-modal-close>×</button></div>
+            <div class="modal__body stack" style="gap:10px">
+                <label class="field"><span class="label">Ad</span><input class="control" type="text" name="name" required maxlength="80"></label>
+                <label class="field"><span class="label">Kategori</span><select class="control" name="category">@foreach ($categories as $k => $l)<option value="{{ $k }}">{{ $l }}</option>@endforeach</select></label>
+                <label class="checkbox-row"><input type="checkbox" name="is_global" value="1"><span><b>Global blok</b></span></label>
+                <p class="small muted" style="margin:0">İçerik/tasarım değişikliği: <b>Tasarımda düzenle</b>.</p>
+            </div>
+            <div class="modal__foot"><button type="button" class="btn btn--ghost" data-modal-close>Vazgeç</button><button type="submit" class="btn btn--brand">Kaydet</button></div>
+        </form>
+    </dialog>
+    @endcan
 @endsection
