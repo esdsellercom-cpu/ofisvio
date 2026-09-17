@@ -36,6 +36,7 @@ use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SettingsController;
 use App\Http\Controllers\Panel\SiteBlockController;
+use App\Http\Controllers\Panel\SiteBuilderController;
 use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
 use App\Http\Controllers\Panel\UserController;
@@ -164,6 +165,20 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/medya', [MediaController::class, 'store'])->middleware('permission:content.edit')->name('media.store');
             Route::put('/medya/{media}', [MediaController::class, 'update'])->middleware('permission:content.edit')->name('media.update');
             Route::delete('/medya/{media}', [MediaController::class, 'destroy'])->middleware('permission:content.publish')->name('media.destroy');
+
+            // Sayfa kurucu (faz 35): taslak content.edit, yayın/geri alma content.publish. {section} int, siteye süzülür.
+            Route::prefix('tasarim')->name('builder.')->where(['section' => '[0-9]+', 'revision' => '[0-9]+'])->group(function () {
+                Route::get('/', [SiteBuilderController::class, 'index'])->middleware('permission:content.edit|content.publish')->name('index');
+                Route::post('/{website}/bolum', [SiteBuilderController::class, 'store'])->middleware('permission:content.edit')->name('store');
+                Route::put('/{website}/bolum/{section}', [SiteBuilderController::class, 'update'])->middleware('permission:content.edit')->name('update');
+                Route::post('/{website}/bolum/{section}/tasi', [SiteBuilderController::class, 'move'])->middleware('permission:content.edit')->name('move');
+                Route::post('/{website}/sirala', [SiteBuilderController::class, 'reorder'])->middleware('permission:content.edit')->name('reorder');
+                Route::post('/{website}/bolum/{section}/cogalt', [SiteBuilderController::class, 'duplicate'])->middleware('permission:content.edit')->name('duplicate');
+                Route::post('/{website}/bolum/{section}/gorunurluk', [SiteBuilderController::class, 'toggle'])->middleware('permission:content.edit')->name('toggle');
+                Route::delete('/{website}/bolum/{section}', [SiteBuilderController::class, 'destroy'])->middleware('permission:content.edit')->name('destroy');
+                Route::post('/{website}/yayinla', [SiteBuilderController::class, 'publish'])->middleware('permission:content.publish')->name('publish');
+                Route::post('/{website}/geri-al/{revision}', [SiteBuilderController::class, 'rollback'])->middleware('permission:content.publish')->name('rollback');
+            });
 
             // Vitrin blokları (faz 10): doğrudan canlıya çıkar -> content.publish.
             Route::get('/bloklar', [SiteBlockController::class, 'index'])->middleware('permission:content.publish')->name('blocks');

@@ -9,14 +9,14 @@
     state machine'e yeni bir durum eklenip buraya eşlenmezse test kırılır, site
     sessizce eskimez.
 --}}
-<section id="nasil" class="wrap section">
+<section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section">
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">02 — Nasıl çalışır</p>
-            <h2 class="h2" style="max-width:22ch">{{ $texts['journey_title'] }}</h2>
+            <h2 class="h2" style="max-width:22ch">{{ $s['title'] ?? $texts['journey_title'] }}</h2>
         </div>
         <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">
-            {{ $texts['journey_lede'] }}
+            {{ $s['lede'] ?? $texts['journey_lede'] }}
         </p>
     </div>
 

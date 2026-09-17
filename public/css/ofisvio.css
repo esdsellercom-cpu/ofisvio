@@ -453,3 +453,10 @@ html[data-theme="deniz"] {
 .whatsapp-fab { position: fixed; right: 18px; bottom: 18px; z-index: 40; display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; border-radius: var(--r-pill); background: #25D366; color: #fff; font-weight: 600; font-size: 14px; box-shadow: 0 10px 30px -12px rgba(0,0,0,.45); }
 .whatsapp-fab:hover { background: #1EBE5A; color: #fff; }
 @media (max-width: 640px) { .whatsapp-fab span { display: none; } .whatsapp-fab { padding: 12px; } }
+
+/* ---------- sayfa kurucu: cihaz görünürlüğü ---------- */
+@media (max-width: 640px) { .hide-mobile { display: none; } }
+@media (min-width: 641px) { .hide-desktop { display: none; } }
+.builder-frame { width: 100%; border: 1px solid var(--line); border-radius: var(--r-md); background: #fff; height: 720px; display: block; margin: 0 auto; transition: width .2s; }
+.builder-frame--tablet { width: 820px; max-width: 100%; }
+.builder-frame--mobile { width: 400px; max-width: 100%; }

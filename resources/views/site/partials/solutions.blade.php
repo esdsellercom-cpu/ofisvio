@@ -1,9 +1,9 @@
 @if (! empty($blocks['solutions']))
-<section id="cozumler" class="wrap section">
+<section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section">
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">01 — Çözümler</p>
-            <h2 class="h2" style="max-width:24ch">{{ $texts['solutions_title'] }}</h2>
+            <h2 class="h2" style="max-width:24ch">{{ $s['title'] ?? $texts['solutions_title'] }}</h2>
         </div>
         <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">
             Hepsi aynı altyapıyı paylaşır: resepsiyon, fiber, evrak ve kargo karşılama, şubeler arası geçiş hakkı dahildir.

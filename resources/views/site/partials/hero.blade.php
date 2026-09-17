@@ -1,11 +1,16 @@
-<section class="wrap" style="padding-top:72px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:56px;align-items:end">
+<section @if ($anchor) id="{{ $anchor }}" @endif class="wrap" style="padding-top:72px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:56px;align-items:end">
     <div style="min-width:0">
-        <p class="eyebrow" style="margin-bottom:22px">{{ $texts['hero_eyebrow'] }}</p>
+        <p class="eyebrow" style="margin-bottom:22px">{{ $s['eyebrow'] ?? $texts['hero_eyebrow'] }}</p>
         <h1 class="h1">
-            {{ $texts['hero_title'] }}<br>
-            <span class="serif-accent">{{ $texts['hero_accent'] }}</span> {{ $texts['hero_title_after'] }}
+            @if (! empty($s['title']))
+                {{ $s['title'] }}
+            @else
+                {{ $texts['hero_title'] }}<br>
+                <span class="serif-accent">{{ $texts['hero_accent'] }}</span> {{ $texts['hero_title_after'] }}
+            @endif
         </h1>
-        <p class="lede" style="margin:26px 0 0;max-width:50ch">{{ $texts['hero_lede'] }}</p>
+        <p class="lede" style="margin:26px 0 0;max-width:50ch">{{ $s['lede'] ?? $texts['hero_lede'] }}</p>
+        @if ($heroCta)<p style="margin:22px 0 0"><a href="{{ $heroCta['href'] }}" class="btn btn--brand" @if ($heroCta['external']) target="_blank" rel="noopener" @endif>{{ $heroCta['label'] }}</a></p>@endif
 
         <div class="panel" style="margin-top:38px;border-radius:var(--r-lg);padding:20px">
             <div class="grid-auto" style="--min:150px;--gap:14px">

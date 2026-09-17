@@ -8,6 +8,7 @@ use App\Services\BookingService;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use App\Services\SiteBlockService;
+use App\Services\SiteBuilderService;
 use App\Support\ActivationJourney;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -30,9 +31,23 @@ class HomeController extends Controller
         private readonly SiteBlockService $blocks,
         private readonly CurrentWebsite $website,
         private readonly BookingService $bookings,
+        private readonly SiteBuilderService $builder,
     ) {}
 
     public function __invoke(): View
+    {
+        return $this->render(false);
+    }
+
+    /** İmzalı önizleme (route 'signed' middleware): taslak bölümler, noindex, önbellek yok. */
+    public function preview(int $website): View
+    {
+        abort_if($this->website->get()?->id !== $website, 404);
+
+        return $this->render(true);
+    }
+
+    private function render(bool $preview): View
     {
         // Müşteri sitesi (Host eşleşti): Ofisvio pazarlama blokları DEĞİL,
         // o sitenin kendi sayfa/yazıları.
@@ -58,7 +73,10 @@ class HomeController extends Controller
             'bookableRooms' => $this->bookings->bookableRooms(true),
             'bookingBadge' => $this->bookings->confirmationBadge(),
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
-            'posts' => $this->contents->livePosts($this->website->get(), 3),
+            'homePosts' => $this->contents->livePosts($this->website->get(), 6),
+            // Sayfa kurucu: yayınlanmış bölümler (önizlemede taslak).
+            'sections' => $preview ? $this->builder->draftForPreview($this->website->get()) : $this->builder->published($this->website->get()),
+            'preview' => $preview,
             // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).
             'blocks' => $this->blocks->all($this->website->get()),
         ]);

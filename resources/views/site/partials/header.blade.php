@@ -1,10 +1,6 @@
-@php($navLinks = [
-    ['label' => $texts['nav_solutions'], 'href' => '#cozumler'],
-    ['label' => $texts['nav_journey'], 'href' => '#nasil'],
-    ['label' => $texts['nav_locations'], 'href' => '#lokasyonlar'],
-    ['label' => $texts['nav_meeting'], 'href' => '#toplanti'],
-    ['label' => $texts['nav_pricing'], 'href' => '#uyelik'],
-])
+{{-- Menü: yayınlanmış bölümlerin çapaları (SiteLayoutComposer); ana sayfa dışındaysa köke bağlanır. --}}
+@php($onHome = request()->routeIs('site.home', 'site.preview'))
+@php($navLinks = array_map(fn ($l) => ['label' => $l['label'], 'href' => ($onHome ? '' : route('site.home')).$l['href']], $siteNavLinks))
 
 <header class="site-header">
     <div class="wrap site-header__inner">

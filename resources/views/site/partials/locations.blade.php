@@ -1,8 +1,8 @@
-<section id="lokasyonlar" class="wrap section">
+<section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section">
     <div class="section-head" style="margin-bottom:28px">
         <div style="min-width:0">
             <p class="eyebrow">03 — Lokasyonlar</p>
-            <h2 class="h2">{{ $texts['locations_title'] }}</h2>
+            <h2 class="h2">{{ $s['title'] ?? $texts['locations_title'] }}</h2>
         </div>
         <span class="mono" style="font-size:13px;color:var(--ink-muted)" data-match-line>
             {{ $locations->count() }} lokasyon · tüm bölgeler

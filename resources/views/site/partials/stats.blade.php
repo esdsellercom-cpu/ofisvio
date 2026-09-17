@@ -1,5 +1,5 @@
 {{-- Rakamlar HomeController'da veritabanından hesaplanır, elle yazılmaz. --}}
-<section class="wrap section--tight">
+<section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section--tight">
     <div style="border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
         @foreach ($stats as $stat)
             @continue($stat['value'] === '')

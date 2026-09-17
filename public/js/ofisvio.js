@@ -211,6 +211,41 @@
     });
   }
 
+  /* ---------- sayfa kurucu: surukle-birak siralama ---------- */
+  // HTML5 DnD; birakinca gizli "order" alani guncellenir ve form gonderilir
+  // (sunucu siralamayi dogrular ve taslaga yazar; JS yalniz UX).
+  function initSortable() {
+    var form = $("[data-sortable]");
+    if (!form) return;
+    var list = $("[data-sortable-list]", form);
+    var order = $("[data-sortable-order]", form);
+    if (!list || !order) return;
+    var dragging = null;
+
+    $$("[data-sortable-item]", list).forEach(function (item) {
+      item.addEventListener("dragstart", function (e) {
+        dragging = item;
+        item.style.opacity = ".4";
+        if (e.dataTransfer) { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", item.getAttribute("data-sortable-item")); }
+      });
+      item.addEventListener("dragend", function () { item.style.opacity = ""; dragging = null; });
+      item.addEventListener("dragover", function (e) {
+        if (!dragging || dragging === item) return;
+        e.preventDefault();
+        var rect = item.getBoundingClientRect();
+        var after = (e.clientY - rect.top) > rect.height / 2;
+        list.insertBefore(dragging, after ? item.nextSibling : item);
+      });
+    });
+
+    list.addEventListener("drop", function (e) {
+      e.preventDefault();
+      var ids = $$("[data-sortable-item]", list).map(function (el) { return el.getAttribute("data-sortable-item"); });
+      if (ids.join(",") === order.value) return;
+      order.value = ids.join(",");
+      form.submit();
+    });
+  }
   function boot() {
     initNav();
     initLocations();
@@ -218,6 +253,7 @@
     initSolutionPrefill();
     initMap();
     initForms();
+    initSortable();
   }
 
   if (document.readyState === 'loading') {

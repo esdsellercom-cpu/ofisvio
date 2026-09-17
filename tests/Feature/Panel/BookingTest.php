@@ -172,7 +172,8 @@ class BookingTest extends TestCase
         $this->assertSame([BookingStatus::PENDING_APPROVAL, 'site', 'Ahmet Yılmaz', '+905321112233', 'Yılmaz Ltd.', null], [$b->status, $b->source, $b->customer_name, $b->customer_phone, $b->company_name, $b->company_id]);
         $this->assertNotNull($b->consented_at);
         $this->assertStringEndsWith('/rezervasyon/'.$b->uuid, $response->headers->get('Location'));
-        $this->get('/rezervasyon/'.$b->uuid)->assertOk()->assertSee($b->reference)->assertSee('Onay bekliyor')->assertSee('Talebiniz alındı');
+        $this->get('/rezervasyon/'.$b->uuid)->assertOk()->assertSee($b->reference)->assertSee('Onay bekliyor')->assertSee('Talebiniz alındı')->assertSee('noindex, nofollow');
+        $this->get('/rezervasyon')->assertOk()->assertSee('<title>Toplantı odası rezervasyonu', false)->assertSee('index, follow');
         $this->get('/rezervasyon/00000000-0000-0000-0000-000000000000')->assertNotFound();
 
         // Bildirimler: WhatsApp sağlayıcısı GERÇEKTEN çağrıldı (Gateway → Meta), uygulama içi düştü, e-posta gönderildi; müşteri e-postası.

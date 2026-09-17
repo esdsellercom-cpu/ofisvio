@@ -8,6 +8,7 @@ use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use App\Services\SeoService;
 use App\Services\SiteBlockService;
+use App\Services\SiteBuilderService;
 use Illuminate\View\View;
 
 /**
@@ -23,6 +24,7 @@ class SiteLayoutComposer
         private readonly ContentService $contents,
         private readonly SeoService $seo,
         private readonly SiteBlockService $blocks,
+        private readonly SiteBuilderService $builder,
     ) {}
 
     public function compose(View $view): void
@@ -46,6 +48,9 @@ class SiteLayoutComposer
 
             $seo = match (true) {
                 $content !== null => $this->seo->head($site, $content),
+                // Rezervasyon: uygunluk sayfası indekslenir; durum sayfası kişisel veri taşır → noindex.
+                str_ends_with($view->name(), 'site.booking') => $this->seo->head($site, null, '/rezervasyon', 'Toplantı odası rezervasyonu', 'Lokasyon ve gün seçin; odaların uygunluğu canlı hesaplanır.'),
+                str_ends_with($view->name(), 'site.booking-status') => ['robots' => 'noindex, nofollow'] + $this->seo->head($site, null, '/rezervasyon', 'Rezervasyon durumu'),
                 $location !== null => $this->seo->locationHead($site, $location),
                 str_ends_with($view->name(), 'site.locations') => $this->seo->head($site, null, '/lokasyonlar', 'Lokasyonlar', 'Ofisvio şubeleri: şehir, bölge ve sunulan çözümlere göre.'),
                 str_ends_with($view->name(), 'site.posts') => $this->seo->head($site, null, '/blog', 'Yazılar'),
@@ -66,7 +71,25 @@ class SiteLayoutComposer
         // KVKK bağlantısı: yayındaki 'aydinlatma' ya da 'kvkk' slug'lı sayfa; yoksa ana sayfa (ölü # bağlantısı yok).
         $kvkk = $this->contents->livePages($site)->first(fn (Content $p) => str_contains($p->slug, 'aydinlatma') || str_contains($p->slug, 'kvkk'));
 
+        // Üst menü: yayınlanmış bölümlerin çapalarından (sayfa kurucu) — gizli bölüme ölü bağlantı yok.
+        $navLinks = [];
+
+        if ($site !== null && ! $tenant) {
+            $labels = ['solutions' => 'nav_solutions', 'journey' => 'nav_journey', 'locations' => 'nav_locations', 'meeting' => 'nav_meeting', 'pricing' => 'nav_pricing'];
+
+            foreach ($this->builder->published($site) as $section) {
+                if (isset($labels[$section['type']]) && $section['anchor'] !== null && ($texts[$labels[$section['type']]] ?? '') !== '') {
+                    $navLinks[] = ['label' => $texts[$labels[$section['type']]], 'href' => '#'.$section['anchor']];
+                }
+            }
+        }
+
+        if (str_ends_with($view->name(), 'layouts.site') && ($data['preview'] ?? false) && is_array($seo)) {
+            $seo['robots'] = 'noindex, nofollow';
+        }
+
         $view->with([
+            'siteNavLinks' => $navLinks,
             'kvkkUrl' => $kvkk?->path() ?? '/',
             'brand' => $brand,
             'texts' => $texts,

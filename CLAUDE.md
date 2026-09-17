@@ -39,6 +39,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 ## Görünüm katmanı
 
 - Tasarım sistemi `public/css/ofisvio.css` (derlenmez, `<link>` ile). `resources/css/app.css` boş giriş noktası — public asset'i `@import` ETME (Vite build kırılır).
+- Ana sayfa bölümleri `SiteBuilderService` (taslak `site_sections` → yayın `site_revisions`); vitrin yalnız yayınlanmış anlık görüntüyü basar, `@include('site.sections.<tip>')`. Yeni bölüm tipi = `SectionLibrary` + `resources/views/site/sections/<tip>.blade.php`.
 - Panel sayfaları `layouts.panel`'i extend eder; `$activeOrganization`, `$isStaff`, `$canSwitchOrganization` `PanelLayoutComposer`'dan gelir (`panel.*` görünümlerine de bağlı).
 - Türkçe metinler `lang/tr/*` ve `lang/tr.json`; rol etiketleri `lang/tr/roles.php`.
 

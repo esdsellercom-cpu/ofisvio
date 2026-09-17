@@ -47,7 +47,7 @@ class QueryBudgetTest extends TestCase
         'panel.kyc' => 18,
         'panel.content' => 9, // +1 bildirim zili
         'panel.calendar' => 13, // +1 bildirim zili
-        'site.post' => 8,
+        'site.post' => 9, // +1 sayfa kurucu: üst menü yayınlanmış bölümlerden (revizyon okuma, önbellekli)
     ];
 
     protected function setUp(): void

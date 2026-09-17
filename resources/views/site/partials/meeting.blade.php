@@ -2,12 +2,12 @@
      politikasından (ayar), araç gerçek rezervasyon akışına (/rezervasyon) gider.
      Rezervasyona açık oda yoksa bölüm basılmaz (uydurma kart yok). --}}
 @if ($bookableRooms->isNotEmpty())
-<section id="toplanti" class="dark-band" style="margin-top:96px">
+<section @if ($anchor) id="{{ $anchor }}" @endif class="dark-band" style="margin-top:96px">
     <div class="wrap" style="padding-block:78px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:52px;align-items:start">
         <div style="min-width:0">
             <p class="eyebrow">04 — Toplantı &amp; Etkinlik</p>
-            <h2 class="h2" style="max-width:22ch">{{ $texts['meeting_title'] }}</h2>
-            <p class="lede" style="margin:24px 0 0;max-width:46ch;font-size:17.5px">{{ $texts['meeting_lede'] }}</p>
+            <h2 class="h2" style="max-width:22ch">{{ $s['title'] ?? $texts['meeting_title'] }}</h2>
+            <p class="lede" style="margin:24px 0 0;max-width:46ch;font-size:17.5px">{{ $s['lede'] ?? $texts['meeting_lede'] }}</p>
             <div class="row-list" style="margin-top:34px">
                 @foreach ($bookableRooms->take(6) as $room)
                     <div class="row-list__item">

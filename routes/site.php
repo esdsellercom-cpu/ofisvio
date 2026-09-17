@@ -37,6 +37,9 @@ Route::redirect('/giris', '/login', 301);
 
 // Rezervasyon (booking engine v2, §57): uygunluk canlı — önbellek YOK; talep throttle'lı;
 // müşteri talebini tahmin edilemez uuid ile görür.
+// Sayfa kurucu önizlemesi: imzalı + süreli URL (panelden üretilir); önbellek yok, noindex (SiteLayoutComposer).
+Route::get('/onizleme/{website}', [HomeController::class, 'preview'])->where('website', '[0-9]+')->middleware('signed')->name('site.preview');
+
 Route::get('/rezervasyon', [BookingController::class, 'index'])->name('site.booking.index');
 Route::post('/rezervasyon', [BookingController::class, 'store'])->middleware('throttle:booking-public')->name('site.booking.store');
 Route::get('/rezervasyon/{uuid}', [BookingController::class, 'show'])->where('uuid', '[0-9a-f-]{36}')->name('site.booking.show');

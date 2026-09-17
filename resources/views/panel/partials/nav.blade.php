@@ -22,8 +22,11 @@
         <a href="{{ route('panel.content.index', ['kind' => 'page']) }}" {!! $kindIs('page') ? 'aria-current="page"' : '' !!}>Sayfalar</a>
         <a href="{{ route('panel.content.index', ['kind' => 'post']) }}" {!! $kindIs('post') ? 'aria-current="page"' : '' !!}>Yazılar</a>
         <a href="{{ route('panel.content.calendar') }}" {!! $active('panel.content.calendar') !!}>Takvim</a>
+        @canany(['content.edit', 'content.publish'])
+            <a href="{{ route('panel.content.builder.index') }}" {!! $active('panel.content.builder.*') !!}>Ana sayfa tasarımı</a>
+        @endcanany
         @can('content.publish')
-            <a href="{{ route('panel.content.blocks') }}" {!! $active('panel.content.blocks') !!}>Ana sayfa</a>
+            <a href="{{ route('panel.content.blocks') }}" {!! $active('panel.content.blocks') !!}>Metinler &amp; bloklar</a>
         @endcan
         @can('content.edit')
             <a href="{{ route('panel.content.menu') }}" {!! $active('panel.content.menu') !!}>Menü &amp; tema</a>

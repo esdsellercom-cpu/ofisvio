@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **244/244** (Unit 10 · Feature 220 · Architecture 14) |
+| `php artisan test` | ✅ **245/245** (Unit 10 · Feature 221 · Architecture 14) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -357,6 +357,20 @@ Sahte adaptör yok; testler HTTP sahtelemeyle gerçek adaptörü koşturur. Pane
 (actor/action/entity/before/after/ip/UA; secret maskeli) — booking, oda, ayar, bildirim değişiklikleri;
 `/panel/denetim?tur=general`. Matris: `booking.approve/manage`, `settings.view/manage`,
 `notification.view/manage`. Kalan: ödeme/fatura (faz 19+), takvim görünümü (gün/hafta), CMS page builder (faz 35).
+
+### 35. Sayfa kurucu (Website Experience Manager v1) ✅ (17 Eylül 2026, master prompt §21–36)
+Ana sayfa = sıralı **bölümler** (`site_sections` taslak, `site_revisions` yayınlanmış anlık
+görüntü). Panel `/panel/icerik/tasarim`: bölüm ekle (kütüphane: hero, istatistik, çözümler,
+nasıl çalışır, lokasyonlar, toplantı, dahil olanlar, üyelikler, yazılar, teklif formu, serbest
+metin, SSS, CTA şeridi), sürükle-bırak/ok ile sırala, çoğalt, gizle, sil, çapa, cihaz görünürlüğü
+(mobil/masaüstü), **zamanlama** (başlangıç/bitiş), bölüm başına başlık/açıklama üzerine yazma;
+**CTA eylem tipleri** (§29: çapa, sayfa, rezervasyon akışı, teklif formu, lokasyonlar, yazılar,
+telefon/WhatsApp/e-posta site ayarından, https). Dinamik bölümler gerçek varlıklardan (lokasyon,
+oda, yazı, blok). Taslak (content.edit) ≠ yayın (content.publish → revizyon + site önbelleği);
+**revizyon listesi + geri alma**; **imzalı süreli önizleme** (`/onizleme/{website}`, noindex,
+masaüstü/tablet/mobil iframe). Üst menü yayınlanmış bölümlerin çapalarından (gizli bölüme ölü
+bağlantı yok). Hepsi denetim izli. Kalan: çok dillilik, alt sayfalar için kurucu (şimdilik
+Markdown sayfalar), A/B deneyi.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
