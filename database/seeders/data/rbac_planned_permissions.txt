@@ -1,0 +1,55 @@
+# Matriste tanımlı ama HENÜZ hiçbir route/gate/görünüm/serviste kullanılmayan izinler (audit S-7).
+# Her satır: izin | planlanan modül. Kural (ArchitectureTest): CSV'deki her izin ya kodda kullanılır
+# ya da burada gerekçesiyle listelenir; burada listelenen bir izin kodda kullanılmaya başlanınca bu
+# listeden ÇIKARILMALIDIR (aksi halde test kırılır) — böylece "atanmış ama görünmez yetki" bilinçli kalır.
+address.assign | Yasal adres tahsisi (sanal ofis adres modülü)
+address.terminate | Yasal adres tahsisi (sanal ofis adres modülü)
+address.view | Yasal adres tahsisi (sanal ofis adres modülü)
+ai_content.approve | AI içerik üretimi (Command Center, ROADMAP ⛔ 19–22)
+ai_content.generate | AI içerik üretimi
+ai_content.publish | AI içerik üretimi
+ai_content.review | AI içerik üretimi
+analytics.integration.manage | Analytics sağlayıcı bağlantısı (config var, kod yok)
+break_glass.activate | Acil erişim (JIT + dual-control altyapısı hazır, ekran yok)
+cargo.create | Kargo/posta karşılama modülü
+cargo.notify | Kargo/posta karşılama modülü
+cargo.view | Kargo/posta karşılama modülü
+company.close | Şirket kapatma akışı (CompanyActivationService::blockersForClosure hazır, ekran yok)
+contract.cancel | Sözleşme modülü
+contract.create | Sözleşme modülü
+contract.download | Sözleşme modülü
+contract.send_for_signature | Sözleşme modülü
+contract.sign | Sözleşme modülü
+contract.view | Sözleşme modülü
+data_export.approve | KVKK veri dışa aktarım (P2-22)
+data_export.request | KVKK veri dışa aktarım (P2-22)
+deal.update | CRM pipeline (P2-17)
+deal.view | CRM pipeline (P2-17)
+invoice.export | Fatura CSV dışa aktarım (P2-15)
+invoice.refund | İade / kredi notu (P2-15; JIT + dual-control)
+kyc.physical_document.log | Fiziksel belge kabul kaydı (resepsiyon)
+ledger.correction_entry | Muhasebe defteri (düzeltme kaydı; JIT)
+ledger.view | Muhasebe defteri
+legal_document.publish | Yasal metin yayını (KVKK/sözleşme metinleri CMS'te)
+mail.view | Posta karşılama modülü
+masak.assessment_view | MASAK risk değerlendirmesi (uyum)
+offboarding.execute | Personel ayrılış prosedürü
+payment.initiate | Müşteri online ödeme (P1-6 iyzico)
+payment.refund | İade (P2-15; JIT)
+payment.view | Ödeme sağlayıcı kayıtları (P1-6)
+payment.view_provider_response | Ödeme sağlayıcı ham yanıtı (P1-6)
+phpmyadmin.access | Veritabanı yönetim aracı erişimi (altyapı; JIT)
+retention.manage | KVKK saklama politikası (P2-22)
+role.manage | Panelden rol düzenleme (kasıtlı yok: CSV tek kaynak; JIT)
+search_console.integration.manage | Search Console bağlantısı (P3-27)
+secret.manage | Secret yönetimi (env dışı; JIT)
+seo.analytics.view | SEO analitik (P3-27)
+seo.integration.manage | SEO entegrasyonları (P3-27)
+seo.integrations | SEO entegrasyonları (P3-27)
+subscription.downgrade | Üyelik düşürme akışı
+subscription.override | Üyelik istisna/kampanya (JIT)
+subscription.upgrade | Üyelik yükseltme akışı
+visitor.checkin | Ziyaretçi kaydı (resepsiyon)
+subscription.create | Müşteri self-service üyelik satın alma (P1-6 ödeme ile)
+subscription.cancel | Müşteri tarafı üyelik iptali (self-service)
+lead.create | Panelden elle talep girişi (CRM P2-17)

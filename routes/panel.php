@@ -60,7 +60,8 @@ use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
+// 'verified' (audit S-4): e-postası doğrulanmamış hesap panele giremez; Fortify doğrulama ekranına yönlendirir.
+Route::middleware(['auth', 'verified'])->prefix('panel')->name('panel.')->group(function () {
 
     // --- Hesap — 2FA zorunluluğunun DIŞINDA: kurulumun yapıldığı yer -------
     // Profil/şifre formları Fortify route'larına gider. Güvenlik sayfası

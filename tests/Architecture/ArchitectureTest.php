@@ -151,6 +151,51 @@ class ArchitectureTest extends TestCase
     }
 
     #[Test]
+    public function matristeki_her_izin_ya_kodda_kullanilir_ya_da_planli_listede_gerekcelidir(): void
+    {
+        // Audit S-7: rollerde atanmış ama hiçbir route/gate/görünüm/serviste geçmeyen izin "görünmez yetki"dir.
+        // Ya kodda kullanılır ya da rbac_planned_permissions.txt'de gerekçesiyle durur; kullanılmaya
+        // başlanan izin listeden çıkarılmak zorundadır (iki yönlü kontrol).
+        $csv = array_map('str_getcsv', array_slice(file(dirname(__DIR__, 2).'/database/seeders/data/rbac_scope_permission_matrix.csv', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES), 1));
+        $permissions = array_values(array_unique(array_map(fn (array $row) => $row[1], $csv)));
+
+        $planned = [];
+        foreach (file(dirname(__DIR__, 2).'/database/seeders/data/rbac_planned_permissions.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+            if (! str_starts_with(trim($line), '#')) {
+                $planned[] = trim(explode('|', $line)[0]);
+            }
+        }
+
+        $haystack = '';
+        foreach (['app', 'routes', 'resources/views'] as $dir) {
+            $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(dirname(__DIR__, 2).'/'.$dir));
+            foreach ($it as $file) {
+                if ($file->isFile() && str_ends_with($file->getFilename(), '.php')) {
+                    $haystack .= file_get_contents($file->getPathname());
+                }
+            }
+        }
+
+        $unused = [];
+        $stale = [];
+        foreach ($permissions as $permission) {
+            // Kimlik sınırı: lead.create ≠ lead.created; permission:x,company ve a|b biçimleri sayılır.
+            $used = preg_match('/(?<![\w.])'.preg_quote($permission, '/').'(?![\w.])/', $haystack) === 1;
+            $isPlanned = in_array($permission, $planned, true);
+
+            if (! $used && ! $isPlanned) {
+                $unused[] = $permission;
+            }
+            if ($used && $isPlanned) {
+                $stale[] = $permission;
+            }
+        }
+
+        $this->assertSame([], $unused, "Kodda kullanılmayan ve planlı listede olmayan izinler:\n".implode("\n", $unused));
+        $this->assertSame([], $stale, "Artık kullanılan ama hâlâ planlı listede duran izinler (listeden çıkarın):\n".implode("\n", $stale));
+    }
+
+    #[Test]
     public function servisler_request_ve_session_a_dogrudan_bagli_degildir(): void
     {
         // Servis katmanı HTTP'den bağımsız olmalı ki queue job'ından da

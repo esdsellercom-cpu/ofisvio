@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **270/270** (Unit 12 · Feature 243 · Architecture 15) |
+| `php artisan test` | ✅ **273/273** (Unit 12 · Feature 245 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -458,6 +458,16 @@ Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sı
   gecikmede `invoice.overdue`, ödemede `invoice.paid`, `finance:suspend-overdue` (N günden fazla gecikmiş
   açık faturası olan AKTİF şirket `CompanyActivationService` ile askıya alınır — `finance.suspend_after_overdue_days`,
   varsayılan 0 = kapalı), `subscriptions:remind-expiring` (`subscription.expiring_notice_days`). `AutomationTest` (3 test).
+
+### 42. Audit P1 — kimlik sertleştirme ve izin denetimi ✅ (17 Eylül 2026)
+- **Şifre politikası (S-3):** `Password::defaults` min 12 + harf + rakam; üretimde `uncompromised()` (HIBP).
+- **E-posta doğrulama (S-4):** Fortify `emailVerification`, `User implements MustVerifyEmail`, panel `verified`
+  kapısı, `auth.verify-email` görünümü; davetli şifre belirleyince (`ResetUserPassword`) adres doğrulanmış sayılır;
+  e-posta değişince yeniden doğrulama; var olan hesaplar migration ile doğrulanmış; bootstrap/make-admin doğrulanmış açar.
+- **Müşteri 2FA (S-5):** `security.require_customer_2fa` ayarı (Ayarlar › Güvenlik) — sahip/şirket yöneticisi için
+  zorunluluk; `TenantContext::requiresTwoFactor` middleware ve menüyü aynı karara bağlar.
+- **İzin denetimi (S-7):** `database/seeders/data/rbac_planned_permissions.txt` + ArchitectureTest: matristeki her izin
+  ya kodda kullanılır ya da gerekçeyle planlı listede; kullanılmaya başlanan izin listeden çıkarılmalı (iki yönlü).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

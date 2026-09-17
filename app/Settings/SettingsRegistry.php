@@ -19,6 +19,7 @@ final class SettingsRegistry
         'notifications' => 'Bildirimler',
         'whatsapp' => 'WhatsApp',
         'finance' => 'Finans',
+        'security' => 'Güvenlik',
         'general' => 'Genel',
     ];
 
@@ -57,6 +58,9 @@ final class SettingsRegistry
             'finance.suspend_after_overdue_days' => ['group' => 'finance', 'label' => 'Gecikmede askıya alma (gün)', 'type' => 'int', 'default' => 0, 'rules' => ['integer', 'min:0', 'max:180'], 'scopes' => ['installation'], 'description' => 'Vadesi bu kadar gün geçmiş açık faturası olan AKTİF şirket otomatik askıya alınır (company.suspended, audit); 0 = kapalı.'],
             'finance.auto_invoice_on_renewal' => ['group' => 'finance', 'label' => 'Yenilemede fatura kes', 'type' => 'bool', 'default' => true, 'rules' => ['boolean'], 'scopes' => ['installation'], 'description' => 'Üyelik otomatik yenilendiğinde yeni dönem için fatura yayınlanır (invoice.issued).'],
             'finance.overdue_grace_days' => ['group' => 'finance', 'label' => 'Gecikme toleransı (gün)', 'type' => 'int', 'default' => 0, 'rules' => ['integer', 'min:0', 'max:30'], 'scopes' => ['installation'], 'description' => 'Vade + tolerans geçince fatura GECİKMİŞ olur (zamanlayıcı).'],
+
+            // --- Güvenlik (audit S-5) ---
+            'security.require_customer_2fa' => ['group' => 'security', 'label' => 'Müşteri yöneticilerine 2FA zorunlu', 'type' => 'bool', 'default' => false, 'rules' => ['boolean'], 'scopes' => ['installation'], 'description' => 'Açıkken şirket sahibi ve şirket yöneticisi rolü taşıyan kullanıcılar da iki adımlı doğrulama kurmadan panele giremez (personel için her zaman zorunlu).'],
 
             // --- Genel ---
             'general.timezone' => ['group' => 'general', 'label' => 'Saat dilimi', 'type' => 'string', 'default' => 'Europe/Istanbul', 'rules' => ['string', 'timezone:all'], 'scopes' => ['installation'], 'description' => 'Rezervasyon saatleri bu dilimde yorumlanır.'],

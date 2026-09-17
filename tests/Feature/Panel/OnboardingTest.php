@@ -55,6 +55,7 @@ class OnboardingTest extends TestCase
         Notification::assertSentTo($owner, ResetPassword::class);
 
         // Sahip artık organizasyonuna girebilir.
+        $owner->markEmailAsVerified(); // davet e-postası → şifre belirleme adresi doğrular (audit S-4; ResetUserPassword)
         $this->actingAs($owner)->get('/panel')->assertOk()->assertSee('Örnek Holding');
     }
 

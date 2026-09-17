@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Services\BookingService;
 use App\Services\ContextSwitchService;
 use App\Services\PanelBadgeService;
+use App\Services\SettingsService;
 use App\Services\TenantContext;
 use App\View\Menu\PanelMenu;
 use Illuminate\Contracts\Auth\Access\Gate;
@@ -33,6 +34,7 @@ class PanelLayoutComposer
         private readonly BookingService $bookings,
         private readonly PanelBadgeService $badges,
         private readonly PanelMenu $menu,
+        private readonly SettingsService $settings,
     ) {}
 
     public function compose(View $view): void
@@ -64,7 +66,7 @@ class PanelLayoutComposer
 
         $activeOrganization = $active instanceof Organization ? $active : null;
         // Personel (global ya da lokasyon) 2FA kurmadan menüde yalnız güvenlik sayfasını görür — "açık kapı" görüntüsü olmasın.
-        $twoFactorRequired = ! $user->hasConfirmedTwoFactor() && $this->context->hasInternalRole($user);
+        $twoFactorRequired = ! $user->hasConfirmedTwoFactor() && $this->context->requiresTwoFactor($user, $this->settings->bool('security.require_customer_2fa'));
         // Resepsiyon masaları: kullanıcının lokasyon kapsamlı aktif rolleri (booking v1).
         // Global personel genel listeden girer; sorgu yalnız lokasyon rolü olabilecekler için.
         $deskLocations = $isStaff ? new Collection : $this->bookings->deskLocationsFor($user);

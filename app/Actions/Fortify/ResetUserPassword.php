@@ -25,8 +25,10 @@ class ResetUserPassword implements ResetsUserPasswords
             'password' => $this->passwordRules(),
         ])->validate();
 
+        // Sıfırlama bağlantısı bu adrese ulaştı: davetle gelen kullanıcı için adres doğrulanmış sayılır (audit S-4).
         $user->forceFill([
             'password' => Hash::make($input['password']),
+            'email_verified_at' => $user->email_verified_at ?? now(),
         ])->save();
     }
 }

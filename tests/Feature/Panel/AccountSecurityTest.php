@@ -3,6 +3,7 @@
 namespace Tests\Feature\Panel;
 
 use App\Models\User;
+use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\Test;
@@ -47,6 +48,12 @@ class AccountSecurityTest extends TestCase
             ->assertSessionHas('status', 'profile-information-updated');
 
         $this->assertSame('yeni@example.com', $user->fresh()->email);
+        // E-posta değişti → yeniden doğrulama (audit S-4): panel kapalı, doğrulama bildirimi gitti.
+        $this->assertNull($user->fresh()->email_verified_at);
+        $this->actingAs($user->fresh())->get('/panel/hesap')->assertRedirect('/email/verify');
+        $this->actingAs($user->fresh())->get('/email/verify')->assertOk()->assertSee('yeni@example.com');
+        $user = $user->fresh();
+        $user->markEmailAsVerified();
 
         $this->actingAs($user)->from('/panel/hesap')
             ->put('/user/password', [
@@ -62,6 +69,44 @@ class AccountSecurityTest extends TestCase
         // Layout Fortify anahtarını Türkçeye çevirir.
         $this->actingAs($user)->withSession(['status' => 'password-updated'])
             ->get('/panel/hesap')->assertSee('Şifreniz güncellendi.');
+    }
+
+    #[Test]
+    public function sifre_politikasi_ve_davetli_sifre_belirleyince_dogrulanir(): void
+    {
+        $user = User::factory()->create(['password' => 'eski-sifre-1234']);
+
+        // Politika (audit S-3): en az 12 karakter, harf + rakam.
+        foreach (['kisa1', 'sadeceharflerburada', '123456789012'] as $weak) {
+            $this->actingAs($user)->from('/panel/hesap')->put('/user/password', ['current_password' => 'eski-sifre-1234', 'password' => $weak, 'password_confirmation' => $weak])->assertSessionHasErrorsIn('updatePassword', ['password']);
+        }
+
+        // Davetli (doğrulanmamış) şifre sıfırlama bağlantısıyla şifre belirler → adres doğrulanmış sayılır, panel açılır.
+        $invited = User::factory()->unverified()->create();
+        $this->actingAs($invited)->get('/panel/hesap')->assertRedirect('/email/verify');
+        auth()->logout(); // reset rotası guest ister
+        $this->flushSession();
+        $token = app('auth.password.broker')->createToken($invited);
+        $this->post('/reset-password', ['token' => $token, 'email' => $invited->email, 'password' => 'Davetli-Sifre-2026', 'password_confirmation' => 'Davetli-Sifre-2026'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertNotNull($invited->fresh()->email_verified_at);
+        $this->actingAs($invited->fresh())->get('/panel/hesap')->assertOk();
+    }
+
+    #[Test]
+    public function musteri_yoneticisi_2fa_zorunlulugu_ayara_baglidir(): void
+    {
+        $acme = $this->organization('Acme');
+        $owner = $this->owner($acme, $this->company($acme, 'Acme A.Ş.'));
+        $employee = $this->member($acme);
+
+        // Varsayılan kapalı: sahip 2FA'sız girer.
+        $this->actingAs($owner)->withContext($acme)->get('/panel')->assertOk();
+
+        // Açık: sahip güvenlik sayfasına yönlenir, menü yalnız Kurulum; çalışan (yönetici değil) etkilenmez.
+        app(SettingsService::class)->set($this->staff('system_admin'), 'security.require_customer_2fa', true);
+        $this->actingAs($owner)->withContext($acme)->get('/panel')->assertRedirect('/panel/hesap/guvenlik');
+        $this->actingAs($owner)->get('/panel/hesap')->assertOk()->assertSee('Şirket yöneticisi hesapları')->assertSee('İki adımlı doğrulamayı kur')->assertDontSee('Şirketler</span>', false);
+        $this->actingAs($employee)->withContext($acme)->get('/panel')->assertOk();
     }
 
     #[Test]

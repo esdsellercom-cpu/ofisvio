@@ -10,6 +10,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Models\Website;
 use App\Services\ContentCache;
+use App\Services\SettingsService;
 use App\Services\TenantContext;
 use Database\Seeders\LocationSeeder;
 use Database\Seeders\WebsiteSeeder;
@@ -56,6 +57,8 @@ class QueryBudgetTest extends TestCase
         $this->seedRbac();
         $this->seed(LocationSeeder::class);
         $this->seed(WebsiteSeeder::class);
+        // Ayar önbelleği (settings:all) ilk istekte bir kez dolar; sayım o tek seferlik yüklemeyi değil sayfa maliyetini ölçer.
+        app(SettingsService::class)->string('general.currency');
     }
 
     private function countQueries(callable $request): int

@@ -55,11 +55,12 @@ class MakeAdminCommand extends Command
             $name = (string) ($this->option('name') ?: text('Ad Soyad', required: true));
             $plain = password('Şifre (en az 12 karakter)', required: true, validate: fn (string $v) => strlen($v) < 12 ? 'En az 12 karakter.' : null);
 
-            $user = DB::transaction(fn () => User::create([
-                'name' => $name,
-                'email' => $email,
-                'password' => $plain, // 'hashed' cast
-            ]));
+            $user = DB::transaction(function () use ($name, $email, $plain) {
+                $created = User::create(['name' => $name, 'email' => $email, 'password' => $plain]); // 'hashed' cast
+                $created->forceFill(['email_verified_at' => now()])->save(); // komut satırından açıldı: adres doğrulanmış
+
+                return $created;
+            });
 
             $this->info("Kullanıcı oluşturuldu: {$email}");
         } else {

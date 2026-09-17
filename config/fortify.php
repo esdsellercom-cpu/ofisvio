@@ -174,7 +174,7 @@ return [
     */
     'features' => [
         Features::resetPasswords(),
-        // Features::emailVerification(),
+        Features::emailVerification(), // audit S-4: davetle gelen kullanıcı adresini doğrulamadan panele giremez
         Features::updateProfileInformation(),
         Features::updatePasswords(),
         Features::twoFactorAuthentication([

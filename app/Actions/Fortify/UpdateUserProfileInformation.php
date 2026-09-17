@@ -3,7 +3,6 @@
 namespace App\Actions\Fortify;
 
 use App\Models\User;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -33,7 +32,7 @@ class UpdateUserProfileInformation implements UpdatesUserProfileInformation
         ])->validateWithBag('updateProfileInformation');
 
         if ($input['email'] !== $user->email &&
-            $user instanceof MustVerifyEmail) {
+            $user->hasVerifiedEmail()) { // User MustVerifyEmail uygular (audit S-4): e-posta değişince yeniden doğrulanır
             $this->updateVerifiedUser($user, $input);
         } else {
             $user->forceFill([

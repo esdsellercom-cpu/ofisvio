@@ -127,7 +127,10 @@ class BootstrapAccountsCommand extends Command
         $user = User::query()->where('email', $email)->first();
 
         if ($user === null) {
-            return User::create(['name' => $name, 'email' => $email, 'password' => $password]);
+            $user = User::create(['name' => $name, 'email' => $email, 'password' => $password]);
+            $user->forceFill(['email_verified_at' => now()])->save(); // operatör açtı: adres doğrulanmış (fillable değil, bilinçli)
+
+            return $user;
         }
 
         if ($this->option('reset-password')) {

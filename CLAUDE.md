@@ -18,7 +18,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 
 ## Zincir: auth → staff.2fa → tenant → permission (bkz. routes/panel.php)
 
-- Personel (global internal rol) doğrulanmış 2FA olmadan `/panel/hesap*` dışında hiçbir ekrana giremez (`EnsureStaffTwoFactor`). Testlerde `staff()` fixture'ı 2FA'lı personel üretir; zorunluluk testleri `staffWithoutTwoFactor()` kullanır.
+- Personel (global internal rol) doğrulanmış 2FA olmadan `/panel/hesap*` dışında hiçbir ekrana giremez (`EnsureStaffTwoFactor`; `security.require_customer_2fa` açıksa şirket sahibi/yöneticisi de). Panel `verified` ister: davetli şifre belirleyince doğrulanır. Şifre politikası `AppServiceProvider` (`Password::defaults`). Matristeki izin kodda kullanılmıyorsa `rbac_planned_permissions.txt`'de gerekçeli olmalı (ArchitectureTest). Testlerde `staff()` fixture'ı 2FA'lı personel üretir; zorunluluk testleri `staffWithoutTwoFactor()` kullanır.
 
 - **Yetki route'ta verilir**, controller'da değil: `->middleware('permission:<izin>[,<kapsam>[,<kaynak tipi>,<kaynak parametresi>]]')`.
   `|` alternatif izindir. İzin adları `database/seeders/data/rbac_scope_permission_matrix.csv`'den gelir; CSV tek kaynaktır.

@@ -158,6 +158,7 @@ class PerfBaselineCommand extends Command
         ]);
 
         $user->forceFill([
+            'email_verified_at' => now(), // sentetik ölçüm hesabı; 'verified' kapısı geçilsin (fillable değil, bilinçli)
             'two_factor_secret' => encrypt(app(Google2FA::class)->generateSecretKey()),
             'two_factor_recovery_codes' => encrypt(json_encode([])),
             'two_factor_confirmed_at' => now(),

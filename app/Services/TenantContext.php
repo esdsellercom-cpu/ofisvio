@@ -177,6 +177,31 @@ class TenantContext
     }
 
     /**
+     * Müşteri tarafında yetkili rol (sahip / şirket yöneticisi) taşıyor mu? Ayar
+     * security.require_customer_2fa açıkken 2FA zorunluluğu bu kullanıcılara da uygulanır
+     * (audit S-5): fatura/ödeme/üyelik görünümü 2FA'sız kalmasın.
+     */
+    public function hasCustomerAdminRole(User $user): bool
+    {
+        return $this->remember("customer_admin:{$user->id}", fn () => DB::table('user_roles')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $user->id)
+            ->where('user_roles.status', 'active')
+            ->whereNotNull('user_roles.company_id')
+            ->whereIn('roles.name', ['owner', 'company_admin'])
+            ->exists());
+    }
+
+    /**
+     * 2FA zorunlu mu? Personel (global/lokasyon internal rol) her zaman; müşteri yöneticileri
+     * yalnız security.require_customer_2fa açıkken. Middleware ve menü aynı karara bakar.
+     */
+    public function requiresTwoFactor(User $user, bool $customerPolicy): bool
+    {
+        return $this->hasInternalRole($user) || ($customerPolicy && $this->hasCustomerAdminRole($user));
+    }
+
+    /**
      * URL'den gelen company_id'yi AKTİF ORGANİZASYONA karşı doğrular.
      *
      * CLAUDE.md kuralı: "URL'den gelen company_id'ye güvenme." İki kademeli

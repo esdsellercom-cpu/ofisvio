@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasTenantRoles;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 
 #[Fillable(['name', 'email', 'password', 'ui_theme'])]
 #[Hidden(['password', 'remember_token', 'two_factor_secret', 'two_factor_recovery_codes'])]
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, HasTenantRoles, Notifiable, TwoFactorAuthenticatable;

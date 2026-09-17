@@ -54,6 +54,10 @@ class MembershipTest extends TestCase
         $this->assertTrue($ali->organizationMemberships()->where('organization_id', $acme->id)->where('status', 'active')->exists());
         $this->assertTrue(UserRole::where('user_id', $ali->id)->where('company_id', $company->id)->exists());
 
+        // Davetli adresini doğrulamadan panele giremez (audit S-4); şifre belirleme (reset) doğrular — bkz. AccountSecurityTest.
+        $this->actingAs($ali)->get('/panel')->assertRedirect('/email/verify');
+        $ali->markEmailAsVerified();
+
         // Muhasebeci: şirketi görür (company.view), belge yükleyemez (kyc.upload yok).
         $this->actingAs($ali)->get('/panel')->assertOk()->assertSee('Acme Ltd');
         $this->actingAs($ali)->withContext($acme)->get("/panel/sirketler/{$company->id}")->assertOk();

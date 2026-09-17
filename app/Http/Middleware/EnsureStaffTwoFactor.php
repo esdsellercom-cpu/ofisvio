@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\SettingsService;
 use App\Services\TenantContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -19,21 +20,23 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnsureStaffTwoFactor
 {
-    public function __construct(private readonly TenantContext $context) {}
+    public function __construct(private readonly TenantContext $context, private readonly SettingsService $settings) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
-        // hasInternalRole: global personel VE lokasyon kapsamlı resepsiyon (booking v1).
-        if ($user !== null && ! $user->hasConfirmedTwoFactor() && $this->context->hasInternalRole($user)) {
+        // Personel (global/lokasyon internal rol) her zaman; müşteri sahip/şirket yöneticisi ayar açıksa (audit S-5).
+        if ($user !== null && ! $user->hasConfirmedTwoFactor() && $this->context->requiresTwoFactor($user, $this->settings->bool('security.require_customer_2fa'))) {
+            $who = $this->context->hasInternalRole($user) ? 'Personel hesapları' : 'Şirket yöneticisi hesapları';
+
             if ($request->expectsJson()) {
-                abort(403, 'Personel hesapları için iki adımlı doğrulama zorunludur.');
+                abort(403, $who.' için iki adımlı doğrulama zorunludur.');
             }
 
             return redirect()
                 ->route('panel.account.security')
-                ->with('context_notice', 'Personel hesapları için iki adımlı doğrulama zorunludur. Devam etmek için önce 2FA kurun.');
+                ->with('context_notice', $who.' için iki adımlı doğrulama zorunludur. Devam etmek için önce 2FA kurun.');
         }
 
         return $next($request);
