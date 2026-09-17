@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\CompanyStatus;
+use App\Models\Booking;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -177,6 +178,43 @@ class InvoiceService
         return $this->issue($actor, $invoice);
     }
 
+    /**
+     * Rezervasyon faturası (audit P1-12 / H-6): onaylı, şirkete bağlı, tutarı olan rezervasyon için tek fatura;
+     * ayar kapalıysa, şirket yoksa ya da fatura zaten varsa null.
+     */
+    public function createForBooking(Booking $booking): ?Invoice
+    {
+        if (! $this->settings->bool('finance.auto_invoice_bookings') || $booking->company_id === null || $booking->total_amount <= 0) {
+            return null;
+        }
+
+        if (Invoice::withoutTenantScope()->where('booking_id', $booking->id)->where('status', '!=', 'cancelled')->exists()) {
+            return null;
+        }
+
+        $company = Company::withoutTenantScope()->find($booking->company_id);
+
+        if ($company === null) {
+            return null;
+        }
+
+        $invoice = $this->createSystem($company, [
+            'description' => 'Rezervasyon '.$booking->reference.' · '.($booking->room->name ?? 'Oda').' · '.$booking->starts_at->format('d.m.Y H:i').'–'.$booking->ends_at->format('H:i'),
+            'subtotal_minor' => $booking->total_amount,
+        ]);
+        $invoice->forceFill(['booking_id' => $booking->id])->save();
+
+        return $invoice;
+    }
+
+    /** Rezervasyon iptal/red/süre dolumu: ödemesi olmayan açık fatura sistemce iptal edilir; tahsilatlı fatura finansa kalır. */
+    public function cancelForBooking(Booking $booking, string $reason): ?Invoice
+    {
+        $invoice = Invoice::withoutTenantScope()->where('booking_id', $booking->id)->whereIn('status', Invoice::OPEN)->where('paid_amount', 0)->first();
+
+        return $invoice === null ? null : $this->cancel(null, $invoice, $reason);
+    }
+
     /** Yayınla: numara (önek-yıl-sıra) + yayın tarihi + vade (yoksa ayardan). Sıfır tutarlı fatura yayınlanmaz. */
     public function issue(?User $actor, Invoice $invoice): Invoice
     {
@@ -234,7 +272,7 @@ class InvoiceService
         return $next;
     }
 
-    public function cancel(User $actor, Invoice $invoice, string $reason): Invoice
+    public function cancel(?User $actor, Invoice $invoice, string $reason): Invoice
     {
         if ($invoice->status === 'paid' || $invoice->status === 'cancelled') {
             throw new DomainException('Ödenmiş ya da iptal edilmiş fatura iptal edilemez.');
@@ -245,7 +283,7 @@ class InvoiceService
         }
 
         $before = $invoice->toArray();
-        $invoice->fill(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => $reason])->save();
+        $invoice->fill(['status' => 'cancelled', 'cancelled_by' => $actor?->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => $reason])->save();
         $this->audit->record($actor, 'invoice.cancelled', 'invoice', $invoice->id, $before, $invoice->toArray());
 
         return $invoice;

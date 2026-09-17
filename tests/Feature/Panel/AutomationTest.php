@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Panel;
 
+use App\Enums\BookingStatus;
 use App\Enums\CompanyStatus;
 use App\Models\AuditLog;
 use App\Models\Event;
 use App\Models\Invoice;
+use App\Models\Location;
 use App\Models\NotificationLog;
+use App\Models\Room;
 use App\Models\Subscription;
+use App\Services\BookingService;
 use App\Services\InvoiceService;
 use App\Services\NotificationService;
 use App\Services\SettingsService;
@@ -152,6 +156,45 @@ class AutomationTest extends TestCase
         // Ödeme → invoice.paid müşteriye.
         $invoices->recordPayment($finance, $inv->fresh(), ['amount' => '1000', 'method' => 'transfer', 'paid_on' => '2026-10-02']);
         $this->assertSame(['invoice.due_soon', 'invoice.issued', 'invoice.overdue', 'invoice.paid'], $this->events('invoice', $inv->id));
+    }
+
+    #[Test]
+    public function onayli_rezervasyon_fatura_keser_iptalde_odenmemis_fatura_iptal_olur(): void
+    {
+        $acme = $this->organization('Acme');
+        $acmeCo = $this->company($acme, 'Acme A.Ş.');
+        $owner = $this->owner($acme, $acmeCo);
+        $ops = $this->staff('operations_admin');
+        $bookings = app(BookingService::class);
+        $kadikoy = Location::create(['name' => 'Kadıköy', 'slug' => 'kadikoy', 'city' => 'İstanbul', 'region' => 'Anadolu', 'is_active' => true, 'is_published' => true]);
+        $room = Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 40000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4])->refresh(); // is_active DB varsayılanı
+
+        // Şirket rezervasyonu (onay bekler): fatura yok; onaylanınca 2 saat × 400 ₺ = 800 ₺ + KDV faturası booking_id ile.
+        $booking = $bookings->book($owner, $acmeCo, $room, ['date' => '2026-09-19', 'start' => '10:00', 'hours' => 2]);
+        $this->assertSame(BookingStatus::PENDING_APPROVAL, $booking->status);
+        $this->assertSame(0, Invoice::withoutTenantScope()->where('booking_id', $booking->id)->count());
+        $bookings->approve($ops, $booking->fresh());
+        $invoice = Invoice::withoutTenantScope()->where('booking_id', $booking->id)->firstOrFail();
+        $this->assertSame(['issued', 80000, 96000], [$invoice->status, $invoice->subtotal, $invoice->total]);
+        $this->assertStringContainsString($booking->reference, $invoice->description);
+        $this->assertSame(['invoice.issued'], $this->events('invoice', $invoice->id));
+        $this->actingAs($this->staff('finance_admin'))->get("/panel/faturalar/{$invoice->id}")->assertOk()->assertSee($booking->reference); // operasyon invoice.view taşımaz
+
+        // İptal → ödenmemiş fatura sistemce iptal (audit aktörsüz); tekrar onay/iptal döngüsü ikinci fatura açmaz.
+        $bookings->cancel($ops, $booking->fresh(), 'Müşteri vazgeçti', true);
+        $this->assertSame('cancelled', $invoice->fresh()->status);
+        $this->assertStringContainsString('otomatik', (string) $invoice->fresh()->cancel_reason);
+
+        // Vitrin (şirketsiz) talep: onaylansa da fatura yok — tenant yok.
+        $public = $bookings->book(null, null, $room, ['date' => '2026-09-20', 'start' => '10:00', 'hours' => 1, 'customer_name' => 'Ayşe', 'customer_email' => 'ayse@ornek.com', 'customer_phone' => '+905321112233', 'source' => 'site']);
+        $bookings->approve($ops, $public->fresh());
+        $this->assertSame(0, Invoice::withoutTenantScope()->where('booking_id', $public->id)->count());
+
+        // Ayar kapalı: onay fatura üretmez.
+        app(SettingsService::class)->set($ops, 'finance.auto_invoice_bookings', false);
+        $second = $bookings->book($owner, $acmeCo, $room, ['date' => '2026-09-21', 'start' => '10:00', 'hours' => 1]);
+        $bookings->approve($ops, $second->fresh());
+        $this->assertSame(0, Invoice::withoutTenantScope()->where('booking_id', $second->id)->count());
     }
 
     #[Test]

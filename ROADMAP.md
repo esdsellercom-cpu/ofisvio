@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **273/273** (Unit 12 · Feature 245 · Architecture 16) |
+| `php artisan test` | ✅ **274/274** (Unit 12 · Feature 246 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -471,6 +471,9 @@ Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sı
 - **Operasyon paneli (H-5/M-3):** `/panel/operasyon` (`OperationsDashboardController`, tenant bağlamsız, bloklar izne
   göre) + `panel/partials/ops-overview`; organizasyon dashboard'u (`/panel`) yalnız şirket/KYC; giriş hedefi
   `/panel/baslangic` (`LandingController`: personel → operasyon, müşteri → dashboard); menüde "Operasyon paneli".
+- **Rezervasyon → fatura (H-6):** `InvoiceBookingOnStatusChange` dinleyicisi (otomatik keşif): şirket hesabıyla
+  onaylanan rezervasyon için `InvoiceService::createForBooking` (booking_id, tek fatura), iptal/red/süre dolumunda
+  ödemesiz açık fatura sistemce iptal; `finance.auto_invoice_bookings` ayarı; vitrin şirketsiz talepler fatura üretmez.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

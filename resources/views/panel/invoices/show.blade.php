@@ -28,6 +28,7 @@
                     <dl class="kv">
                         <dt>Şirket</dt><dd>{{ $invoice->company->legal_name }}</dd>
                         <dt>Açıklama</dt><dd>{{ $invoice->description }}</dd>
+                        @if ($invoice->booking)<dt>Rezervasyon</dt><dd><a href="{{ route('panel.bookings.show', [$invoice->booking->location, $invoice->booking]) }}">{{ $invoice->booking->reference }}</a></dd>@endif
                         @if ($invoice->subscription)<dt>Üyelik</dt><dd><a href="{{ route('panel.subscriptions.show', $invoice->subscription) }}">{{ $invoice->subscription->plan->name }}</a> · {{ $invoice->subscription->starts_on->format('d.m.Y') }}–{{ $invoice->subscription->ends_on->format('d.m.Y') }}</dd>@endif
                         <dt>Ara toplam</dt><dd class="mono">{{ money($invoice->subtotal) }}</dd>
                         <dt>KDV (%{{ $invoice->tax_rate }})</dt><dd class="mono">{{ money($invoice->tax_amount) }}</dd>
