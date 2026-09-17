@@ -24,7 +24,7 @@ class GeoService
     /** @return Collection<int, Location> */
     public function publishedLocations(): Collection
     {
-        return Location::published()->get();
+        return Location::published()->with('cover')->get();
     }
 
     /**

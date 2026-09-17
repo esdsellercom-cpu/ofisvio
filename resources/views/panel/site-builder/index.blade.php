@@ -33,8 +33,11 @@
         <div class="stack" style="gap:16px">
             <div class="panel">
                 <p class="eyebrow">Bölümler (taslak)</p>
-                <form method="POST" action="{{ route('panel.content.builder.reorder', $website) }}" data-sortable>@csrf
+                <form id="reorder-sections" method="POST" action="{{ route('panel.content.builder.reorder', $website) }}">@csrf
                     <input type="hidden" name="order" data-sortable-order value="{{ $sections->pluck('id')->implode(',') }}">
+                    <noscript><button type="submit" class="btn btn--ghost" style="margin-bottom:8px">Sırayı kaydet</button></noscript>
+                </form>
+                <div data-sortable data-sortable-form="reorder-sections">
                     <ol class="stack" style="gap:8px;list-style:none;padding:0;margin:0" data-sortable-list>
                         @foreach ($sections as $sec)
                             @php($def = $library[$sec->type] ?? ['label' => $sec->type, 'source' => ''])
@@ -54,8 +57,7 @@
                             </li>
                         @endforeach
                     </ol>
-                    <noscript><button type="submit" class="btn btn--ghost" style="margin-top:8px">Sırayı kaydet</button></noscript>
-                </form>
+                </div>
                 @foreach ($sections as $sec)
                     <form id="mv-{{ $sec->id }}-up" method="POST" action="{{ route('panel.content.builder.move', [$website, $sec->id]) }}" hidden>@csrf<input type="hidden" name="direction" value="up"></form>
                     <form id="mv-{{ $sec->id }}-down" method="POST" action="{{ route('panel.content.builder.move', [$website, $sec->id]) }}" hidden>@csrf<input type="hidden" name="direction" value="down"></form>

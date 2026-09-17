@@ -10,6 +10,9 @@
             <div class="grid-auto" style="--min:260px;--gap:18px">
                 @foreach ($items as $location)
                     <a href="{{ route('site.location', $location->slug) }}" class="card card--link">
+                        @if ($location->cover)
+                            @include('site.partials.picture', ['media' => $location->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
+                        @endif
                         <div class="card__body">
                             <span class="h3">{{ $location->name }}</span>
                             <span class="body-muted" style="font-size:14px">{{ $location->address_line }}</span>

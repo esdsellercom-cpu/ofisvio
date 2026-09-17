@@ -15,13 +15,15 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
- * Medya kütüphanesi (faz 30): vitrin görselleri (kapak, hero). Zincir KYC ile aynı
- * ilkededir — MIME (sunucu tarafı, uzantıya değil içeriğe bakar) → uzantı → sihirli
- * bayt (getimagesize) → boyut → ClamAV (tarayıcı yoksa yükleme REDDEDİLİR,
- * enfekte dosya asla yazılmaz) → sha256 → public diske UUID adla.
+ * Medya kütüphanesi — karantina zinciri (faz 3):
  *
- * Görseller kamuya açık içindir; bu yüzden 'public' disk. Aynı sha256 aynı sitede
- * ikinci kez yüklenirse mevcut kayıt döner (yinelenen dosya yok).
+ *   Quarantine (private disk, kamuya kapalı) → MIME (içerikten, finfo) → uzantı (MIME'dan türer,
+ *   istemci adına bakılmaz) → sihirli bayt (getimagesize + MIME eşleşmesi) → boyut → ClamAV
+ *   (tarayıcı yoksa REDDEDİLİR, enfekte dosya asla public'e çıkmaz) → sha256 (yinelenen
+ *   engeli) → Approved → public diske UUID adla + responsive varyantlar (GD) → karantina temizlenir.
+ *
+ * Zincirin herhangi bir halkası düşerse dosya karantinadan silinir ve hiçbir kayıt yazılmaz.
+ * Denetim: her onaylı yükleme `media.uploaded`, her red `media.rejected` (aşama adıyla).
  */
 class MediaService
 {
@@ -29,7 +31,10 @@ class MediaService
 
     public const MAX_BYTES = 5 * 1024 * 1024;
 
-    public function __construct(private readonly MalwareScanner $scanner) {}
+    /** Responsive varyant genişlikleri (px); orijinalden küçük olanlar üretilir. */
+    public const VARIANT_WIDTHS = [480, 960, 1600];
+
+    public function __construct(private readonly MalwareScanner $scanner, private readonly AuditService $audit) {}
 
     /** @return LengthAwarePaginator<int, Media> */
     public function paginate(Website $website, int $perPage = 40): LengthAwarePaginator
@@ -43,97 +48,222 @@ class MediaService
         return Media::query()->where('website_id', $website->id)->whereKey($mediaId)->exists();
     }
 
-    /**
-     * Seçim listeleri için (kapak/hero).
-     *
-     * @return Collection<int, Media>
-     */
+    /** @return Collection<int, Media> */
     public function all(Website $website): Collection
     {
         return Media::query()->where('website_id', $website->id)->orderByDesc('created_at')->get();
     }
 
-    public function upload(User $uploader, Website $website, UploadedFile $file, ?string $alt): Media
+    /**
+     * Karantina zinciri. $meta: alt/title/caption.
+     *
+     * @param  array{alt?: string|null, title?: string|null, caption?: string|null}  $meta
+     */
+    public function upload(User $uploader, Website $website, UploadedFile $file, array|string|null $meta = null): Media
     {
-        $mime = (string) $file->getMimeType(); // içerikten (finfo), istemci başlığından değil
+        $meta = is_array($meta) ? $meta : ($meta === null ? [] : ['alt' => $meta]);
 
-        if (! in_array($mime, self::ALLOWED_MIME, true)) {
-            throw new DomainException('Yalnız JPEG, PNG ve WebP görsel kabul edilir.');
+        // 1) Karantina: yükleme önce kamuya kapalı diske alınır; tüm kontroller bu kopya üzerinde yapılır.
+        $quarantine = $file->storeAs('quarantine/media', Str::uuid()->toString().'.bin', 'private');
+
+        if ($quarantine === false) {
+            throw new DomainException('Dosya karantinaya alınamadı.');
         }
 
-        $extension = match ($mime) {
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            default => 'webp',
-        };
+        $path = Storage::disk('private')->path($quarantine);
 
-        if ($file->getSize() > self::MAX_BYTES) {
-            throw new DomainException('Görsel 5 MB\'tan büyük olamaz.');
-        }
+        try {
+            // 2) MIME içerikten.
+            $mime = (string) (mime_content_type($path) ?: '');
 
-        $path = (string) $file->getRealPath();
-        $dimensions = @getimagesize($path);
+            if (! in_array($mime, self::ALLOWED_MIME, true)) {
+                $this->reject($uploader, 'mime', $file, $mime);
+            }
 
-        if ($dimensions === false || $dimensions[0] < 1 || $dimensions[1] < 1) {
-            throw new DomainException('Dosya geçerli bir görsel değil (sihirli bayt doğrulaması).');
-        }
+            // 3) Uzantı MIME'dan türer (istemci adındaki uzantı yok sayılır; .php.jpg gibi oyunlar boşa düşer).
+            $extension = match ($mime) {
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                default => 'webp',
+            };
 
-        $scan = $this->scanner->scan($path);
+            // 4) Sihirli bayt: gerçek bir raster görsel mi ve türü MIME ile tutarlı mı?
+            $dimensions = @getimagesize($path);
+            $magicMime = $dimensions !== false ? (string) $dimensions['mime'] : '';
 
-        if (! $scan->available) {
-            throw new DomainException('Güvenlik taraması yapılamadı; yükleme kabul edilmedi. Daha sonra yeniden deneyin.');
-        }
+            if ($dimensions === false || $dimensions[0] < 1 || $dimensions[1] < 1 || $magicMime !== $mime) {
+                $this->reject($uploader, 'magic_bytes', $file, $magicMime);
+            }
 
-        if ($scan->isInfected()) {
-            throw new DomainException('Güvenlik taraması dosyada zararlı içerik buldu ('.$scan->signature.'). Dosya kaydedilmedi.');
-        }
+            // 5) Boyut.
+            $size = (int) filesize($path);
 
-        $hash = hash_file('sha256', $path) ?: '';
-        $existing = Media::query()->where('website_id', $website->id)->where('checksum_sha256', $hash)->first();
+            if ($size > self::MAX_BYTES || $size < 1) {
+                $this->reject($uploader, 'size', $file, (string) $size);
+            }
 
-        if ($existing !== null) {
-            return $existing;
-        }
+            // 6) ClamAV — fail-closed.
+            $scan = $this->scanner->scan($path);
 
-        return DB::transaction(function () use ($uploader, $website, $file, $mime, $extension, $dimensions, $hash, $alt) {
-            $stored = $file->storeAs('media/'.$website->id, Str::uuid()->toString().'.'.$extension, 'public');
+            if (! $scan->available) {
+                $this->reject($uploader, 'scanner_unavailable', $file, (string) $scan->signature, 'Güvenlik taraması yapılamadı; yükleme kabul edilmedi. Daha sonra yeniden deneyin.');
+            }
 
-            if ($stored === false) {
+            if ($scan->isInfected()) {
+                $this->reject($uploader, 'infected', $file, (string) $scan->signature, 'Güvenlik taraması dosyada zararlı içerik buldu ('.$scan->signature.'). Dosya kaydedilmedi.');
+            }
+
+            // 7) sha256: aynı sitede aynı içerik ikinci kez yüklenirse mevcut kayıt döner.
+            $hash = hash_file('sha256', $path) ?: '';
+            $existing = Media::query()->where('website_id', $website->id)->where('checksum_sha256', $hash)->first();
+
+            if ($existing !== null) {
+                return $existing; // yinelenen içerik: mevcut kayıt ve meta korunur
+            }
+
+            // 8) Approved → public disk + varyantlar.
+            $uuid = Str::uuid()->toString();
+            $target = 'media/'.$website->id.'/'.$uuid.'.'.$extension;
+
+            if (! Storage::disk('public')->put($target, (string) file_get_contents($path))) {
                 throw new DomainException('Görsel diske yazılamadı.');
             }
 
-            return Media::create([
+            $variants = $this->makeVariants($path, $mime, (int) $dimensions[0], (int) $dimensions[1], 'media/'.$website->id.'/'.$uuid, $extension);
+
+            $media = DB::transaction(fn () => Media::create([
                 'website_id' => $website->id,
                 'uploaded_by' => $uploader->id,
                 'disk' => 'public',
-                'path' => $stored,
+                'path' => $target,
                 'original_name' => mb_substr($file->getClientOriginalName(), 0, 190),
                 'mime_type' => $mime,
-                'size_bytes' => (int) $file->getSize(),
+                'size_bytes' => $size,
                 'width' => (int) $dimensions[0],
                 'height' => (int) $dimensions[1],
                 'checksum_sha256' => $hash,
-                'alt' => $alt !== null && trim($alt) !== '' ? trim($alt) : null,
-            ]);
-        });
+                'alt' => $this->clean($meta['alt'] ?? null, 190),
+                'title' => $this->clean($meta['title'] ?? null, 160),
+                'caption' => $this->clean($meta['caption'] ?? null, 300),
+                'variants' => $variants,
+                'status' => Media::STATUS_APPROVED,
+            ]));
+
+            $this->audit->record($uploader, 'media.uploaded', 'media', $media->id, [], ['path' => $target, 'mime' => $mime, 'size' => $size, 'variants' => count($variants), 'sha256' => $hash]);
+
+            return $media;
+        } finally {
+            // Karantina her sonuçta temizlenir; onaylı kopya artık public'te.
+            Storage::disk('private')->delete($quarantine);
+        }
     }
 
-    public function updateAlt(Media $media, ?string $alt): Media
+    /**
+     * @param  array{alt?: string|null, title?: string|null, caption?: string|null}  $meta
+     */
+    public function applyMeta(Media $media, array $meta, ?User $actor = null): Media
     {
-        $media->alt = $alt !== null && trim($alt) !== '' ? trim($alt) : null;
-        $media->save();
+        $before = $media->only(['alt', 'title', 'caption']);
+        $media->fill([
+            'alt' => array_key_exists('alt', $meta) ? $this->clean($meta['alt'], 190) : $media->alt,
+            'title' => array_key_exists('title', $meta) ? $this->clean($meta['title'], 160) : $media->title,
+            'caption' => array_key_exists('caption', $meta) ? $this->clean($meta['caption'], 300) : $media->caption,
+        ]);
+
+        if ($media->isDirty()) {
+            $media->save();
+            $this->audit->record($actor, 'media.meta_updated', 'media', $media->id, $before, $media->only(['alt', 'title', 'caption']));
+        }
 
         return $media;
     }
 
-    /** Silme: kullanan içerik/site varsa reddedilir (kırık görsel bırakmaz). Dosya da silinir. */
-    public function delete(Media $media): void
+    public function updateAlt(Media $media, ?string $alt): Media
     {
-        if ($media->contents()->exists() || $media->heroOf()->exists()) {
-            throw new DomainException('Bu görsel kullanımda (kapak ya da hero); önce oradan kaldırın.');
+        return $this->applyMeta($media, ['alt' => $alt]);
+    }
+
+    /** Silme: kullanan içerik/site/lokasyon varsa reddedilir (kırık görsel bırakmaz). Dosya ve varyantlar da silinir. */
+    public function delete(Media $media, ?User $actor = null): void
+    {
+        if ($media->isInUse()) {
+            throw new DomainException('Bu görsel kullanımda (kapak, hero ya da lokasyon galerisi); önce oradan kaldırın.');
         }
 
-        Storage::disk($media->disk)->delete($media->path);
+        Storage::disk($media->disk)->delete($media->allPaths());
         $media->delete();
+        $this->audit->record($actor, 'media.deleted', 'media', $media->id, ['path' => $media->path], []);
+    }
+
+    /**
+     * Responsive varyantlar: GD ile ölçekli kopyalar (yalnız orijinalden küçük genişlikler).
+     *
+     * @return array<int, array{w: int, h: int, path: string}>
+     */
+    private function makeVariants(string $source, string $mime, int $width, int $height, string $base, string $extension): array
+    {
+        if (! function_exists('imagecreatefromstring')) {
+            return [];
+        }
+
+        $image = @imagecreatefromstring((string) file_get_contents($source));
+
+        if ($image === false) {
+            return [];
+        }
+
+        $variants = [];
+
+        foreach (self::VARIANT_WIDTHS as $w) {
+            if ($w >= $width) {
+                continue;
+            }
+
+            $h = (int) round($height * $w / $width);
+            $resized = imagecreatetruecolor($w, $h);
+
+            if ($mime !== 'image/jpeg') {
+                imagealphablending($resized, false);
+                imagesavealpha($resized, true);
+            }
+
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $w, $h, $width, $height);
+            ob_start();
+            match ($mime) {
+                'image/jpeg' => imagejpeg($resized, null, 82),
+                'image/png' => imagepng($resized, null, 6),
+                default => imagewebp($resized, null, 82),
+            };
+            $bytes = (string) ob_get_clean();
+            imagedestroy($resized);
+            $path = "{$base}-{$w}.{$extension}";
+
+            if ($bytes !== '' && Storage::disk('public')->put($path, $bytes)) {
+                $variants[] = ['w' => $w, 'h' => $h, 'path' => $path];
+            }
+        }
+
+        imagedestroy($image);
+
+        return $variants;
+    }
+
+    private function reject(User $uploader, string $stage, UploadedFile $file, string $detail, ?string $message = null): never
+    {
+        $this->audit->record($uploader, 'media.rejected', 'media', null, [], ['stage' => $stage, 'name' => mb_substr($file->getClientOriginalName(), 0, 120), 'detail' => mb_substr($detail, 0, 120)]);
+
+        throw new DomainException($message ?? match ($stage) {
+            'mime' => 'Yalnız JPEG, PNG ve WebP görsel kabul edilir.',
+            'magic_bytes' => 'Dosya geçerli bir görsel değil (sihirli bayt doğrulaması).',
+            'size' => 'Görsel 5 MB\'tan büyük olamaz.',
+            default => 'Yükleme reddedildi.',
+        });
+    }
+
+    private function clean(?string $value, int $max): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : mb_substr($value, 0, $max);
     }
 }

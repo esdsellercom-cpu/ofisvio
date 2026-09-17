@@ -27,6 +27,7 @@ use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LeadController;
+use App\Http\Controllers\Panel\LocationMediaController;
 use App\Http\Controllers\Panel\MediaController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\NotificationController;
@@ -263,6 +264,18 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::put('/lokasyon/{location}/kunye', [GeoController::class, 'updateBasics'])->middleware('permission:geo.edit')->name('basics');
             Route::delete('/lokasyon/{location}', [GeoController::class, 'destroy'])->middleware('permission:geo.publish')->name('destroy');
             Route::put('/lokasyon/{location}/yayin', [GeoController::class, 'publish'])->middleware('permission:geo.publish')->name('publish');
+            // Lokasyon görselleri (faz 3): geo.edit; {link} int, lokasyona süzülür. Yükleme karantina zincirinden geçer.
+            Route::prefix('/lokasyon/{location}/gorseller')->name('media.')->where(['link' => '[0-9]+'])->middleware('permission:geo.edit')->group(function () {
+                Route::get('/', [LocationMediaController::class, 'index'])->name('index');
+                Route::post('/', [LocationMediaController::class, 'store'])->middleware('throttle:media-upload')->name('store');
+                Route::post('/sirala', [LocationMediaController::class, 'reorder'])->name('reorder');
+                Route::put('/{link}', [LocationMediaController::class, 'update'])->name('update');
+                Route::post('/{link}/kapak', [LocationMediaController::class, 'cover'])->name('cover');
+                Route::post('/{link}/birincil', [LocationMediaController::class, 'primary'])->name('primary');
+                Route::post('/{link}/tasi', [LocationMediaController::class, 'move'])->name('move');
+                Route::post('/{link}/degistir', [LocationMediaController::class, 'replace'])->middleware('throttle:media-upload')->name('replace');
+                Route::delete('/{link}', [LocationMediaController::class, 'destroy'])->name('destroy');
+            });
             // Odalar (booking v1): lokasyon künyesinin parçası; {room} int, lokasyona süzülür (RoomController::roomOf).
             Route::get('/lokasyon/{location}/odalar', [RoomController::class, 'index'])->middleware('permission:geo.edit')->name('rooms.index');
             Route::post('/lokasyon/{location}/odalar', [RoomController::class, 'store'])->middleware('permission:geo.edit')->name('rooms.store');

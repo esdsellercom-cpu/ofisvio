@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **246/246** (Unit 10 · Feature 221 · Architecture 15) |
+| `php artisan test` | ✅ **249/249** (Unit 10 · Feature 224 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -373,6 +373,19 @@ bağlantı yok). Hepsi denetim izli. Kalan: çok dillilik, alt sayfalar için ku
 Markdown sayfalar), A/B deneyi. Ek: duyuru şeridi (global bileşen), rezervasyon takvimi
 (hafta/gün × oda), lead/KYC olayları Bildirim Merkezi'nde, `MockDataDetectionTest` sabit telefon/
 WhatsApp/fiyat taraması. Kapsama matrisi: `COVERAGE.md`.
+
+### 36. Lokasyon medya yönetimi ✅ (17 Eylül 2026, faz 3 prompt)
+`location_media` (kategori: kapak, galeri, iç/dış mekân, toplantı odası, ofis, coworking, resepsiyon,
+ortak alan, olanak; sıra; birincil), `locations.cover_media_id`, `media.title/caption/variants/status`.
+**Karantina zinciri** (`MediaService::upload`): private diske al → MIME (içerikten) → uzantı (MIME'dan)
+→ sihirli bayt (getimagesize + MIME eşleşmesi) → boyut → ClamAV (erişilemezse RED, enfekte asla
+public'e çıkmaz) → sha256 → onay → public UUID + GD ile 480/960/1600 responsive kopya → karantina
+temizlenir; her red denetim izinde aşama adıyla. Admin `/panel/geo/lokasyon/{slug}/gorseller` (geo.edit):
+yükle, kapak yap, birincil, sürükle-bırak/ok ile sırala, alt/başlık/altyazı, dosya değiştir (bağ+meta
+korunur, eski dosya kullanılmıyorsa silinir), kaldır. Vitrin: lokasyon sayfası kapak (eager, LCP) +
+kategori galerisi, kartlarda kapak; `site.partials.picture` (`srcset`/`sizes`/`loading=lazy`/
+`decoding=async`); og:image + LocalBusiness image kapaktan. Kodda görsel yolu yok; görsel yoksa boş
+durum kutusu. Her değişiklikte site önbellekleri düşer. `LocationMediaTest` (3 test, 7 adımlı senaryo).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

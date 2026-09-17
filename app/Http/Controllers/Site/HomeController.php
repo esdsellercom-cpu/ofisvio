@@ -61,7 +61,7 @@ class HomeController extends Controller
             ]);
         }
 
-        $locations = Location::published()->get();
+        $locations = Location::published()->with('cover')->get();
 
         return view('site.home', [
             'locations' => $locations,

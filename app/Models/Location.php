@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Location extends Model
@@ -12,7 +14,7 @@ class Location extends Model
         'name', 'slug', 'city', 'region', 'address_line', 'badge',
         'tags', 'price_from', 'is_active', 'is_published', 'sort_order',
         'latitude', 'longitude', 'district', 'postal_code', 'phone', 'opening_hours',
-        'geo_description', 'geo_meta_description',
+        'geo_description', 'geo_meta_description', 'cover_media_id',
     ];
 
     protected $casts = [
@@ -24,6 +26,26 @@ class Location extends Model
         'latitude' => 'float',
         'longitude' => 'float',
     ];
+
+    /**
+     * Kapak görseli (denormalize; kartlar için).
+     *
+     * @return BelongsTo<Media, $this>
+     */
+    public function cover(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'cover_media_id');
+    }
+
+    /**
+     * Görsel bağları (kategori/sıra).
+     *
+     * @return HasMany<LocationMedia, $this>
+     */
+    public function mediaLinks(): HasMany
+    {
+        return $this->hasMany(LocationMedia::class)->orderBy('category')->orderBy('sort_order');
+    }
 
     public function hasCoordinates(): bool
     {

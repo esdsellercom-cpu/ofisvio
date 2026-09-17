@@ -48,6 +48,12 @@ class SeoService
         );
         $head['json_ld'] = $this->geo->locationJsonLd($website, $location);
 
+        // Kapak görseli (medya kütüphanesi) paylaşım görseli ve LocalBusiness image olur.
+        if ($location->cover_media_id !== null && $location->cover !== null) {
+            $head['og_image'] = $location->cover->urlFor(1600);
+            $head['json_ld']['image'] = $location->cover->url();
+        }
+
         return $head;
     }
 

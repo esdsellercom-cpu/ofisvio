@@ -28,6 +28,7 @@ class RateLimitServiceProvider extends ServiceProvider
         'invite' => 20,
         'booking' => 20, // rezervasyon oluşturma (panel)
         'booking-public' => 5, // vitrin talebi (IP)
+        'media-upload' => 30, // görsel yükleme (karantina zinciri maliyetli)
         'context-switch' => 30,
         'webhook' => 120, // sağlayıcı yeniden teslimleri; IP bazlı (oturum yok)
     ];

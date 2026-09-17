@@ -9,6 +9,7 @@
             <h1 class="h2">{{ $location->name }}</h1>
         </div>
         <div class="panel-head__actions">
+            <a href="{{ route('panel.geo.media.index', $location) }}" class="btn btn--ghost">Görseller</a>
             <a href="{{ route('panel.geo.rooms.index', $location) }}" class="btn btn--ghost">Odalar</a>
         </div>
     </div>

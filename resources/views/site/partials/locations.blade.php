@@ -22,9 +22,16 @@
                      data-location
                      data-region="{{ $loc->region }}"
                      data-tags="{{ implode('|', $loc->tags ?? []) }}">
-                <div class="shot" style="aspect-ratio:16/10;align-items:flex-start;justify-content:flex-start;padding:14px">
-                    <span class="mono" style="font-size:10.5px;letter-spacing:.08em;color:#3C3A32;background:var(--surface);border-radius:5px;padding:5px 8px">{{ $loc->badge }}</span>
-                </div>
+                @if ($loc->cover)
+                    <div style="position:relative">
+                        @include('site.partials.picture', ['media' => $loc->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
+                        <span class="mono" style="position:absolute;top:14px;left:14px;font-size:10.5px;letter-spacing:.08em;color:#3C3A32;background:var(--surface);border-radius:5px;padding:5px 8px">{{ $loc->badge }}</span>
+                    </div>
+                @else
+                    <div class="shot" style="aspect-ratio:16/10;align-items:flex-start;justify-content:flex-start;padding:14px">
+                        <span class="mono" style="font-size:10.5px;letter-spacing:.08em;color:#3C3A32;background:var(--surface);border-radius:5px;padding:5px 8px">{{ $loc->badge }}</span>
+                    </div>
+                @endif
                 <div class="card__body" style="padding:20px 20px 22px;gap:8px">
                     <div class="label">{{ $loc->region }}</div>
                     <h3 class="h3"><a href="{{ route('site.location', $loc->slug) }}">{{ $loc->name }}</a></h3>
