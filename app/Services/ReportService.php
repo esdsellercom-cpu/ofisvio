@@ -23,27 +23,45 @@ use Illuminate\Support\Carbon;
  */
 class ReportService
 {
-    public const TABS = ['gelir' => 'Gelir', 'doluluk' => 'Doluluk', 'uyelik' => 'Üyelik', 'talepler' => 'Talepler', 'bildirim' => 'Bildirim', 'icerik' => 'İçerik'];
+    public const TABS = ['gelir' => 'Gelir', 'tahsilat' => 'Tahsilat', 'doluluk' => 'Doluluk', 'uyelik' => 'Üyelik', 'talepler' => 'Talepler', 'bildirim' => 'Bildirim', 'icerik' => 'İçerik'];
 
     public function __construct(
         private readonly BookingService $bookings,
         private readonly KycQueueService $kyc,
         private readonly NotificationService $notifications,
         private readonly AuthorizationService $authorization,
+        private readonly InvoiceService $invoices,
+        private readonly SubscriptionService $subscriptions,
     ) {}
 
     /** @return array<string, mixed> */
     public function tab(User $user, string $tab): array
     {
         return match ($tab) {
-            'gelir', 'doluluk' => ['bookings' => $this->bookings->dashboard(), 'tabs' => $this->bookings->tabCounts(), 'rooms' => $this->rooms()],
+            'gelir', 'doluluk' => ['bookings' => $this->bookings->dashboard(), 'tabs' => $this->bookings->tabCounts(), 'rooms' => $this->rooms(), 'finance' => $this->finance($user)],
+            // Finans toplamları yalnız invoice.view taşıyana (analytics.view operasyonda da var).
+            'tahsilat' => $this->finance($user) ?? [],
             // KYC adedi yalnız kyc.view_status taşıyana (operations_admin analytics.view taşır ama KYC görmez).
-            'uyelik' => ['companies' => $this->companiesByStatus(), 'kyc_pending' => $this->authorization->can($user, 'kyc.view_status') ? array_sum($this->kyc->pendingCounts($user)) : null],
+            'uyelik' => ['companies' => $this->companiesByStatus(), 'kyc_pending' => $this->authorization->can($user, 'kyc.view_status') ? array_sum($this->kyc->pendingCounts($user)) : null, 'subscriptions' => $this->authorization->can($user, 'subscription.view') ? $this->subscriptions->dashboard() : null],
             'talepler' => $this->leads(),
             'bildirim' => ['health' => $this->notifications->channelHealth(30), 'counts' => $this->notifications->counts()],
             'icerik' => ['content' => $this->contentByStatus()],
             default => [],
         };
+    }
+
+    /**
+     * Fatura/tahsilat toplamları (invoice.view yoksa null).
+     *
+     * @return array{invoices: array{revenue_today: int, revenue_month: int, outstanding: int, outstanding_count: int, overdue: int, overdue_count: int, due_7d_count: int}, monthly: array<int, array{month: string, amount: int}>}|null
+     */
+    private function finance(User $user): ?array
+    {
+        if (! $this->authorization->can($user, 'invoice.view')) {
+            return null;
+        }
+
+        return ['invoices' => $this->invoices->dashboard(), 'monthly' => $this->invoices->monthlyRevenue(6)];
     }
 
     /** @return array{total: int, active: int, by_kind: array<string, array{label: string, count: int, capacity: int}>} */

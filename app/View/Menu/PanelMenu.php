@@ -71,6 +71,10 @@ class PanelMenu
                 $hasOrganization && $can('kyc.view_status') ? $this->item('KYC kuyruğu', route('panel.kyc.queue'), $this->routeIs('panel.kyc.queue'), $badges['kyc_pending'] ?? 0, 'w') : null,
                 $can('subscription.view') ? $this->item('Üyelikler & paketler', route('panel.subscriptions.index'), $this->routeIs('panel.subscriptions.*', 'panel.plans.*'), $badges['subscriptions_expiring'] ?? 0, 'w') : null,
             ]],
+            ['Finans', [
+                $can('invoice.view') ? $this->item('Tahsilat & üyelik takibi', route('panel.collections.index'), $this->routeIs('panel.collections.*'), $badges['invoices_overdue'] ?? 0, 'c') : null,
+                $can('invoice.view') ? $this->item('Ödemeler & faturalandırma', route('panel.invoices.index'), $this->routeIs('panel.invoices.*')) : null,
+            ]],
             ['Büyüme', [
                 $can('lead.view') ? $this->item('CRM & pazarlama', route('panel.leads.index'), $this->routeIs('panel.leads.*'), $badges['leads_new'] ?? 0, 'a') : null,
             ]],

@@ -53,6 +53,12 @@
                 @if ($ops['kyc_pending'] !== null)
                     <a href="{{ route('panel.kyc.queue') }}" class="kpi {{ $ops['kyc_pending'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen KYC</span><span class="v">{{ $ops['kyc_pending'] }}</span><span class="d">Tüm organizasyonlar</span></a>
                 @endif
+                @if ($ops['finance'] !== null)
+                    <div class="kpi"><span class="k">Günlük ciro</span><span class="v">{{ number_format($ops['finance']['revenue_today'], 0, ',', '.') }} ₺</span><span class="d">Bugün kaydedilen tahsilat</span></div>
+                    <a href="{{ route('panel.collections.index') }}" class="kpi"><span class="k">Aylık ciro</span><span class="v">{{ number_format($ops['finance']['revenue_month'], 0, ',', '.') }} ₺</span><span class="d">Bu ay tahsil edilen</span></a>
+                    <a href="{{ route('panel.invoices.index', ['sekme' => 'open']) }}" class="kpi {{ $ops['finance']['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ number_format($ops['finance']['outstanding'], 0, ',', '.') }} ₺</span><span class="d">{{ $ops['finance']['outstanding_count'] }} açık fatura</span></a>
+                    <a href="{{ route('panel.invoices.index', ['sekme' => 'overdue']) }}" class="kpi {{ $ops['finance']['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş ödeme</span><span class="v">{{ $ops['finance']['overdue_count'] }}</span><span class="d">{{ number_format($ops['finance']['overdue'], 0, ',', '.') }} ₺ vadesi geçmiş</span></a>
+                @endif
                 @if ($ops['subscriptions'] !== null)
                     <a href="{{ route('panel.subscriptions.index', ['sekme' => 'expiring']) }}" class="kpi {{ $ops['subscriptions']['expiring'] > 0 ? 'watch' : '' }}"><span class="k">Üyelik bitişi (30 gün)</span><span class="v">{{ $ops['subscriptions']['expiring'] }}</span><span class="d">{{ $ops['subscriptions']['active'] }} aktif üyelik</span></a>
                     <a href="{{ route('panel.subscriptions.index') }}" class="kpi"><span class="k">Yeni üyelik (30g)</span><span class="v">{{ $ops['subscriptions']['new_30d'] }}</span><span class="d">MRR {{ number_format($ops['subscriptions']['mrr'], 0, ',', '.') }} ₺</span></a>
@@ -152,6 +158,28 @@
                     @endif
                 </div>
             @endif
+        @endif
+
+        @if ($ops !== null && $ops['overdue'] !== null && $ops['overdue']->isNotEmpty())
+            <div class="card">
+                <div class="card__head"><h3>Gecikmiş ödemeler</h3><span class="sub">Vadesi geçmiş açık faturalar</span><span class="r"><a href="{{ route('panel.invoices.index', ['sekme' => 'overdue']) }}" class="btn btn--quiet">Tümü</a></span></div>
+                <div class="tw">
+                    <table class="t">
+                        <thead><tr><th>Fatura</th><th>Şirket</th><th>Vade</th><th class="num">Kalan</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach ($ops['overdue'] as $inv)
+                                <tr>
+                                    <td class="mono">{{ $inv->number }}</td>
+                                    <td><b>{{ $inv->company->legal_name }}</b><br><span class="mini">{{ $inv->description }}</span></td>
+                                    <td><span class="pill c flat">{{ $inv->daysOverdue() }} gün gecikti</span></td>
+                                    <td class="num">{{ number_format($inv->outstanding(), 0, ',', '.') }} ₺</td>
+                                    <td class="num"><a href="{{ route('panel.invoices.show', $inv) }}" class="btn btn--quiet">Aç</a></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         @endif
 
         @if ($ops !== null && $ops['expiring'] !== null && $ops['expiring']->isNotEmpty())

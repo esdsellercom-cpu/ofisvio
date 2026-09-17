@@ -1,0 +1,324 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Company;
+use App\Models\Invoice;
+use App\Models\Payment;
+use App\Models\Scopes\TenantScope;
+use App\Models\Subscription;
+use App\Models\User;
+use DomainException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+
+/**
+ * Ödemeler & faturalandırma + tahsilat takibi (faz 39c, artifact §7–8).
+ *
+ * Fatura durumu yalnız burada değişir: draft → issued (numara verilir) → paid ·
+ * issued → overdue (vade + tolerans geçti, zamanlayıcı) → paid · draft/issued/overdue
+ * → cancelled. Tahsilat kaydı faturanın paid_amount'unu günceller; tutar tamamlanınca
+ * paid. Ödeme sağlayıcısı (iyzico) geçitten bağlanınca webhook aynı recordPayment'i
+ * çağırır — manuel kayıt akışı değişmez. Her adım audit.
+ *
+ * withoutTenantScope: finans listesi/sayaçlar/dashboard (invoice.view GLOBAL rotası),
+ * zamanlayıcının gecikme işareti ve numara sırası tüm şirketlere bakmak zorunda;
+ * müşteri tarafı forCompany() tenant scope içinde kalır (ArchitectureTest allowlist).
+ */
+class InvoiceService
+{
+    public const TABS = ['open' => 'Tahsilat bekleyen', 'overdue' => 'Gecikmiş', 'paid' => 'Ödenen', 'draft' => 'Taslak', 'cancelled' => 'İptal', 'all' => 'Tümü'];
+
+    public function __construct(private readonly AuditService $audit, private readonly SettingsService $settings) {}
+
+    /**
+     * @param  array{tab?: string|null, q?: string|null}  $filters
+     * @return LengthAwarePaginator<int, Invoice>
+     */
+    public function paginateAll(array $filters, int $perPage = 50): LengthAwarePaginator
+    {
+        $tab = (string) ($filters['tab'] ?? 'open');
+        $q = trim((string) ($filters['q'] ?? ''));
+
+        $query = Invoice::withoutTenantScope()
+            ->when($q !== '', fn (Builder $b) => $b->where(fn (Builder $w) => $w->where('number', 'like', "%{$q}%")->orWhere('description', 'like', "%{$q}%")
+                ->orWhereHas('company', fn (Builder $c) => $c->withoutGlobalScope(TenantScope::class)->where('legal_name', 'like', "%{$q}%"))));
+
+        $this->applyTab($query, $tab);
+
+        return $query
+            ->with(['company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class), 'subscription.plan'])
+            ->orderBy(in_array($tab, ['open', 'overdue'], true) ? 'due_on' : 'updated_at', in_array($tab, ['open', 'overdue'], true) ? 'asc' : 'desc')
+            ->paginate($perPage)->withQueryString();
+    }
+
+    /** @return array<string, int> */
+    public function tabCounts(): array
+    {
+        $out = [];
+
+        foreach (array_keys(self::TABS) as $tab) {
+            if ($tab !== 'all') {
+                $out[$tab] = $this->applyTab(Invoice::withoutTenantScope(), $tab)->count();
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Menü rozeti: gecikmiş fatura (PanelBadgeService tek sorguda sayar).
+     *
+     * @return Builder<Invoice>
+     */
+    public function overdueQuery(): Builder
+    {
+        return Invoice::withoutTenantScope()->where('status', 'overdue');
+    }
+
+    public function findAny(int $id): ?Invoice
+    {
+        return Invoice::withoutTenantScope()->with(['company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class), 'subscription.plan', 'booking', 'creator', 'payments.recorder'])->find($id);
+    }
+
+    /**
+     * Müşteri tarafı (tenant scope içinde): taslaklar müşteriye görünmez.
+     *
+     * @return Collection<int, Invoice>
+     */
+    public function forCompany(Company $company): Collection
+    {
+        return Invoice::query()->where('company_id', $company->id)->where('status', '!=', 'draft')->with('payments')->orderByDesc('issued_on')->orderByDesc('id')->get();
+    }
+
+    public function findForCompany(Company $company, int $id): ?Invoice
+    {
+        return Invoice::query()->where('company_id', $company->id)->where('status', '!=', 'draft')->with(['payments', 'subscription.plan'])->find($id);
+    }
+
+    /**
+     * Taslak oluşturur (invoice.issue). Tutar: ara toplam + KDV. Vade yayınlamada kesinleşir.
+     *
+     * @param  array{description: string, subtotal: int, tax_rate?: int|null, due_on?: string|null, subscription_id?: int|string|null, note?: string|null, issue?: bool}  $data
+     */
+    public function create(User $actor, Company $company, array $data): Invoice
+    {
+        $subtotal = max(0, (int) $data['subtotal']);
+        $rate = max(0, min(100, (int) ($data['tax_rate'] ?? $this->settings->int('finance.default_tax_rate'))));
+        $tax = (int) round($subtotal * $rate / 100);
+        $subscription = ! empty($data['subscription_id']) ? Subscription::withoutTenantScope()->where('company_id', $company->id)->find((int) $data['subscription_id']) : null;
+
+        if (! empty($data['subscription_id']) && $subscription === null) {
+            throw new DomainException('Üyelik bu şirkete ait değil.');
+        }
+
+        $invoice = new Invoice([
+            'company_id' => $company->id,
+            'subscription_id' => $subscription?->id,
+            'status' => 'draft',
+            'description' => trim((string) $data['description']),
+            'subtotal' => $subtotal,
+            'tax_rate' => $rate,
+            'tax_amount' => $tax,
+            'total' => $subtotal + $tax,
+            'currency' => $this->settings->string('general.currency'),
+            'due_on' => ! empty($data['due_on']) ? Carbon::parse($data['due_on'])->toDateString() : null,
+            'note' => $this->blank($data['note'] ?? null),
+            'created_by' => $actor->id,
+        ]);
+        $invoice->save();
+        $this->audit->record($actor, 'invoice.created', 'invoice', $invoice->id, [], $invoice->toArray());
+
+        if (! empty($data['issue'])) {
+            $this->issue($actor, $invoice);
+        }
+
+        return $invoice;
+    }
+
+    /** Yayınla: numara (önek-yıl-sıra) + yayın tarihi + vade (yoksa ayardan). Sıfır tutarlı fatura yayınlanmaz. */
+    public function issue(User $actor, Invoice $invoice): Invoice
+    {
+        if ($invoice->status !== 'draft') {
+            throw new DomainException('Yalnız taslak fatura yayınlanır.');
+        }
+
+        if ($invoice->total <= 0) {
+            throw new DomainException('Sıfır tutarlı fatura yayınlanamaz.');
+        }
+
+        return DB::transaction(function () use ($actor, $invoice) {
+            $before = $invoice->toArray();
+            $today = Carbon::today();
+            $year = $today->format('Y');
+            $prefix = $this->settings->string('finance.invoice_prefix');
+            $seq = Invoice::withoutTenantScope()->lockForUpdate()->where('number', 'like', "{$prefix}-{$year}-%")->count() + 1;
+
+            $invoice->fill([
+                'number' => sprintf('%s-%s-%06d', $prefix, $year, $seq),
+                'status' => 'issued',
+                'issued_on' => $today->toDateString(),
+                'due_on' => $invoice->due_on?->toDateString() ?? $today->copy()->addDays($this->settings->int('finance.due_days'))->toDateString(),
+                'issued_by' => $actor->id,
+            ])->save();
+            $this->audit->record($actor, 'invoice.issued', 'invoice', $invoice->id, $before, $invoice->toArray());
+
+            return $invoice;
+        });
+    }
+
+    public function cancel(User $actor, Invoice $invoice, string $reason): Invoice
+    {
+        if ($invoice->status === 'paid' || $invoice->status === 'cancelled') {
+            throw new DomainException('Ödenmiş ya da iptal edilmiş fatura iptal edilemez.');
+        }
+
+        if ($invoice->paid_amount > 0) {
+            throw new DomainException('Kısmi tahsilatı olan fatura iptal edilemez; önce tahsilatı iade/düzeltme kaydıyla kapatın.');
+        }
+
+        $before = $invoice->toArray();
+        $invoice->fill(['status' => 'cancelled', 'cancelled_by' => $actor->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => $reason])->save();
+        $this->audit->record($actor, 'invoice.cancelled', 'invoice', $invoice->id, $before, $invoice->toArray());
+
+        return $invoice;
+    }
+
+    /**
+     * Tahsilat kaydı (payment_allocation.manage ya da sağlayıcı webhook'u). Fazla ödeme reddedilir;
+     * bakiye sıfırlanınca fatura paid.
+     *
+     * @param  array{amount: int, method: string, paid_on: string, reference?: string|null, note?: string|null}  $data
+     */
+    public function recordPayment(?User $actor, Invoice $invoice, array $data): Payment
+    {
+        if (! $invoice->isOpen()) {
+            throw new DomainException('Yalnız yayınlanmış (tahsilat bekleyen) faturaya ödeme kaydedilir.');
+        }
+
+        $amount = (int) $data['amount'];
+
+        if ($amount <= 0 || $amount > $invoice->outstanding()) {
+            throw new DomainException('Tutar 1 ile kalan bakiye ('.$invoice->outstanding().' ₺) arasında olmalı.');
+        }
+
+        if (! isset(Payment::METHODS[(string) $data['method']])) {
+            throw new DomainException('Geçersiz ödeme yöntemi.');
+        }
+
+        return DB::transaction(function () use ($actor, $invoice, $data, $amount) {
+            $payment = new Payment([
+                'invoice_id' => $invoice->id,
+                'company_id' => $invoice->company_id,
+                'amount' => $amount,
+                'method' => (string) $data['method'],
+                'paid_on' => Carbon::parse($data['paid_on'])->toDateString(),
+                'reference' => $this->blank($data['reference'] ?? null),
+                'note' => $this->blank($data['note'] ?? null),
+                'recorded_by' => $actor?->id,
+            ]);
+            $payment->save();
+
+            $before = $invoice->toArray();
+            $paid = $invoice->paid_amount + $amount;
+            $invoice->fill(['paid_amount' => $paid] + ($paid >= $invoice->total ? ['status' => 'paid', 'paid_at' => Carbon::now()] : []))->save();
+
+            $this->audit->record($actor, 'payment.recorded', 'payment', $payment->id, [], $payment->toArray());
+            $this->audit->record($actor, $invoice->status === 'paid' ? 'invoice.paid' : 'invoice.partially_paid', 'invoice', $invoice->id, $before, $invoice->toArray());
+
+            return $payment;
+        });
+    }
+
+    /** Zamanlayıcı: vade + tolerans geçen yayınlanmış faturalar overdue. */
+    public function markOverdue(): int
+    {
+        $limit = Carbon::today()->subDays($this->settings->int('finance.overdue_grace_days'))->toDateString();
+        $n = 0;
+
+        foreach (Invoice::withoutTenantScope()->where('status', 'issued')->whereDate('due_on', '<', $limit)->get() as $invoice) {
+            $before = $invoice->toArray();
+            $invoice->fill(['status' => 'overdue'])->save();
+            $this->audit->record(null, 'invoice.overdue', 'invoice', $invoice->id, $before, $invoice->toArray());
+            $n++;
+        }
+
+        return $n;
+    }
+
+    /**
+     * Dashboard/tahsilat toplamları — gerçek sayılar.
+     *
+     * @return array{revenue_today: int, revenue_month: int, outstanding: int, outstanding_count: int, overdue: int, overdue_count: int, due_7d_count: int}
+     */
+    public function dashboard(): array
+    {
+        $today = Carbon::today();
+        $open = Invoice::withoutTenantScope()->whereIn('status', Invoice::OPEN)->get(['id', 'status', 'total', 'paid_amount', 'due_on']);
+        $overdue = $open->where('status', 'overdue');
+
+        return [
+            'revenue_today' => (int) Payment::withoutTenantScope()->whereDate('paid_on', $today->toDateString())->sum('amount'),
+            'revenue_month' => (int) Payment::withoutTenantScope()->whereDate('paid_on', '>=', $today->copy()->startOfMonth()->toDateString())->whereDate('paid_on', '<=', $today->copy()->endOfMonth()->toDateString())->sum('amount'),
+            'outstanding' => (int) $open->sum(fn (Invoice $i) => $i->outstanding()),
+            'outstanding_count' => $open->count(),
+            'overdue' => (int) $overdue->sum(fn (Invoice $i) => $i->outstanding()),
+            'overdue_count' => $overdue->count(),
+            'due_7d_count' => $open->where('status', 'issued')->filter(fn (Invoice $i) => $i->due_on !== null && $i->due_on->lte($today->copy()->addDays(7)))->count(),
+        ];
+    }
+
+    /**
+     * Tahsilat ekranı: vade sırasıyla açık faturalar (gecikmiş önce).
+     *
+     * @return Collection<int, Invoice>
+     */
+    public function collectionList(int $limit = 50): Collection
+    {
+        return Invoice::withoutTenantScope()->whereIn('status', Invoice::OPEN)
+            ->with(['company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])
+            ->orderByRaw("case when status = 'overdue' then 0 else 1 end")->orderBy('due_on')->limit($limit)->get();
+    }
+
+    /**
+     * Aylık tahsilat serisi (son N ay) — rapor grafiği için gerçek toplamlar.
+     *
+     * @return array<int, array{month: string, amount: int}>
+     */
+    public function monthlyRevenue(int $months = 6): array
+    {
+        $start = Carbon::today()->startOfMonth()->subMonths($months - 1);
+        $rows = Payment::withoutTenantScope()->whereDate('paid_on', '>=', $start->toDateString())->get(['paid_on', 'amount'])->groupBy(fn (Payment $p) => $p->paid_on->format('Y-m'));
+        $out = [];
+
+        for ($i = 0; $i < $months; $i++) {
+            $m = $start->copy()->addMonths($i);
+            $out[] = ['month' => $m->format('Y-m'), 'amount' => (int) ($rows[$m->format('Y-m')] ?? collect())->sum('amount')];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  Builder<Invoice>  $query
+     * @return Builder<Invoice>
+     */
+    private function applyTab(Builder $query, string $tab): Builder
+    {
+        return match ($tab) {
+            'open' => $query->whereIn('status', Invoice::OPEN),
+            'overdue', 'paid', 'draft', 'cancelled' => $query->where('status', $tab),
+            default => $query,
+        };
+    }
+
+    private function blank(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+}

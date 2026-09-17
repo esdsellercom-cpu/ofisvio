@@ -19,7 +19,9 @@ use App\Http\Controllers\Panel\AuditController;
 use App\Http\Controllers\Panel\BookingController;
 use App\Http\Controllers\Panel\BookingDeskController;
 use App\Http\Controllers\Panel\CacheController;
+use App\Http\Controllers\Panel\CollectionController;
 use App\Http\Controllers\Panel\CompanyController;
+use App\Http\Controllers\Panel\CompanyInvoiceController;
 use App\Http\Controllers\Panel\CompanySubscriptionController;
 use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContentDraftController;
@@ -27,6 +29,7 @@ use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\IntegrationController;
+use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\LocationMediaController;
@@ -87,6 +90,19 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/{subscription}', [SubscriptionController::class, 'show'])->where('subscription', '[0-9]+')->middleware('permission:subscription.view')->name('show');
             Route::post('/{subscription}/iptal', [SubscriptionController::class, 'cancel'])->where('subscription', '[0-9]+')->middleware('permission:subscription.manage')->name('cancel');
             Route::post('/{subscription}/yenile', [SubscriptionController::class, 'renew'])->where('subscription', '[0-9]+')->middleware('permission:subscription.manage')->name('renew');
+        });
+        // Finans (faz 39c, §7–8): invoice.view görür; invoice.issue açar/yayınlar; invoice.cancel iptal; payment_allocation.manage tahsilat.
+        Route::get('/tahsilat', [CollectionController::class, 'index'])->middleware('permission:invoice.view')->name('collections.index');
+        Route::prefix('faturalar')->name('invoices.')->group(function () {
+            Route::get('/', [InvoiceController::class, 'index'])->middleware('permission:invoice.view')->name('index');
+            Route::get('/yeni', [InvoiceController::class, 'create'])->middleware('permission:invoice.issue')->name('create');
+            Route::post('/', [InvoiceController::class, 'store'])->middleware('permission:invoice.issue')->name('store');
+            Route::get('/{invoice}', [InvoiceController::class, 'show'])->where('invoice', '[0-9]+')->middleware('permission:invoice.view')->name('show');
+            Route::post('/{invoice}/yayinla', [InvoiceController::class, 'issue'])->where('invoice', '[0-9]+')->middleware('permission:invoice.issue')->name('issue');
+            // İptal JIT'li (matris requires_jit): kaynak = fatura; grant /jit ile açılır.
+            Route::post('/{invoice}/iptal', [InvoiceController::class, 'cancel'])->where('invoice', '[0-9]+')->middleware('permission:invoice.cancel,,'.InvoiceController::RESOURCE.',invoice')->name('cancel');
+            Route::post('/{invoice}/jit', [InvoiceController::class, 'requestJit'])->where('invoice', '[0-9]+')->middleware(['permission:invoice.view', 'throttle:jit-request'])->name('jit');
+            Route::post('/{invoice}/tahsilat', [InvoiceController::class, 'payment'])->where('invoice', '[0-9]+')->middleware('permission:payment_allocation.manage')->name('payment');
         });
         Route::prefix('paketler')->name('plans.')->group(function () {
             Route::get('/', [PlanController::class, 'index'])->middleware('permission:subscription.view')->name('index');
@@ -422,6 +438,13 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/sirketler/{company}/uyelik', [CompanySubscriptionController::class, 'index'])
                 ->middleware('permission:subscription.view,company')
                 ->name('companies.subscriptions.index');
+            // Müşteri faturaları (faz 39c): invoice.view, şirket kapsamı; taslak görünmez.
+            Route::get('/sirketler/{company}/faturalar', [CompanyInvoiceController::class, 'index'])
+                ->middleware('permission:invoice.view,company')
+                ->name('companies.invoices.index');
+            Route::get('/sirketler/{company}/faturalar/{invoice}', [CompanyInvoiceController::class, 'show'])->where('invoice', '[0-9]+')
+                ->middleware('permission:invoice.view,company')
+                ->name('companies.invoices.show');
             Route::get('/sirketler/{company}/rezervasyonlar', [BookingController::class, 'index'])
                 ->middleware('permission:booking.view,company')
                 ->name('companies.bookings.index');

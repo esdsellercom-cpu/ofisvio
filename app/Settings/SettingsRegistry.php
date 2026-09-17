@@ -18,6 +18,7 @@ final class SettingsRegistry
         'booking' => 'Rezervasyon',
         'notifications' => 'Bildirimler',
         'whatsapp' => 'WhatsApp',
+        'finance' => 'Finans',
         'general' => 'Genel',
     ];
 
@@ -46,6 +47,12 @@ final class SettingsRegistry
             'whatsapp.sender_label' => ['group' => 'whatsapp', 'label' => 'Gönderen etiketi', 'type' => 'string', 'default' => 'OFISVIO', 'rules' => ['string', 'max:40'], 'scopes' => ['installation'], 'description' => 'Mesaj başlığında kullanılan marka etiketi.'],
             'whatsapp.template_name' => ['group' => 'whatsapp', 'label' => 'Onaylı şablon adı', 'type' => 'string', 'default' => '', 'rules' => ['string', 'max:80', 'regex:/^[a-z0-9_]*$/'], 'scopes' => ['installation'], 'description' => 'Meta Cloud API: 24 saatlik pencere dışında işletme mesajı onaylı şablon ister (tek gövde parametresi). Boşsa düz metin gönderilir.'],
             'whatsapp.template_locale' => ['group' => 'whatsapp', 'label' => 'Şablon dili', 'type' => 'select', 'default' => 'tr', 'rules' => ['in:tr,en'], 'scopes' => ['installation'], 'description' => 'Sağlayıcıya gönderilen şablon dili.', 'options' => ['tr' => 'Türkçe', 'en' => 'İngilizce']],
+
+            // --- Finans (faz 39c): fatura numarası, varsayılan KDV, vade ---
+            'finance.invoice_prefix' => ['group' => 'finance', 'label' => 'Fatura numarası öneki', 'type' => 'string', 'default' => 'F', 'rules' => ['string', 'regex:/^[A-Z]{1,5}$/'], 'scopes' => ['installation'], 'description' => 'Örn. F-2026-000012. Numara yayınlama anında verilir, sonra değişmez.'],
+            'finance.default_tax_rate' => ['group' => 'finance', 'label' => 'Varsayılan KDV (%)', 'type' => 'int', 'default' => 20, 'rules' => ['integer', 'min:0', 'max:100'], 'scopes' => ['installation'], 'description' => 'Yeni fatura formunda önerilen oran; fatura başına değiştirilebilir.'],
+            'finance.due_days' => ['group' => 'finance', 'label' => 'Varsayılan vade (gün)', 'type' => 'int', 'default' => 7, 'rules' => ['integer', 'min:0', 'max:120'], 'scopes' => ['installation'], 'description' => 'Fatura yayınlandığında vade = yayın tarihi + bu kadar gün (formda değiştirilebilir).'],
+            'finance.overdue_grace_days' => ['group' => 'finance', 'label' => 'Gecikme toleransı (gün)', 'type' => 'int', 'default' => 0, 'rules' => ['integer', 'min:0', 'max:30'], 'scopes' => ['installation'], 'description' => 'Vade + tolerans geçince fatura GECİKMİŞ olur (zamanlayıcı).'],
 
             // --- Genel ---
             'general.timezone' => ['group' => 'general', 'label' => 'Saat dilimi', 'type' => 'string', 'default' => 'Europe/Istanbul', 'rules' => ['string', 'timezone:all'], 'scopes' => ['installation'], 'description' => 'Rezervasyon saatleri bu dilimde yorumlanır.'],

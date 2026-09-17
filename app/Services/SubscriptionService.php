@@ -138,6 +138,16 @@ class SubscriptionService
         return $this->applyTab(Subscription::withoutTenantScope(), 'expiring');
     }
 
+    /**
+     * Personel (fatura formu): şirketin üyelikleri, şirket bağlamı olmadan (subscription.view global).
+     *
+     * @return Collection<int, Subscription>
+     */
+    public function forCompanyAny(int $companyId): Collection
+    {
+        return Subscription::withoutTenantScope()->where('company_id', $companyId)->with('plan')->orderByDesc('ends_on')->get();
+    }
+
     public function findAny(int $id): ?Subscription
     {
         return Subscription::withoutTenantScope()->with(['plan', 'location', 'creator', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->find($id);
@@ -241,7 +251,7 @@ class SubscriptionService
     {
         $n = 0;
 
-        foreach (Subscription::withoutTenantScope()->where('status', 'active')->where('ends_on', '<', Carbon::today()->toDateString())->get() as $sub) {
+        foreach (Subscription::withoutTenantScope()->where('status', 'active')->whereDate('ends_on', '<', Carbon::today()->toDateString())->get() as $sub) {
             $before = $sub->toArray();
             $sub->fill(['status' => 'expired'])->save();
             $this->audit->record(null, 'subscription.expired', 'subscription', $sub->id, $before, $sub->toArray());
@@ -279,7 +289,7 @@ class SubscriptionService
 
         return match ($tab) {
             'active' => $query->where('status', 'active'),
-            'expiring' => $query->where('status', 'active')->whereBetween('ends_on', [$today, Carbon::today()->addDays(self::EXPIRING_DAYS)->toDateString()]),
+            'expiring' => $query->where('status', 'active')->whereDate('ends_on', '>=', $today)->whereDate('ends_on', '<=', Carbon::today()->addDays(self::EXPIRING_DAYS)->toDateString()),
             'expired' => $query->where('status', 'expired'),
             'cancelled' => $query->where('status', 'cancelled'),
             default => $query,

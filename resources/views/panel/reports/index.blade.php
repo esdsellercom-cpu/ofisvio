@@ -39,7 +39,41 @@
                     @endif
                 </div>
             </div>
-            <div class="note">Abonelik ve fatura gelirleri Ödemeler &amp; faturalandırma modülü devreye girince bu sekmeye eklenir; şu an yalnız rezervasyon tutarları.</div>
+            @if ($data['finance'] !== null)
+                <div class="card">
+                    <div class="card__head"><h3>Tahsilat</h3><span class="sub">Fatura ödemeleri</span></div>
+                    <div class="card__body"><div class="stat-s">
+                        <div><b>{{ number_format($data['finance']['invoices']['revenue_month'], 0, ',', '.') }} ₺</b><span>Bu ay</span></div>
+                        <div><b>{{ number_format($data['finance']['invoices']['revenue_today'], 0, ',', '.') }} ₺</b><span>Bugün</span></div>
+                        <div><b>{{ number_format($data['finance']['invoices']['outstanding'], 0, ',', '.') }} ₺</b><span>Bekleyen</span></div>
+                        <div><b>{{ number_format($data['finance']['invoices']['overdue'], 0, ',', '.') }} ₺</b><span>Gecikmiş</span></div>
+                    </div></div>
+                </div>
+            @else
+                <div class="note">Fatura ve tahsilat toplamları yalnız finans izniyle (invoice.view) görünür.</div>
+            @endif
+
+        @elseif ($tab === 'tahsilat')
+            @if ($data === [])
+                <div class="note w">Tahsilat raporu finans izni (invoice.view) ister.</div>
+            @else
+                @php($i = $data['invoices'])
+                <div class="kpis">
+                    <div class="kpi"><span class="k">Bu ay tahsil edilen</span><span class="v">{{ number_format($i['revenue_month'], 0, ',', '.') }} ₺</span><span class="d">Bugün {{ number_format($i['revenue_today'], 0, ',', '.') }} ₺</span></div>
+                    <div class="kpi {{ $i['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ number_format($i['outstanding'], 0, ',', '.') }} ₺</span><span class="d">{{ $i['outstanding_count'] }} açık fatura</span></div>
+                    <div class="kpi {{ $i['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş</span><span class="v">{{ $i['overdue_count'] }}</span><span class="d">{{ number_format($i['overdue'], 0, ',', '.') }} ₺</span></div>
+                    <div class="kpi"><span class="k">7 gün içinde vade</span><span class="v">{{ $i['due_7d_count'] }}</span><span class="d">Yayınlanmış fatura</span></div>
+                </div>
+                <div class="card">
+                    <div class="card__head"><h3>Aylık tahsilat</h3><span class="sub">Son 6 ay</span></div>
+                    <div class="card__body">
+                        @php($max = max(1, max(array_column($data['monthly'], 'amount'))))
+                        @foreach ($data['monthly'] as $m)
+                            <div class="barrow"><span class="lbl mono">{{ $m['month'] }}</span><span class="meter"><i class="g" style="width:{{ round($m['amount'] / $max * 100) }}%"></i></span><span class="val">{{ number_format($m['amount'], 0, ',', '.') }}</span></div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
         @elseif ($tab === 'doluluk')
             @php($b = $data['bookings'])
@@ -78,7 +112,23 @@
                     @if ($total === 0)<p class="muted small" style="margin:0">Henüz şirket yok.</p>@endif
                 </div>
             </div>
-            <div class="note">Üyelik paketleri ve bitiş takibi Üyelikler &amp; paketler modülüyle bu sekmeye eklenir.</div>
+            @if ($data['subscriptions'] !== null)
+                <div class="card">
+                    <div class="card__head"><h3>Üyelikler</h3><span class="sub">Paketlere göre aktif üyelik</span></div>
+                    <div class="card__body">
+                        <div class="stat-s" style="margin-bottom:8px">
+                            <div><b>{{ $data['subscriptions']['active'] }}</b><span>Aktif</span></div>
+                            <div><b>{{ $data['subscriptions']['expiring'] }}</b><span>Bitişi 30 gün içinde</span></div>
+                            <div><b>{{ $data['subscriptions']['new_30d'] }}</b><span>Yeni (30g)</span></div>
+                            <div><b>{{ number_format($data['subscriptions']['mrr'], 0, ',', '.') }} ₺</b><span>MRR</span></div>
+                        </div>
+                        @php($maxP = max(1, max(array_column($data['subscriptions']['by_plan'], 'count') ?: [0])))
+                        @foreach ($data['subscriptions']['by_plan'] as $row)
+                            <div class="barrow"><span class="lbl">{{ $row['name'] }}</span><span class="meter"><i style="width:{{ round($row['count'] / $maxP * 100) }}%"></i></span><span class="val">{{ $row['count'] }}</span></div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
 
         @elseif ($tab === 'talepler')
             @php($total = array_sum(array_column($data['by_status'], 'count')))

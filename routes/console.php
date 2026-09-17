@@ -8,3 +8,5 @@ Schedule::command('content:publish-scheduled')->everyMinute()->withoutOverlappin
 Schedule::command('booking:expire-requests')->everyFiveMinutes()->withoutOverlapping();
 // Üyelikler: bitişi geçen aktif üyelik expired (faz 39b).
 Schedule::command('subscriptions:expire')->dailyAt('00:10')->withoutOverlapping();
+// Faturalar: vade + tolerans geçen yayınlanmış fatura gecikmiş (faz 39c).
+Schedule::command('invoices:mark-overdue')->dailyAt('00:20')->withoutOverlapping();
