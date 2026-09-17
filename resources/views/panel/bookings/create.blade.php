@@ -29,7 +29,7 @@
                         <label class="field"><span class="label">Süre</span>
                             <select class="control" name="hours" required>
                                 @for ($m = $room->slot_minutes; $m <= $room->max_hours * 60; $m += $room->slot_minutes)
-                                    <option value="{{ $m / 60 }}" @selected((string) old('hours', '1') === (string) ($m / 60))>{{ rtrim(rtrim(number_format($m / 60, 1, ',', ''), '0'), ',') }} saat · {{ number_format($room->hourly_rate * $m / 60, 0, ',', '.') }} ₺</option>
+                                    <option value="{{ $m / 60 }}" @selected((string) old('hours', '1') === (string) ($m / 60))>{{ rtrim(rtrim(money($m / 60, 1, ',', ''), '0'), ',') }} saat · {{ number_format($room->hourly_rate * $m / 60) }}</option>
                                 @endfor
                             </select>
                         </label>

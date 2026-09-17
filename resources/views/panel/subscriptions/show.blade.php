@@ -18,7 +18,7 @@
                 <dl class="kv">
                     <dt>Şirket</dt><dd>{{ $sub->company->legal_name }}</dd>
                     <dt>Paket</dt><dd>{{ $sub->plan->name }} @if ($sub->plan->service)<span class="mini">· {{ $sub->plan->service->name }}</span>@endif</dd>
-                    <dt>Tutar</dt><dd>{{ number_format($sub->price, 0, ',', '.') }} ₺ / {{ \App\Models\Plan::PERIODS[$sub->period] ?? $sub->period }} <span class="mini">(anlık görüntü; paket bugün {{ number_format($sub->plan->price, 0, ',', '.') }} ₺)</span></dd>
+                    <dt>Tutar</dt><dd>{{ money($sub->price) }} / {{ \App\Models\Plan::PERIODS[$sub->period] ?? $sub->period }} <span class="mini">(anlık görüntü; paket bugün {{ money($sub->plan->price) }})</span></dd>
                     <dt>Dönem</dt><dd class="mono">{{ $sub->starts_on->format('d.m.Y') }} – {{ $sub->ends_on->format('d.m.Y') }}</dd>
                     <dt>Lokasyon</dt><dd>{{ $sub->location?->name ?? '—' }}</dd>
                     <dt>Yenileme</dt><dd>{{ $sub->auto_renew ? 'Dönem sonunda yenilenecek' : 'Yenilenmeyecek' }}</dd>

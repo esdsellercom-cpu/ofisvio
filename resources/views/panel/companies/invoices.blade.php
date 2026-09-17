@@ -24,8 +24,8 @@
                                 <td><b class="mono">{{ $inv->number }}</b><br><span class="mini">{{ $inv->description }}</span></td>
                                 <td class="mono small">{{ $inv->issued_on?->format('d.m.Y') }}</td>
                                 <td class="mono small">{{ $inv->due_on?->format('d.m.Y') }}</td>
-                                <td class="num">{{ number_format($inv->total, 0, ',', '.') }} ₺</td>
-                                <td class="num">{{ $inv->isOpen() ? number_format($inv->outstanding(), 0, ',', '.').' ₺' : '—' }}</td>
+                                <td class="num">{{ money($inv->total) }}</td>
+                                <td class="num">{{ $inv->isOpen() ? money($inv->outstanding()) : '—' }}</td>
                                 <td><span class="pill {{ ['issued' => 'i', 'overdue' => 'c', 'paid' => 'g', 'cancelled' => 'n'][$inv->status] ?? 'n' }}">{{ $inv->statusLabel() }}</span></td>
                                 <td class="num"><a href="{{ route('panel.companies.invoices.show', [$company, $inv->id]) }}" class="btn btn--quiet">Aç</a></td>
                             </tr>

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Setting;
 use App\Models\User;
 use App\Settings\SettingsRegistry;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Support\Facades\Cache;
 
@@ -75,6 +76,7 @@ class SettingsService
      */
     public function set(?User $actor, string $key, mixed $value, string $scope = 'installation', ?int $scopeId = null): void
     {
+        Money::forgetCurrency(); // general.currency değişebilir; gösterim memosu düşer
         $def = SettingsRegistry::definition($key);
 
         if (! in_array($scope, $def['scopes'], true)) {

@@ -47,7 +47,7 @@
                                         <td><span class="tag">{{ $room->kindLabel() }}</span></td>
                                         <td class="num">{{ $room->capacity }}</td>
                                         <td class="mono small">{{ $room->open_from }}–{{ $room->open_until }} · {{ $room->slot_minutes }} dk</td>
-                                        <td class="num">{{ number_format($room->hourly_rate, 0, ',', '.') }} ₺/sa</td>
+                                        <td class="num">{{ money($room->hourly_rate) }}/sa</td>
                                         <td>@if ($room->is_active)<span class="pill g">Aktif</span>@else<span class="pill n">Pasif</span>@endif</td>
                                     </tr>
                                 @endforeach

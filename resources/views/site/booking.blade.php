@@ -35,7 +35,7 @@
                                     <strong style="font-size:16px">{{ $room->name }}</strong>
                                     <span class="small muted" style="display:block">{{ $room->kindLabel() }} · {{ $room->capacity }} kişi · {{ $room->open_from }}–{{ $room->open_until }} @if ($room->description)· {{ $room->description }}@endif</span>
                                 </div>
-                                <span class="mono" style="color:var(--brand);font-weight:600">{{ number_format($room->hourly_rate, 0, ',', '.') }} ₺/saat</span>
+                                <span class="mono" style="color:var(--brand);font-weight:600">{{ money($room->hourly_rate) }}/saat</span>
                             </div>
                             @if ($isSel)
                                 <div class="grid-auto" style="--min:78px;--gap:8px;margin-top:14px">
@@ -63,7 +63,7 @@
                         <label class="field"><span class="label">Süre</span>
                             <select class="control" name="hours" required>
                                 @for ($m = $selectedRoom->slot_minutes; $m <= $selectedRoom->max_hours * 60; $m += $selectedRoom->slot_minutes)
-                                    <option value="{{ $m / 60 }}" @selected((string) old('hours', '1') === (string) ($m / 60))>{{ rtrim(rtrim(number_format($m / 60, 1, ',', ''), '0'), ',') }} saat · {{ number_format($selectedRoom->hourly_rate * $m / 60, 0, ',', '.') }} ₺</option>
+                                    <option value="{{ $m / 60 }}" @selected((string) old('hours', '1') === (string) ($m / 60))>{{ rtrim(rtrim(money($m / 60, 1, ',', ''), '0'), ',') }} saat · {{ number_format($selectedRoom->hourly_rate * $m / 60) }}</option>
                                 @endfor
                             </select>
                         </label>

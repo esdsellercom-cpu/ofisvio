@@ -28,7 +28,7 @@
                             <tr>
                                 <td><b>{{ $plan->name }}</b>@if ($plan->summary)<br><span class="mini">{{ $plan->summary }}</span>@endif</td>
                                 <td>{{ $plan->service?->name ?? '—' }}</td>
-                                <td class="num">{{ number_format($plan->price, 0, ',', '.') }} ₺</td>
+                                <td class="num">{{ money($plan->price) }}</td>
                                 <td>{{ $plan->periodLabel() }}</td>
                                 <td class="num">{{ $plan->subscriptions_count }}</td>
                                 <td>@if ($plan->is_active)<span class="pill g">Aktif</span>@else<span class="pill n">Pasif</span>@endif</td>

@@ -8,6 +8,7 @@ use App\Models\Plan;
 use App\Models\Scopes\TenantScope;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -51,7 +52,7 @@ class SubscriptionService
         return Plan::query()->find($id);
     }
 
-    /** @param  array{name: string, summary?: string|null, features?: string|null, price: int, period: string, service_id?: int|null, is_active?: bool, sort_order?: int|null}  $data */
+    /** @param  array{name: string, summary?: string|null, features?: string|null, price: int|string, period: string, service_id?: int|null, is_active?: bool, sort_order?: int|null}  $data  price büyük birim (₺), kuruşa çevrilir */
     public function createPlan(User $actor, array $data): Plan
     {
         $plan = new Plan($this->planAttributes($data));
@@ -309,7 +310,7 @@ class SubscriptionService
             'name' => trim((string) $data['name']),
             'summary' => $this->blank($data['summary'] ?? null),
             'features' => $this->blank($data['features'] ?? null),
-            'price' => max(0, (int) $data['price']),
+            'price' => max(0, Money::parse((string) $data['price'])),
             'period' => $period,
             'service_id' => ! empty($data['service_id']) ? (int) $data['service_id'] : null,
             'is_active' => (bool) ($data['is_active'] ?? true),

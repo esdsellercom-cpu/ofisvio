@@ -75,7 +75,7 @@ class SiteBlocksTest extends TestCase
         $default = Website::query()->default()->firstOrFail();
 
         // Toplantı bölümü yalnız rezervasyona açık gerçek oda varsa basılır (booking engine).
-        Room::create(['location_id' => Location::published()->firstOrFail()->id, 'name' => 'Toplantı A', 'kind' => 'meeting', 'capacity' => 4, 'hourly_rate' => 300, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
+        Room::create(['location_id' => Location::published()->firstOrFail()->id, 'name' => 'Toplantı A', 'kind' => 'meeting', 'capacity' => 4, 'hourly_rate' => 0, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
         $seedPhone = json_decode((string) file_get_contents(database_path('seeders/data/site_blocks.json')), true)['website']['contact_phone'];
         $this->get('/')->assertOk()->assertSee('Şirketinizin adresi')->assertSee($seedPhone);
         $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Hero başlık (1. satır)');

@@ -28,7 +28,7 @@
                         <td>{{ $b->room->name }}<span class="small muted" style="display:block">{{ $b->room->kindLabel() }}</span></td>
                         <td>{{ $b->location->name }}</td>
                         <td class="num mono">{{ rtrim(rtrim(number_format($b->hours(), 2, ',', ''), '0'), ',') }} sa</td>
-                        <td class="num mono">{{ number_format($b->total_amount, 0, ',', '.') }} ₺</td>
+                        <td class="num mono">{{ money($b->total_amount) }}</td>
                         <td>
                             <span class="badge badge--{{ $b->status->badge() }}">{{ $b->statusLabel() }}</span>
                             @if ($b->note)<span class="small muted" style="display:block">{{ $b->note }}</span>@endif

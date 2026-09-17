@@ -28,7 +28,7 @@
                         <label class="field"><span class="label">Paket</span>
                             <select class="control" name="plan_id" required @error('plan_id') aria-invalid="true" @enderror>
                                 <option value="">Seçin</option>
-                                @foreach ($plans as $p)<option value="{{ $p->id }}" @selected((int) old('plan_id') === $p->id)>{{ $p->name }} — {{ number_format($p->price, 0, ',', '.') }} ₺ / {{ $p->periodLabel() }}</option>@endforeach
+                                @foreach ($plans as $p)<option value="{{ $p->id }}" @selected((int) old('plan_id') === $p->id)>{{ $p->name }} — {{ money($p->price) }} / {{ $p->periodLabel() }}</option>@endforeach
                             </select>
                             @error('plan_id')<span class="field-error">{{ $message }}</span>@enderror
                         </label>

@@ -49,7 +49,7 @@ class NotifyBookingStatusChanged
             'time_range' => $b->starts_at->format('H:i').' – '.$b->ends_at->format('H:i'),
             'participants' => $b->participant_count,
             'status' => $event->to->label(),
-            'amount' => number_format($b->total_amount, 0, ',', '.').' ₺',
+            'amount' => money($b->total_amount),
             'note' => (string) ($b->note ?? ''),
             'reason' => (string) ($event->reason ?? ''),
         ], $b->location_id, 'booking', $b->id);

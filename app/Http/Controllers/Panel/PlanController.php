@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Services\ServiceService;
 use App\Services\SubscriptionService;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -72,7 +73,7 @@ class PlanController extends Controller
             'name' => ['required', 'string', 'max:80'],
             'summary' => ['nullable', 'string', 'max:300'],
             'features' => ['nullable', 'string', 'max:3000'],
-            'price' => ['required', 'integer', 'min:0', 'max:100000000'],
+            'price' => ['required', Money::RULE],
             'period' => ['required', Rule::in(array_keys(Plan::PERIODS))],
             'service_id' => ['nullable', 'integer'],
             'is_active' => ['nullable', 'boolean'],

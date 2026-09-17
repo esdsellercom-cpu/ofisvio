@@ -18,7 +18,7 @@
                             <span class="mono small" style="color:var(--brand)">{{ $event->starts_at->format('d.m.Y · H:i') }}</span>
                             <span class="h3">{{ $event->title }}</span>
                             @if ($event->summary)<span class="body-muted" style="font-size:14.5px">{{ $event->summary }}</span>@endif
-                            <div class="card__foot"><span class="small muted">{{ $event->location?->name ?? 'Çevrimiçi' }}</span><span class="mono small">{{ $event->price > 0 ? number_format($event->price, 0, ',', '.').' ₺' : 'Ücretsiz' }}</span></div>
+                            <div class="card__foot"><span class="small muted">{{ $event->location?->name ?? 'Çevrimiçi' }}</span><span class="mono small">{{ $event->price > 0 ? money($event->price) : 'Ücretsiz' }}</span></div>
                         </div>
                     </a>
                 @endforeach

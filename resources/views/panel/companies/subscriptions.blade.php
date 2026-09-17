@@ -23,7 +23,7 @@
                             <tr>
                                 <td><b>{{ $s->plan->name }}</b>@if ($s->plan->summary)<br><span class="mini">{{ $s->plan->summary }}</span>@endif</td>
                                 <td class="mono small">{{ $s->starts_on->format('d.m.Y') }} – {{ $s->ends_on->format('d.m.Y') }}</td>
-                                <td class="num">{{ number_format($s->price, 0, ',', '.') }} ₺ / {{ \App\Models\Plan::PERIODS[$s->period] ?? $s->period }}</td>
+                                <td class="num">{{ money($s->price) }} / {{ \App\Models\Plan::PERIODS[$s->period] ?? $s->period }}</td>
                                 <td>{{ $s->location?->name ?? '—' }}</td>
                                 <td><span class="pill {{ ['active' => 'g', 'expired' => 'n', 'cancelled' => 'c'][$s->status] }}">{{ $s->statusLabel() }}</span>@if ($s->isActive()) <span class="mini">{{ $s->daysLeft() }} gün</span>@endif</td>
                             </tr>

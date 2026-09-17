@@ -17,10 +17,10 @@
 
     <div class="stack" style="gap:18px">
         <div class="kpis">
-            <div class="kpi"><span class="k">Bu ay tahsil edilen</span><span class="v">{{ number_format($stats['revenue_month'], 0, ',', '.') }} ₺</span><span class="d">Bugün {{ number_format($stats['revenue_today'], 0, ',', '.') }} ₺</span></div>
-            <div class="kpi {{ $stats['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ number_format($stats['outstanding'], 0, ',', '.') }} ₺</span><span class="d">{{ $stats['outstanding_count'] }} açık fatura · {{ $stats['due_7d_count'] }} tanesinin vadesi 7 gün içinde</span></div>
-            <div class="kpi {{ $stats['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş ödeme</span><span class="v">{{ $stats['overdue_count'] }}</span><span class="d">{{ number_format($stats['overdue'], 0, ',', '.') }} ₺</span></div>
-            <div class="kpi {{ $subscriptions['expiring'] > 0 ? 'watch' : '' }}"><span class="k">Üyelik bitişi (30 gün)</span><span class="v">{{ $subscriptions['expiring'] }}</span><span class="d">{{ $subscriptions['active'] }} aktif · MRR {{ number_format($subscriptions['mrr'], 0, ',', '.') }} ₺</span></div>
+            <div class="kpi"><span class="k">Bu ay tahsil edilen</span><span class="v">{{ money($stats['revenue_month']) }}</span><span class="d">Bugün {{ money($stats['revenue_today']) }}</span></div>
+            <div class="kpi {{ $stats['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ money($stats['outstanding']) }}</span><span class="d">{{ $stats['outstanding_count'] }} açık fatura · {{ $stats['due_7d_count'] }} tanesinin vadesi 7 gün içinde</span></div>
+            <div class="kpi {{ $stats['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş ödeme</span><span class="v">{{ $stats['overdue_count'] }}</span><span class="d">{{ money($stats['overdue']) }}</span></div>
+            <div class="kpi {{ $subscriptions['expiring'] > 0 ? 'watch' : '' }}"><span class="k">Üyelik bitişi (30 gün)</span><span class="v">{{ $subscriptions['expiring'] }}</span><span class="d">{{ $subscriptions['active'] }} aktif · MRR {{ money($subscriptions['mrr']) }}</span></div>
         </div>
 
         <div class="grid g-2-1">
@@ -35,7 +35,7 @@
                                 <td class="mono">{{ $inv->number }}</td>
                                 <td><b>{{ $inv->company->legal_name }}</b><br><span class="mini">{{ $inv->description }}</span></td>
                                 <td>@php($d = $inv->daysOverdue())@if ($inv->status === 'overdue')<span class="pill c flat">{{ $d }} gün gecikti</span>@elseif ($d >= 0)<span class="pill w flat">bugün / vadesi geçti</span>@else<span class="pill i flat">{{ abs($d) }} gün kaldı</span>@endif</td>
-                                <td class="num">{{ number_format($inv->outstanding(), 0, ',', '.') }} ₺</td>
+                                <td class="num">{{ money($inv->outstanding()) }}</td>
                                 <td class="num"><a href="{{ route('panel.invoices.show', $inv) }}" class="btn btn--quiet">Aç</a></td>
                             </tr>
                         @endforeach
@@ -49,7 +49,7 @@
                     <div class="card__body">
                         @php($max = max(1, max(array_column($monthly, 'amount'))))
                         @foreach ($monthly as $m)
-                            <div class="barrow"><span class="lbl mono">{{ $m['month'] }}</span><span class="meter"><i class="g" style="width:{{ round($m['amount'] / $max * 100) }}%"></i></span><span class="val">{{ number_format($m['amount'], 0, ',', '.') }}</span></div>
+                            <div class="barrow"><span class="lbl mono">{{ $m['month'] }}</span><span class="meter"><i class="g" style="width:{{ round($m['amount'] / $max * 100) }}%"></i></span><span class="val">{{ money($m['amount']) }}</span></div>
                         @endforeach
                     </div>
                 </div>

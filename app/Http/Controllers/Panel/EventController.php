@@ -10,6 +10,7 @@ use App\Services\ContentService;
 use App\Services\EventService;
 use App\Services\GeoService;
 use App\Services\MediaService;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -124,7 +125,7 @@ class EventController extends Controller
             'starts_at' => ['required', 'date'],
             'ends_at' => ['required', 'date'],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:5000'],
-            'price' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'price' => ['nullable', Money::RULE],
             'is_published' => ['nullable', 'boolean'],
             'registration_open' => ['nullable', 'boolean'],
             'cover_media_id' => ['nullable', 'integer'],

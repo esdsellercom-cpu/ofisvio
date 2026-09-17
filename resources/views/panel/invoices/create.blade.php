@@ -30,7 +30,7 @@
                     @error('company_id')<span class="field-error">{{ $message }}</span>@enderror
                     <label class="field"><span class="label">Açıklama</span><input class="control" type="text" name="description" value="{{ old('description') }}" required maxlength="300" placeholder="Örn. Sanal Ofis Standart — Ekim 2026"></label>
                     <div class="grid g3">
-                        <label class="field"><span class="label">Ara toplam (₺)</span><input class="control" type="number" name="subtotal" value="{{ old('subtotal', 0) }}" min="0" required @error('subtotal') aria-invalid="true" @enderror>@error('subtotal')<span class="field-error">{{ $message }}</span>@enderror</label>
+                        <label class="field"><span class="label">Ara toplam (₺)</span><input class="control" type="number" step="0.01" name="subtotal" value="{{ old('subtotal', '0.00') }}" min="0" required @error('subtotal') aria-invalid="true" @enderror>@error('subtotal')<span class="field-error">{{ $message }}</span>@enderror</label>
                         <label class="field"><span class="label">KDV (%)</span><input class="control" type="number" name="tax_rate" value="{{ old('tax_rate', $taxRate) }}" min="0" max="100"></label>
                         <label class="field"><span class="label">Vade</span><input class="control" type="date" name="due_on" value="{{ old('due_on', now()->addDays($dueDays)->toDateString()) }}"></label>
                     </div>

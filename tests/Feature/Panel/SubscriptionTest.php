@@ -55,7 +55,7 @@ class SubscriptionTest extends TestCase
         $plan = Plan::query()->where('slug', 'sanal-ofis-standart')->firstOrFail();
         $this->assertSame(['Yasal adres', 'Posta bildirimi'], $plan->featureList());
         $this->assertTrue(AuditLog::query()->where('action', 'plan.created')->exists());
-        $this->actingAs($finance)->get('/panel/paketler')->assertOk()->assertSee('Sanal Ofis Standart')->assertSee('990 ₺');
+        $this->actingAs($finance)->get('/panel/paketler')->assertOk()->assertSee('Sanal Ofis Standart')->assertSee('990,00 ₺');
 
         // Menü: finans "Üyelikler & paketler" görür, operasyon görmez.
         $this->assertStringContainsString('Üyelikler &amp; paketler', $this->actingAs($finance)->get('/panel/uyelikler')->assertOk()->getContent());
@@ -65,19 +65,19 @@ class SubscriptionTest extends TestCase
         $this->actingAs($finance)->post('/panel/uyelikler', ['company_id' => $acmeCo->id, 'plan_id' => $plan->id, 'starts_on' => '2026-09-01', 'months' => 12, 'auto_renew' => 1])
             ->assertRedirect()->assertSessionHasNoErrors();
         $sub = Subscription::withoutTenantScope()->firstOrFail();
-        $this->assertSame(['active', '2026-09-01', '2027-08-31', 990, 'monthly'], [$sub->status, $sub->starts_on->toDateString(), $sub->ends_on->toDateString(), $sub->price, $sub->period]);
+        $this->assertSame(['active', '2026-09-01', '2027-08-31', 99000, 'monthly'] /* kuruş */, [$sub->status, $sub->starts_on->toDateString(), $sub->ends_on->toDateString(), $sub->price, $sub->period]);
         $this->actingAs($finance)->from('/panel/uyelikler/yeni')->post('/panel/uyelikler', ['company_id' => $acmeCo->id, 'plan_id' => $plan->id, 'starts_on' => '2026-10-01', 'months' => 1])->assertSessionHasErrors('plan_id');
         $this->assertTrue(AuditLog::query()->where('action', 'subscription.created')->exists());
 
         // Paket fiyatı değişir → üyelik tutarı değişmez; üyeliği olan paket silinemez.
         $this->actingAs($finance)->put("/panel/paketler/{$plan->id}", ['name' => 'Sanal Ofis Standart', 'price' => 1190, 'period' => 'monthly', 'is_active' => 1])->assertRedirect();
-        $this->assertSame(990, $sub->fresh()->price);
+        $this->assertSame(99000, $sub->fresh()->price);
         $this->actingAs($finance)->from('/panel/paketler')->delete("/panel/paketler/{$plan->id}")->assertSessionHasErrors('plan');
         $this->assertNotNull($plan->fresh());
 
         // Liste + detay + dashboard sayacı: aktif 1, bitişi yaklaşan 0, MRR 990.
-        $this->actingAs($finance)->get('/panel/uyelikler')->assertOk()->assertSee('Acme A.Ş.')->assertSee('<span class="k">Aktif üyelik</span><span class="v">1</span>', false)->assertSee('990 ₺');
-        $this->actingAs($finance)->get("/panel/uyelikler/{$sub->id}")->assertOk()->assertSee('Acme A.Ş. · Sanal Ofis Standart')->assertSee('Yenile')->assertSee('paket bugün 1.190 ₺');
+        $this->actingAs($finance)->get('/panel/uyelikler')->assertOk()->assertSee('Acme A.Ş.')->assertSee('<span class="k">Aktif üyelik</span><span class="v">1</span>', false)->assertSee('990,00 ₺');
+        $this->actingAs($finance)->get("/panel/uyelikler/{$sub->id}")->assertOk()->assertSee('Acme A.Ş. · Sanal Ofis Standart')->assertSee('Yenile')->assertSee('paket bugün 1.190,00 ₺');
         $this->actingAs($finance)->get('/panel/uyelikler/999')->assertNotFound();
 
         // Müşteri tarafı: sahibi görür (salt okunur), başka organizasyon 404, personel listesi yasak.
@@ -88,7 +88,7 @@ class SubscriptionTest extends TestCase
 
         // Yenile: bitişten itibaren 12 ay, güncel fiyat; iptal: yalnız gerekçeyle, sonra yenilenmez.
         $this->actingAs($finance)->post("/panel/uyelikler/{$sub->id}/yenile", ['months' => 12])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertSame(['2028-08-31', 1190], [$sub->fresh()->ends_on->toDateString(), $sub->fresh()->price]);
+        $this->assertSame(['2028-08-31', 119000], [$sub->fresh()->ends_on->toDateString(), $sub->fresh()->price]);
         $this->actingAs($finance)->from("/panel/uyelikler/{$sub->id}")->post("/panel/uyelikler/{$sub->id}/iptal", ['reason' => ''])->assertSessionHasErrors('reason');
         $this->actingAs($finance)->post("/panel/uyelikler/{$sub->id}/iptal", ['reason' => 'Taşınma'])->assertRedirect();
         $this->assertSame('cancelled', $sub->fresh()->status);

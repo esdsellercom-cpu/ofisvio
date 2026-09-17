@@ -8,6 +8,7 @@ use App\Models\Payment;
 use App\Models\Scopes\TenantScope;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -102,13 +103,13 @@ class InvoiceService
     /**
      * Taslak oluşturur (invoice.issue). Tutar: ara toplam + KDV. Vade yayınlamada kesinleşir.
      *
-     * @param  array{description: string, subtotal: int, tax_rate?: int|null, due_on?: string|null, subscription_id?: int|string|null, note?: string|null, issue?: bool}  $data
+     * @param  array{description: string, subtotal: int|string, tax_rate?: int|null, due_on?: string|null, subscription_id?: int|string|null, note?: string|null, issue?: bool}  $data  subtotal büyük birim (₺ ondalıklı); kuruşa çevrilir
      */
     public function create(User $actor, Company $company, array $data): Invoice
     {
-        $subtotal = max(0, (int) $data['subtotal']);
+        $subtotal = max(0, Money::parse((string) $data['subtotal']));
         $rate = max(0, min(100, (int) ($data['tax_rate'] ?? $this->settings->int('finance.default_tax_rate'))));
-        $tax = (int) round($subtotal * $rate / 100);
+        $tax = Money::percent($subtotal, $rate);
         $subscription = ! empty($data['subscription_id']) ? Subscription::withoutTenantScope()->where('company_id', $company->id)->find((int) $data['subscription_id']) : null;
 
         if (! empty($data['subscription_id']) && $subscription === null) {
@@ -191,7 +192,7 @@ class InvoiceService
      * Tahsilat kaydı (payment_allocation.manage ya da sağlayıcı webhook'u). Fazla ödeme reddedilir;
      * bakiye sıfırlanınca fatura paid.
      *
-     * @param  array{amount: int, method: string, paid_on: string, reference?: string|null, note?: string|null}  $data
+     * @param  array{amount: int|string, method: string, paid_on: string, reference?: string|null, note?: string|null}  $data  amount büyük birim (₺); webhook kuruş gönderiyorsa önce Money::major ile geçirilir
      */
     public function recordPayment(?User $actor, Invoice $invoice, array $data): Payment
     {
@@ -199,10 +200,10 @@ class InvoiceService
             throw new DomainException('Yalnız yayınlanmış (tahsilat bekleyen) faturaya ödeme kaydedilir.');
         }
 
-        $amount = (int) $data['amount'];
+        $amount = Money::parse((string) $data['amount']);
 
         if ($amount <= 0 || $amount > $invoice->outstanding()) {
-            throw new DomainException('Tutar 1 ile kalan bakiye ('.$invoice->outstanding().' ₺) arasında olmalı.');
+            throw new DomainException('Tutar 0,01 ile kalan bakiye ('.Money::format($invoice->outstanding()).') arasında olmalı.');
         }
 
         if (! isset(Payment::METHODS[(string) $data['method']])) {

@@ -6,6 +6,7 @@ use App\Models\Event;
 use App\Models\EventRegistration;
 use App\Models\User;
 use App\Models\Website;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -196,7 +197,7 @@ class EventService
             'starts_at' => $starts,
             'ends_at' => $ends,
             'capacity' => isset($data['capacity']) && $data['capacity'] !== '' ? max(1, (int) $data['capacity']) : null,
-            'price' => max(0, (int) ($data['price'] ?? 0)),
+            'price' => max(0, Money::parse((string) ($data['price'] ?? 0))),
             'is_published' => (bool) ($data['is_published'] ?? false),
             'registration_open' => (bool) ($data['registration_open'] ?? true),
             'cover_media_id' => ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null,

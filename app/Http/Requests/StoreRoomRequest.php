@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Room;
+use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,7 +22,7 @@ class StoreRoomRequest extends FormRequest
             'name' => ['required', 'string', 'min:2', 'max:80'],
             'kind' => ['required', Rule::in(array_keys(Room::KINDS))],
             'capacity' => ['required', 'integer', 'min:1', 'max:500'],
-            'hourly_rate' => ['required', 'integer', 'min:0', 'max:100000'],
+            'hourly_rate' => ['required', Money::RULE], // büyük birim; serviste kuruşa çevrilir
             'open_from' => ['required', 'date_format:H:i'],
             'open_until' => ['required', 'date_format:H:i'],
             'slot_minutes' => ['required', 'integer', Rule::in([30, 60, 120])],
@@ -43,7 +44,7 @@ class StoreRoomRequest extends FormRequest
             'name' => trim((string) $v['name']),
             'kind' => (string) $v['kind'],
             'capacity' => (int) $v['capacity'],
-            'hourly_rate' => (int) $v['hourly_rate'],
+            'hourly_rate' => Money::parse((string) $v['hourly_rate']),
             'open_from' => (string) $v['open_from'],
             'open_until' => (string) $v['open_until'],
             'slot_minutes' => (int) $v['slot_minutes'],

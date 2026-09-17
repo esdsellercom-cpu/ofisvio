@@ -6,7 +6,7 @@
     <label class="field" style="flex:1 1 220px"><span class="label">Oda</span>
         <select class="control" name="oda" onchange="this.form.requestSubmit()">
             @foreach ($rooms as $r)
-                <option value="{{ $r->id }}" @selected($room && $r->id === $room->id)>@if ($rooms->pluck('location_id')->unique()->count() > 1){{ $r->location->name }} · @endif{{ $r->name }} ({{ $r->capacity }} kişi, {{ $r->hourly_rate }} ₺/sa)</option>
+                <option value="{{ $r->id }}" @selected($room && $r->id === $room->id)>@if ($rooms->pluck('location_id')->unique()->count() > 1){{ $r->location->name }} · @endif{{ $r->name }} ({{ $r->capacity }} kişi, {{ money($r->hourly_rate) }}/sa)</option>
             @endforeach
         </select>
     </label>

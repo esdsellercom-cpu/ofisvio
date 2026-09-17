@@ -44,7 +44,7 @@
                     <a href="{{ route('panel.bookings.index', ['sekme' => 'pending']) }}" class="kpi {{ $b['pending'] > 0 ? 'alert' : 'ok' }}"><span class="k">Onay bekleyen</span><span class="v">{{ $b['pending'] }}</span><span class="d">{{ $b['pending'] > 0 ? 'İşlem gerekiyor' : 'Kuyruk boş' }}</span></a>
                     <div class="kpi"><span class="k">Bugünkü doluluk</span><span class="v">%{{ $b['occupancy_today'] }}</span><span class="d"><span class="meter"><i class="{{ $b['occupancy_today'] >= 80 ? 'g' : ($b['occupancy_today'] >= 40 ? '' : 'w') }}" style="width:{{ min(100, $b['occupancy_today']) }}%"></i></span></span></div>
                     <a href="{{ route('panel.bookings.index', ['sekme' => 'upcoming']) }}" class="kpi"><span class="k">Yaklaşan</span><span class="v">{{ $b['upcoming'] }}</span><span class="d">Onaylı, ileri tarihli</span></a>
-                    <div class="kpi"><span class="k">Onaylı tutar (30g)</span><span class="v">{{ number_format($b['revenue_30d'], 0, ',', '.') }} ₺</span><span class="d">Ort. {{ $b['avg_hours_30d'] }} sa</span></div>
+                    <div class="kpi"><span class="k">Onaylı tutar (30g)</span><span class="v">{{ money($b['revenue_30d']) }}</span><span class="d">Ort. {{ $b['avg_hours_30d'] }} sa</span></div>
                     <div class="kpi {{ $b['cancel_rate_30d'] > 20 ? 'watch' : '' }}"><span class="k">İptal oranı (30g)</span><span class="v">%{{ $b['cancel_rate_30d'] }}</span><span class="d">{{ $b['no_show_30d'] }} gelmedi</span></div>
                 @endif
                 @if ($ops['leads'] !== null)
@@ -54,14 +54,14 @@
                     <a href="{{ route('panel.kyc.queue') }}" class="kpi {{ $ops['kyc_pending'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen KYC</span><span class="v">{{ $ops['kyc_pending'] }}</span><span class="d">Tüm organizasyonlar</span></a>
                 @endif
                 @if ($ops['finance'] !== null)
-                    <div class="kpi"><span class="k">Günlük ciro</span><span class="v">{{ number_format($ops['finance']['revenue_today'], 0, ',', '.') }} ₺</span><span class="d">Bugün kaydedilen tahsilat</span></div>
-                    <a href="{{ route('panel.collections.index') }}" class="kpi"><span class="k">Aylık ciro</span><span class="v">{{ number_format($ops['finance']['revenue_month'], 0, ',', '.') }} ₺</span><span class="d">Bu ay tahsil edilen</span></a>
-                    <a href="{{ route('panel.invoices.index', ['sekme' => 'open']) }}" class="kpi {{ $ops['finance']['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ number_format($ops['finance']['outstanding'], 0, ',', '.') }} ₺</span><span class="d">{{ $ops['finance']['outstanding_count'] }} açık fatura</span></a>
-                    <a href="{{ route('panel.invoices.index', ['sekme' => 'overdue']) }}" class="kpi {{ $ops['finance']['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş ödeme</span><span class="v">{{ $ops['finance']['overdue_count'] }}</span><span class="d">{{ number_format($ops['finance']['overdue'], 0, ',', '.') }} ₺ vadesi geçmiş</span></a>
+                    <div class="kpi"><span class="k">Günlük ciro</span><span class="v">{{ money($ops['finance']['revenue_today']) }}</span><span class="d">Bugün kaydedilen tahsilat</span></div>
+                    <a href="{{ route('panel.collections.index') }}" class="kpi"><span class="k">Aylık ciro</span><span class="v">{{ money($ops['finance']['revenue_month']) }}</span><span class="d">Bu ay tahsil edilen</span></a>
+                    <a href="{{ route('panel.invoices.index', ['sekme' => 'open']) }}" class="kpi {{ $ops['finance']['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ money($ops['finance']['outstanding']) }}</span><span class="d">{{ $ops['finance']['outstanding_count'] }} açık fatura</span></a>
+                    <a href="{{ route('panel.invoices.index', ['sekme' => 'overdue']) }}" class="kpi {{ $ops['finance']['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş ödeme</span><span class="v">{{ $ops['finance']['overdue_count'] }}</span><span class="d">{{ money($ops['finance']['overdue']) }} vadesi geçmiş</span></a>
                 @endif
                 @if ($ops['subscriptions'] !== null)
                     <a href="{{ route('panel.subscriptions.index', ['sekme' => 'expiring']) }}" class="kpi {{ $ops['subscriptions']['expiring'] > 0 ? 'watch' : '' }}"><span class="k">Üyelik bitişi (30 gün)</span><span class="v">{{ $ops['subscriptions']['expiring'] }}</span><span class="d">{{ $ops['subscriptions']['active'] }} aktif üyelik</span></a>
-                    <a href="{{ route('panel.subscriptions.index') }}" class="kpi"><span class="k">Yeni üyelik (30g)</span><span class="v">{{ $ops['subscriptions']['new_30d'] }}</span><span class="d">MRR {{ number_format($ops['subscriptions']['mrr'], 0, ',', '.') }} ₺</span></a>
+                    <a href="{{ route('panel.subscriptions.index') }}" class="kpi"><span class="k">Yeni üyelik (30g)</span><span class="v">{{ $ops['subscriptions']['new_30d'] }}</span><span class="d">MRR {{ money($ops['subscriptions']['mrr']) }}</span></a>
                 @endif
                 @if ($ops['events'] !== null)
                     <a href="{{ route('panel.events.index') }}" class="kpi"><span class="k">Yaklaşan etkinlik</span><span class="v">{{ $ops['events']['upcoming'] }}</span><span class="d">{{ $ops['events']['next'] ? $ops['events']['next']->title.' · '.$ops['events']['next']->starts_at->format('d.m H:i') : $ops['events']['registrations_30d'].' kayıt (30g)' }}</span></a>
@@ -136,7 +136,7 @@
                                         <a href="{{ route('panel.bookings.show', [$row->location, $row]) }}" class="row">
                                             <span class="dotmark" style="background:var(--warn)" aria-hidden="true"></span>
                                             <div class="main-t"><b>{{ $row->customer_name }} · {{ $row->room->name }}</b><span>{{ $row->location->name }} · {{ $row->starts_at->format('d.m.Y H:i') }} · {{ $row->reference }}</span></div>
-                                            <span class="rt mono">{{ number_format($row->total_amount, 0, ',', '.') }} ₺</span>
+                                            <span class="rt mono">{{ money($row->total_amount) }}</span>
                                         </a>
                                     @endforeach
                                 </div>
@@ -178,7 +178,7 @@
                                     <td class="mono">{{ $inv->number }}</td>
                                     <td><b>{{ $inv->company->legal_name }}</b><br><span class="mini">{{ $inv->description }}</span></td>
                                     <td><span class="pill c flat">{{ $inv->daysOverdue() }} gün gecikti</span></td>
-                                    <td class="num">{{ number_format($inv->outstanding(), 0, ',', '.') }} ₺</td>
+                                    <td class="num">{{ money($inv->outstanding()) }}</td>
                                     <td class="num"><a href="{{ route('panel.invoices.show', $inv) }}" class="btn btn--quiet">Aç</a></td>
                                 </tr>
                             @endforeach

@@ -15,7 +15,7 @@
         <input class="control mono" type="number" name="capacity" value="{{ $r?->capacity ?? 4 }}" min="1" max="500" required>
     </label>
     <label class="field"><span class="label">Saatlik ücret (₺, KDV hariç)</span>
-        <input class="control mono" type="number" name="hourly_rate" value="{{ $r?->hourly_rate ?? 0 }}" min="0" max="100000" required>
+        <input class="control mono" type="number" step="0.01" name="hourly_rate" value="{{ \App\Support\Money::major($r?->hourly_rate ?? 0) }}" min="0" max="100000" required>
     </label>
     <label class="field"><span class="label">Açılış</span>
         <input class="control mono" type="time" name="open_from" value="{{ $r?->open_from ?? '09:00' }}" required>

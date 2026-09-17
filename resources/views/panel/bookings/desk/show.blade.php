@@ -30,7 +30,7 @@
                         'Tarih' => $b->starts_at->format('d.m.Y'),
                         'Saat' => $b->starts_at->format('H:i').' – '.$b->ends_at->format('H:i').' ('.rtrim(rtrim(number_format($b->hours(), 2, ',', ''), '0'), ',').' sa)',
                         'Kişi sayısı' => $b->participant_count,
-                        'Tutar' => number_format($b->total_amount, 0, ',', '.').' ₺ (KDV hariç)',
+                        'Tutar' => money($b->total_amount).' (KDV hariç)',
                         'Ödeme' => 'Ödeme modülü yok (faz 19+) — yerinde/fatura',
                         'Kaynak' => ($sources[$b->source] ?? $b->source).($b->booker ? ' · '.$b->booker->name : ''),
                         'Onay' => $b->approval_required ? ($b->approved_at ? 'Onaylandı '.$b->approved_at->format('d.m.Y H:i').($b->approver ? ' · '.$b->approver->name : '') : 'Bekliyor'.($b->expires_at ? ' · son: '.$b->expires_at->format('d.m.Y H:i') : '')) : 'Otomatik',

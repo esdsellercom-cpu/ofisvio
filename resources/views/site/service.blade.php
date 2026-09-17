@@ -35,7 +35,7 @@
                         @foreach ($rooms as $room)
                             <div class="row-list__item">
                                 <div style="min-width:0"><div style="font-weight:600">{{ $room->name }} <span style="font-weight:400;color:var(--ink-soft)">· {{ $room->location->name }}</span></div><div class="small muted">{{ $room->capacity }} kişi · {{ $room->open_from }}–{{ $room->open_until }}</div></div>
-                                <a href="{{ route('site.booking.index', ['lokasyon' => $room->location_id, 'oda' => $room->id]) }}" class="btn btn--ghost btn--pill">{{ number_format($room->hourly_rate, 0, ',', '.') }} ₺/saat · Rezerve et</a>
+                                <a href="{{ route('site.booking.index', ['lokasyon' => $room->location_id, 'oda' => $room->id]) }}" class="btn btn--ghost btn--pill">{{ money($room->hourly_rate) }}/saat · Rezerve et</a>
                             </div>
                         @endforeach
                     </div>

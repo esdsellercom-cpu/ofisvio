@@ -6,7 +6,7 @@
     <div class="panel-head">
         <div>
             <p class="eyebrow"><a href="{{ route('panel.invoices.index') }}">Faturalar</a> / {{ $invoice->number ?? 'taslak #'.$invoice->id }}</p>
-            <h1 class="h2">{{ $invoice->company->legal_name }} · {{ number_format($invoice->total, 0, ',', '.') }} ₺</h1>
+            <h1 class="h2">{{ $invoice->company->legal_name }} · {{ money($invoice->total) }}</h1>
             <p><span class="pill {{ ['draft' => 'n', 'issued' => 'i', 'overdue' => 'c', 'paid' => 'g', 'cancelled' => 'n'][$invoice->status] }}">{{ $invoice->statusLabel() }}</span> {{ $invoice->description }}</p>
         </div>
         <div class="panel-head__actions">
@@ -29,10 +29,10 @@
                         <dt>Şirket</dt><dd>{{ $invoice->company->legal_name }}</dd>
                         <dt>Açıklama</dt><dd>{{ $invoice->description }}</dd>
                         @if ($invoice->subscription)<dt>Üyelik</dt><dd><a href="{{ route('panel.subscriptions.show', $invoice->subscription) }}">{{ $invoice->subscription->plan->name }}</a> · {{ $invoice->subscription->starts_on->format('d.m.Y') }}–{{ $invoice->subscription->ends_on->format('d.m.Y') }}</dd>@endif
-                        <dt>Ara toplam</dt><dd class="mono">{{ number_format($invoice->subtotal, 0, ',', '.') }} ₺</dd>
-                        <dt>KDV (%{{ $invoice->tax_rate }})</dt><dd class="mono">{{ number_format($invoice->tax_amount, 0, ',', '.') }} ₺</dd>
-                        <dt>Toplam</dt><dd class="mono"><b>{{ number_format($invoice->total, 0, ',', '.') }} ₺</b></dd>
-                        <dt>Tahsil edilen</dt><dd class="mono">{{ number_format($invoice->paid_amount, 0, ',', '.') }} ₺ @if ($invoice->isOpen())· kalan <b>{{ number_format($invoice->outstanding(), 0, ',', '.') }} ₺</b>@endif</dd>
+                        <dt>Ara toplam</dt><dd class="mono">{{ money($invoice->subtotal) }}</dd>
+                        <dt>KDV (%{{ $invoice->tax_rate }})</dt><dd class="mono">{{ money($invoice->tax_amount) }}</dd>
+                        <dt>Toplam</dt><dd class="mono"><b>{{ money($invoice->total) }}</b></dd>
+                        <dt>Tahsil edilen</dt><dd class="mono">{{ money($invoice->paid_amount) }} @if ($invoice->isOpen())· kalan <b>{{ money($invoice->outstanding()) }}</b>@endif</dd>
                         <dt>Yayın</dt><dd>{{ $invoice->issued_on?->format('d.m.Y') ?? '— (taslak)' }}</dd>
                         <dt>Vade</dt><dd>{{ $invoice->due_on?->format('d.m.Y') ?? '—' }} @if ($invoice->isOpen() && $invoice->daysOverdue() > 0)<span class="pill c flat">{{ $invoice->daysOverdue() }} gün gecikti</span>@endif</dd>
                         @if ($invoice->paid_at)<dt>Ödendi</dt><dd>{{ $invoice->paid_at->format('d.m.Y H:i') }}</dd>@endif
@@ -50,7 +50,7 @@
                 @else
                     <div class="tw"><table class="t"><thead><tr><th>Tarih</th><th class="num">Tutar</th><th>Yöntem</th><th>Referans</th><th>Kaydeden</th></tr></thead><tbody>
                         @foreach ($invoice->payments->sortByDesc('paid_on') as $p)
-                            <tr><td class="mono small">{{ $p->paid_on->format('d.m.Y') }}</td><td class="num">{{ number_format($p->amount, 0, ',', '.') }} ₺</td><td>{{ $p->methodLabel() }}</td><td class="small">{{ $p->reference ?? '—' }}@if ($p->note)<br><span class="mini">{{ $p->note }}</span>@endif</td><td class="small">{{ $p->recorder?->name ?? 'Sistem' }}</td></tr>
+                            <tr><td class="mono small">{{ $p->paid_on->format('d.m.Y') }}</td><td class="num">{{ money($p->amount) }}</td><td>{{ $p->methodLabel() }}</td><td class="small">{{ $p->reference ?? '—' }}@if ($p->note)<br><span class="mini">{{ $p->note }}</span>@endif</td><td class="small">{{ $p->recorder?->name ?? 'Sistem' }}</td></tr>
                         @endforeach
                     </tbody></table></div>
                 @endif
@@ -61,11 +61,11 @@
             @can('payment_allocation.manage')
                 @if ($invoice->isOpen())
                     <div class="card">
-                        <div class="card__head"><h3>Tahsilat kaydet</h3><span class="sub">Kalan {{ number_format($invoice->outstanding(), 0, ',', '.') }} ₺</span></div>
+                        <div class="card__head"><h3>Tahsilat kaydet</h3><span class="sub">Kalan {{ money($invoice->outstanding()) }}</span></div>
                         <div class="card__body">
                             <form method="POST" action="{{ route('panel.invoices.payment', $invoice) }}" class="stack" style="gap:8px">
                                 @csrf
-                                <label class="field"><span class="label">Tutar (₺)</span><input class="control" type="number" name="amount" value="{{ old('amount', $invoice->outstanding()) }}" min="1" max="{{ $invoice->outstanding() }}" required @error('amount') aria-invalid="true" @enderror>@error('amount')<span class="field-error">{{ $message }}</span>@enderror</label>
+                                <label class="field"><span class="label">Tutar (₺)</span><input class="control" type="number" step="0.01" name="amount" value="{{ old('amount', \App\Support\Money::major($invoice->outstanding())) }}" min="0.01" max="{{ \App\Support\Money::major($invoice->outstanding()) }}" required @error('amount') aria-invalid="true" @enderror>@error('amount')<span class="field-error">{{ $message }}</span>@enderror</label>
                                 <label class="field"><span class="label">Yöntem</span><select class="control" name="method">@foreach ($methods as $k => $label)<option value="{{ $k }}" @selected(old('method', 'transfer') === $k)>{{ $label }}</option>@endforeach</select></label>
                                 <label class="field"><span class="label">Tarih</span><input class="control" type="date" name="paid_on" value="{{ old('paid_on', now()->toDateString()) }}" required></label>
                                 <label class="field"><span class="label">Referans (dekont / işlem no)</span><input class="control" type="text" name="reference" value="{{ old('reference') }}" maxlength="100"></label>

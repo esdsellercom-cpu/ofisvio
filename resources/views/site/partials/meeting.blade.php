@@ -15,7 +15,7 @@
                             <div style="font-size:15.5px;font-weight:600;color:var(--dark-ink)">{{ $room->name }} <span style="font-weight:400;color:#A8A196">· {{ $room->location->name }}</span></div>
                             <div style="margin-top:5px;font-size:13.5px;color:#A8A196">{{ $room->kindLabel() }} · {{ $room->capacity }} kişi · {{ $room->open_from }}–{{ $room->open_until }} @if ($room->description)· {{ $room->description }}@endif</div>
                         </div>
-                        <div class="mono" style="font-size:13.5px;color:var(--brand-light);flex:none">{{ number_format($room->hourly_rate, 0, ',', '.') }} ₺/saat</div>
+                        <div class="mono" style="font-size:13.5px;color:var(--brand-light);flex:none">{{ money($room->hourly_rate) }}/saat</div>
                     </div>
                 @endforeach
             </div>

@@ -20,7 +20,7 @@
             <a href="{{ route('panel.subscriptions.index', ['sekme' => 'active']) }}" class="kpi ok"><span class="k">Aktif üyelik</span><span class="v">{{ $stats['active'] }}</span><span class="d">{{ count($stats['by_plan']) }} pakette</span></a>
             <a href="{{ route('panel.subscriptions.index', ['sekme' => 'expiring']) }}" class="kpi {{ $stats['expiring'] > 0 ? 'watch' : '' }}"><span class="k">Bitişi 30 gün içinde</span><span class="v">{{ $stats['expiring'] }}</span><span class="d">Yenileme ya da iptal bekliyor</span></a>
             <div class="kpi"><span class="k">Yeni üyelik (30g)</span><span class="v">{{ $stats['new_30d'] }}</span><span class="d">Son 30 günde açılan</span></div>
-            <div class="kpi"><span class="k">Aylık tekrarlayan gelir</span><span class="v">{{ number_format($stats['mrr'], 0, ',', '.') }} ₺</span><span class="d">Aktif üyelikler, aylığa normalize</span></div>
+            <div class="kpi"><span class="k">Aylık tekrarlayan gelir</span><span class="v">{{ money($stats['mrr']) }}</span><span class="d">Aktif üyelikler, aylığa normalize</span></div>
         </div>
 
         <div class="card">
@@ -52,7 +52,7 @@
                                     <td><b>{{ $s->company->legal_name }}</b>@if ($s->location)<br><span class="mini">{{ $s->location->name }}</span>@endif</td>
                                     <td>{{ $s->plan->name }}</td>
                                     <td class="mono small">{{ $s->starts_on->format('d.m.Y') }} – {{ $s->ends_on->format('d.m.Y') }}</td>
-                                    <td class="num">{{ number_format($s->price, 0, ',', '.') }} ₺ <span class="mini">/ {{ \App\Models\Plan::PERIODS[$s->period] ?? $s->period }}</span></td>
+                                    <td class="num">{{ money($s->price) }} <span class="mini">/ {{ \App\Models\Plan::PERIODS[$s->period] ?? $s->period }}</span></td>
                                     <td>@if ($s->isActive())@php($left = $s->daysLeft())<span class="pill {{ $left < 0 ? 'c' : ($left <= 30 ? 'w' : 'g') }} flat">{{ $left < 0 ? abs($left).' gün geçti' : $left.' gün' }}</span>@else <span class="mini">{{ $s->ends_on->format('d.m.Y') }}</span>@endif</td>
                                     <td><span class="pill {{ ['active' => 'g', 'expired' => 'n', 'cancelled' => 'c'][$s->status] }}">{{ $s->statusLabel() }}</span>@if ($s->isActive() && ! $s->auto_renew) <span class="mini">yenilenmez</span>@endif</td>
                                     <td class="num"><a href="{{ route('panel.subscriptions.show', $s) }}" class="btn btn--quiet">Aç</a></td>

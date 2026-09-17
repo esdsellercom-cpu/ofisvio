@@ -7,7 +7,7 @@
         <div>
             <p class="eyebrow"><a href="{{ route('panel.events.index') }}">Etkinlikler</a> / {{ $event->title }}</p>
             <h1 class="h2">{{ $event->title }}</h1>
-            <p>@if ($event->is_published)<span class="pill g">Yayında</span>@else<span class="pill n">Taslak</span>@endif {{ $event->starts_at->format('d.m.Y H:i') }} – {{ $event->ends_at->format('d.m.Y H:i') }} · {{ $event->location?->name ?? 'Çevrimiçi / belirtilmedi' }}@if ($event->room) · {{ $event->room->name }}@endif · {{ $event->price > 0 ? number_format($event->price, 0, ',', '.').' ₺' : 'Ücretsiz' }}</p>
+            <p>@if ($event->is_published)<span class="pill g">Yayında</span>@else<span class="pill n">Taslak</span>@endif {{ $event->starts_at->format('d.m.Y H:i') }} – {{ $event->ends_at->format('d.m.Y H:i') }} · {{ $event->location?->name ?? 'Çevrimiçi / belirtilmedi' }}@if ($event->room) · {{ $event->room->name }}@endif · {{ $event->price > 0 ? money($event->price) : 'Ücretsiz' }}</p>
         </div>
         <div class="panel-head__actions">
             @if ($event->is_published)<a href="{{ $event->path() }}" class="btn btn--ghost" target="_blank" rel="noopener">Vitrinde gör</a>@endif

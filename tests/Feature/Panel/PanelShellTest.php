@@ -48,7 +48,7 @@ class PanelShellTest extends TestCase
         $finance = $this->staff('finance_admin');  // operasyon izinleri yok
 
         $kadikoy = Location::create(['name' => 'Kadıköy', 'slug' => 'kadikoy', 'city' => 'İstanbul', 'region' => 'Anadolu', 'is_active' => true, 'is_published' => true]);
-        $room = Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 400, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
+        $room = Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 40000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
 
         // Gerçek kayıtlar: vitrin rezervasyon talebi (onay bekler, bugün) + vitrin teklif talebi.
         $this->post('/rezervasyon', ['room_id' => $room->id, 'date' => '2026-09-17', 'start' => '14:00', 'hours' => 1, 'participants' => 4, 'name' => 'Ahmet Yılmaz', 'email' => 'ahmet@ornek.com', 'phone' => '+905321112233', 'company_name' => 'Yılmaz Ltd.', 'kvkk' => '1'])->assertRedirect()->assertSessionHasNoErrors();
@@ -107,8 +107,8 @@ class PanelShellTest extends TestCase
         $finance = $this->staff('finance_admin');
         $admin = $this->staff('system_admin');
         $kadikoy = Location::create(['name' => 'Kadıköy', 'slug' => 'kadikoy', 'city' => 'İstanbul', 'region' => 'Anadolu', 'is_active' => true, 'is_published' => true]);
-        Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 400, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
-        Room::create(['location_id' => $kadikoy->id, 'name' => 'Odak 1', 'kind' => 'focus', 'capacity' => 1, 'hourly_rate' => 150, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 8, 'is_active' => false]);
+        Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 40000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
+        Room::create(['location_id' => $kadikoy->id, 'name' => 'Odak 1', 'kind' => 'focus', 'capacity' => 1, 'hourly_rate' => 15000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 8, 'is_active' => false]);
         $owner = $this->owner($acme, $this->company($acme, 'Acme A.Ş.'));
 
         // Alanlar (geo.view|booking.view): lokasyon başlığı, tür, aktif/pasif; finans göremez.
@@ -156,7 +156,7 @@ class PanelShellTest extends TestCase
         $ops = $this->staff('operations_admin');
         $finance = $this->staff('finance_admin');
         $kadikoy = Location::create(['name' => 'Kadıköy', 'slug' => 'kadikoy', 'city' => 'İstanbul', 'region' => 'Anadolu', 'is_active' => true, 'is_published' => true]);
-        $room = Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 400, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
+        $room = Room::create(['location_id' => $kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 40000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
         $this->post('/rezervasyon', ['room_id' => $room->id, 'date' => '2026-09-18', 'start' => '10:00', 'hours' => 1, 'participants' => 2, 'name' => 'Ahmet Yılmaz', 'email' => 'ahmet@ornek.com', 'phone' => '+905321112233', 'kvkk' => '1'])->assertRedirect()->assertSessionHasNoErrors();
         $booking = Booking::withoutTenantScope()->firstOrFail();
 

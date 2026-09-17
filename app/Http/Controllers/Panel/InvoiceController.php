@@ -11,6 +11,7 @@ use App\Services\InvoiceService;
 use App\Services\JitAccessService;
 use App\Services\SettingsService;
 use App\Services\SubscriptionService;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -69,7 +70,7 @@ class InvoiceController extends Controller
             'company_id' => ['required', 'integer'],
             'subscription_id' => ['nullable', 'integer'],
             'description' => ['required', 'string', 'max:300'],
-            'subtotal' => ['required', 'integer', 'min:0', 'max:100000000'],
+            'subtotal' => ['required', Money::RULE],
             'tax_rate' => ['nullable', 'integer', 'min:0', 'max:100'],
             'due_on' => ['nullable', 'date'],
             'note' => ['nullable', 'string', 'max:1000'],
@@ -85,7 +86,7 @@ class InvoiceController extends Controller
         try {
             $invoice = $this->invoices->create($request->user(), $company, [
                 'description' => $data['description'],
-                'subtotal' => (int) $data['subtotal'],
+                'subtotal' => $data['subtotal'],
                 'tax_rate' => $data['tax_rate'] ?? null,
                 'due_on' => $data['due_on'] ?? null,
                 'subscription_id' => $data['subscription_id'] ?? null,
@@ -153,7 +154,7 @@ class InvoiceController extends Controller
     public function payment(Request $request, int $invoice): RedirectResponse
     {
         $data = $request->validate([
-            'amount' => ['required', 'integer', 'min:1'],
+            'amount' => ['required', Money::RULE],
             'method' => ['required', Rule::in(array_keys(Payment::METHODS))],
             'paid_on' => ['required', 'date'],
             'reference' => ['nullable', 'string', 'max:100'],

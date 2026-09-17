@@ -60,24 +60,24 @@ class InvoiceTest extends TestCase
         $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar")->assertOk()->assertSee('Henüz fatura yok');
 
         // Yayınlı fatura: 1000 + %20 = 1200, numara OF-2026-000001, vade formdan.
-        $this->actingAs($finance)->post('/panel/faturalar', ['company_id' => $acmeCo->id, 'description' => 'Sanal Ofis — Ekim', 'subtotal' => 1000, 'tax_rate' => 20, 'due_on' => '2026-09-24', 'issue' => 1])
+        $this->actingAs($finance)->post('/panel/faturalar', ['company_id' => $acmeCo->id, 'description' => 'Sanal Ofis — Ekim', 'subtotal' => '1000', 'tax_rate' => 20, 'due_on' => '2026-09-24', 'issue' => 1] /* ₺ büyük birim */)
             ->assertRedirect()->assertSessionHasNoErrors();
         $inv = Invoice::withoutTenantScope()->where('status', 'issued')->firstOrFail();
-        $this->assertSame(['OF-2026-000001', 1200, 200, '2026-09-17', '2026-09-24'], [$inv->number, $inv->total, $inv->tax_amount, $inv->issued_on->toDateString(), $inv->due_on->toDateString()]);
+        $this->assertSame(['OF-2026-000001', 120000, 20000, /* kuruş */ '2026-09-17', '2026-09-24'], [$inv->number, $inv->total, $inv->tax_amount, $inv->issued_on->toDateString(), $inv->due_on->toDateString()]);
         $this->assertSame(['invoice.created', 'invoice.created', 'invoice.issued'], AuditLog::query()->where('entity_type', 'invoice')->pluck('action')->sort()->values()->all());
 
         // Liste + detay + KPI; müşteri görür (taslak hariç), başka organizasyon 404, müşteri tahsilat kaydedemez.
-        $this->actingAs($finance)->get('/panel/faturalar')->assertOk()->assertSee('OF-2026-000001')->assertSee('<span class="k">Bekleyen tahsilat</span><span class="v">1.200 ₺</span>', false);
-        $this->actingAs($finance)->get("/panel/faturalar/{$inv->id}")->assertOk()->assertSee('Tahsilat kaydet')->assertSee('kalan <b>1.200 ₺', false);
+        $this->actingAs($finance)->get('/panel/faturalar')->assertOk()->assertSee('OF-2026-000001')->assertSee('<span class="k">Bekleyen tahsilat</span><span class="v">1.200,00 ₺</span>', false);
+        $this->actingAs($finance)->get("/panel/faturalar/{$inv->id}")->assertOk()->assertSee('Tahsilat kaydet')->assertSee('kalan <b>1.200,00 ₺', false);
         $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar")->assertOk()->assertSee('OF-2026-000001')->assertDontSee('Boş');
-        $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar/{$inv->id}")->assertOk()->assertSee('1.200 ₺')->assertDontSee('Tahsilat kaydet');
+        $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar/{$inv->id}")->assertOk()->assertSee('1.200,00 ₺')->assertDontSee('Tahsilat kaydet');
         $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar/{$draft->id}")->assertNotFound();
         $this->actingAs($betaOwner)->withContext($beta)->get("/panel/sirketler/{$acmeCo->id}/faturalar")->assertNotFound();
         $this->actingAs($owner)->withContext($acme)->post("/panel/faturalar/{$inv->id}/tahsilat", ['amount' => 1200, 'method' => 'transfer', 'paid_on' => '2026-09-17'])->assertForbidden();
 
         // Kısmi tahsilat → bakiye 700, durum yayınlı; fazla ödeme reddedilir; kısmi ödemeli fatura iptal edilemez.
-        $this->actingAs($finance)->post("/panel/faturalar/{$inv->id}/tahsilat", ['amount' => 500, 'method' => 'transfer', 'paid_on' => '2026-09-17', 'reference' => 'DEK-1'])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertSame(['issued', 500, 700], [$inv->fresh()->status, $inv->fresh()->paid_amount, $inv->fresh()->outstanding()]);
+        $this->actingAs($finance)->post("/panel/faturalar/{$inv->id}/tahsilat", ['amount' => '500,00', 'method' => 'transfer', 'paid_on' => '2026-09-17', 'reference' => 'DEK-1'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(['issued', 50000, 70000], [$inv->fresh()->status, $inv->fresh()->paid_amount, $inv->fresh()->outstanding()]);
         $this->actingAs($finance)->from("/panel/faturalar/{$inv->id}")->post("/panel/faturalar/{$inv->id}/tahsilat", ['amount' => 800, 'method' => 'card', 'paid_on' => '2026-09-17'])->assertSessionHasErrors('amount');
         // İptal JIT'li: grant yokken 403; gerekçeli JIT isteği → grant → kısmi ödemeli fatura yine iptal edilemez (kural).
         $this->actingAs($finance)->post("/panel/faturalar/{$inv->id}/iptal", ['reason' => 'Hata'])->assertForbidden();
@@ -90,14 +90,14 @@ class InvoiceTest extends TestCase
         $this->actingAs($ops)->post("/panel/faturalar/{$inv->id}/jit", ['reason' => 'Operasyon iptal etmek istiyor', 'ttl_minutes' => 30])->assertForbidden();
 
         // Kalanı tahsil → paid; dashboard günlük/aylık ciro 1200; müşteri ödemeleri görür.
-        $this->actingAs($finance)->post("/panel/faturalar/{$inv->id}/tahsilat", ['amount' => 700, 'method' => 'card', 'paid_on' => '2026-09-17'])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertSame(['paid', 1200], [$inv->fresh()->status, $inv->fresh()->paid_amount]);
+        $this->actingAs($finance)->post("/panel/faturalar/{$inv->id}/tahsilat", ['amount' => '700.00', 'method' => 'card', 'paid_on' => '2026-09-17'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(['paid', 120000], [$inv->fresh()->status, $inv->fresh()->paid_amount]);
         $this->assertNotNull($inv->fresh()->paid_at);
         $this->assertSame(2, Payment::withoutTenantScope()->count());
         $this->assertTrue(AuditLog::query()->where('action', 'invoice.paid')->exists());
         $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
-        $this->assertStringContainsString('<span class="k">Günlük ciro</span><span class="v">1.200 ₺</span>', $html);
-        $this->assertStringContainsString('<span class="k">Aylık ciro</span><span class="v">1.200 ₺</span>', $html);
+        $this->assertStringContainsString('<span class="k">Günlük ciro</span><span class="v">1.200,00 ₺</span>', $html);
+        $this->assertStringContainsString('<span class="k">Aylık ciro</span><span class="v">1.200,00 ₺</span>', $html);
         $this->actingAs($owner)->withContext($acme)->get("/panel/sirketler/{$acmeCo->id}/faturalar/{$inv->id}")->assertOk()->assertSee('DEK-1')->assertSee('Ödendi');
 
         // Taslak iptal (JIT grant fatura başına: taslak için ayrı istek); ödenmiş fatura grant olsa da iptal edilemez.
@@ -131,7 +131,7 @@ class InvoiceTest extends TestCase
         $html = $this->actingAs($finance)->withContext($acme)->get('/panel')->assertOk()->getContent();
         $this->assertMatchesRegularExpression('~<span class="t">Tahsilat &amp; üyelik takibi</span>\s*<span class="c c" aria-label="1 bekleyen">1</span>~', $html);
         $this->assertStringContainsString('<span class="k">Gecikmiş ödeme</span><span class="v">1</span>', $html);
-        $this->assertStringContainsString('<span class="k">Bekleyen tahsilat</span><span class="v">4.000 ₺</span>', $html);
+        $this->assertStringContainsString('<span class="k">Bekleyen tahsilat</span><span class="v">4.000,00 ₺</span>', $html);
         $this->assertStringContainsString('Gecikmiş ödemeler', $html);
         $this->assertStringContainsString('1 gün gecikti', $html);
 

@@ -21,7 +21,7 @@
         <div class="card stat"><span class="stat__value mono" style="font-size:22px">%{{ $stats['occupancy_today'] }}</span><span class="stat__label">Bugünkü doluluk</span></div>
         <div class="card stat"><span class="stat__value mono" style="font-size:22px">%{{ $stats['cancel_rate_30d'] }}</span><span class="stat__label">İptal oranı (30g)</span></div>
         <div class="card stat"><span class="stat__value">{{ $stats['no_show_30d'] }}</span><span class="stat__label">Gelmedi (30g)</span></div>
-        <div class="card stat"><span class="stat__value mono" style="font-size:22px">{{ number_format($stats['revenue_30d'], 0, ',', '.') }} ₺</span><span class="stat__label">Onaylı tutar (30g)</span></div>
+        <div class="card stat"><span class="stat__value mono" style="font-size:22px">{{ money($stats['revenue_30d']) }}</span><span class="stat__label">Onaylı tutar (30g)</span></div>
         <div class="card stat"><span class="stat__value mono" style="font-size:22px">{{ $stats['avg_hours_30d'] }} sa</span><span class="stat__label">Ort. süre (30g)</span></div>
     </div>
 
@@ -76,7 +76,7 @@
                         <td>{{ $b->location->name }} · {{ $b->room->name }}</td>
                         <td>{{ $b->customerLabel() }}<span class="small muted" style="display:block">{{ $b->contactName() }}@if ($b->customer_phone) · {{ $b->customer_phone }}@endif</span></td>
                         <td class="num mono">{{ $b->participant_count }}</td>
-                        <td class="num mono">{{ number_format($b->total_amount, 0, ',', '.') }} ₺</td>
+                        <td class="num mono">{{ money($b->total_amount) }}</td>
                         <td class="small">{{ \App\Models\Booking::SOURCES[$b->source] ?? $b->source }}</td>
                         <td><span class="badge badge--{{ $b->status->badge() }}">{{ $b->statusLabel() }}</span>@if ($b->overridden) <span class="badge badge--warn" title="Kural dışı (JIT)">JIT</span>@endif</td>
                         <td><a href="{{ route('panel.bookings.show', [$b->location, $b->id]) }}" class="btn btn--ghost btn--pill">Aç</a></td>

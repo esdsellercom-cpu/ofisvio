@@ -6,7 +6,7 @@
     <div class="panel-head">
         <div>
             <p class="eyebrow"><a href="{{ route('panel.companies.invoices.index', $company) }}">Faturalar</a> / {{ $invoice->number }}</p>
-            <h1 class="h2">{{ number_format($invoice->total, 0, ',', '.') }} ₺ · {{ $invoice->statusLabel() }}</h1>
+            <h1 class="h2">{{ money($invoice->total) }} · {{ $invoice->statusLabel() }}</h1>
             <p>{{ $invoice->description }}</p>
         </div>
     </div>
@@ -19,10 +19,10 @@
                     <dt>Yayın</dt><dd>{{ $invoice->issued_on?->format('d.m.Y') }}</dd>
                     <dt>Vade</dt><dd>{{ $invoice->due_on?->format('d.m.Y') }}</dd>
                     @if ($invoice->subscription)<dt>Üyelik</dt><dd>{{ $invoice->subscription->plan->name }}</dd>@endif
-                    <dt>Ara toplam</dt><dd class="mono">{{ number_format($invoice->subtotal, 0, ',', '.') }} ₺</dd>
-                    <dt>KDV (%{{ $invoice->tax_rate }})</dt><dd class="mono">{{ number_format($invoice->tax_amount, 0, ',', '.') }} ₺</dd>
-                    <dt>Toplam</dt><dd class="mono"><b>{{ number_format($invoice->total, 0, ',', '.') }} ₺</b></dd>
-                    <dt>Ödenen</dt><dd class="mono">{{ number_format($invoice->paid_amount, 0, ',', '.') }} ₺ @if ($invoice->isOpen())· kalan <b>{{ number_format($invoice->outstanding(), 0, ',', '.') }} ₺</b>@endif</dd>
+                    <dt>Ara toplam</dt><dd class="mono">{{ money($invoice->subtotal) }}</dd>
+                    <dt>KDV (%{{ $invoice->tax_rate }})</dt><dd class="mono">{{ money($invoice->tax_amount) }}</dd>
+                    <dt>Toplam</dt><dd class="mono"><b>{{ money($invoice->total) }}</b></dd>
+                    <dt>Ödenen</dt><dd class="mono">{{ money($invoice->paid_amount) }} @if ($invoice->isOpen())· kalan <b>{{ money($invoice->outstanding()) }}</b>@endif</dd>
                 </dl>
             </div>
         </div>
@@ -33,7 +33,7 @@
             @else
                 <div class="rows">
                     @foreach ($invoice->payments->sortByDesc('paid_on') as $p)
-                        <div class="row"><div class="main-t"><b>{{ number_format($p->amount, 0, ',', '.') }} ₺</b><span>{{ $p->methodLabel() }} · {{ $p->paid_on->format('d.m.Y') }}@if ($p->reference) · {{ $p->reference }}@endif</span></div></div>
+                        <div class="row"><div class="main-t"><b>{{ money($p->amount) }}</b><span>{{ $p->methodLabel() }} · {{ $p->paid_on->format('d.m.Y') }}@if ($p->reference) · {{ $p->reference }}@endif</span></div></div>
                     @endforeach
                 </div>
             @endif

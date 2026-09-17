@@ -51,7 +51,7 @@ class BookingTest extends TestCase
 
         $this->kadikoy = Location::create(['name' => 'Kadıköy', 'slug' => 'kadikoy', 'city' => 'İstanbul', 'region' => 'Anadolu', 'is_active' => true, 'is_published' => true]);
         $this->levent = Location::create(['name' => 'Levent', 'slug' => 'levent', 'city' => 'İstanbul', 'region' => 'Avrupa', 'is_active' => true, 'is_published' => true]);
-        $this->room = Room::create(['location_id' => $this->kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 400, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
+        $this->room = Room::create(['location_id' => $this->kadikoy->id, 'name' => 'Toplantı 1', 'kind' => 'meeting', 'capacity' => 6, 'hourly_rate' => 40000, 'open_from' => '09:00' /* kuruş */, 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
     }
 
     protected function tearDown(): void
@@ -84,7 +84,7 @@ class BookingTest extends TestCase
         $this->actingAs($employee)->withContext($acme)->post($base, ['room_id' => $this->room->id, 'date' => '2026-09-18', 'start' => '10:00', 'hours' => 2, 'note' => 'Projektör', 'participants' => 4])
             ->assertRedirect($base)->assertSessionHasNoErrors();
         $booking = Booking::withoutTenantScope()->firstOrFail();
-        $this->assertSame([$acmeCo->id, BookingStatus::PENDING_APPROVAL, 800, 'Projektör', 4, 'panel'], [(int) $booking->company_id, $booking->status, $booking->total_amount, $booking->note, $booking->participant_count, $booking->source]);
+        $this->assertSame([$acmeCo->id, BookingStatus::PENDING_APPROVAL, 80000, 'Projektör', 4, 'panel'], [(int) $booking->company_id, $booking->status, $booking->total_amount, $booking->note, $booking->participant_count, $booking->source]);
         $this->assertSame('OV-2026-'.sprintf('%06d', $booking->id), $booking->reference);
         $this->assertNotNull($booking->expires_at);
         $this->assertSame(['REQUESTED', 'PENDING_APPROVAL'], $booking->history->pluck('to_status')->map(fn ($s) => $s->value)->all());
@@ -157,7 +157,7 @@ class BookingTest extends TestCase
 
         // Uygunluk sayfası: lokasyon → oda → slot çipleri (canlı).
         $this->get('/rezervasyon?lokasyon='.$this->kadikoy->id.'&gun=2026-09-18')->assertOk()
-            ->assertSee('Toplantı 1')->assertSee('data-booking-slot-btn="14:00"', false)->assertSee('400 ₺/saat');
+            ->assertSee('Toplantı 1')->assertSee('data-booking-slot-btn="14:00"', false)->assertSee('400,00 ₺/saat');
         $this->get('/rezervasyon?lokasyon='.$this->levent->id)->assertOk()->assertSee('rezervasyona açık oda yok');
 
         // Talep: KVKK zorunlu, bot tuzağı, telefon E.164.
@@ -343,7 +343,7 @@ class BookingTest extends TestCase
         // Yeniden planlama (booking.manage): çakışma denetimi; iptal (JIT).
         $this->actingAs($ops)->from('/')->put("/panel/rezervasyonlar/lokasyon/{$this->kadikoy->slug}/{$booking->id}/planla", ['room_id' => $this->room->id, 'date' => '2026-09-18', 'start' => '20:00', 'hours' => 1])->assertSessionHasErrors('start');
         $this->actingAs($ops)->put("/panel/rezervasyonlar/lokasyon/{$this->kadikoy->slug}/{$booking->id}/planla", ['room_id' => $this->room->id, 'date' => '2026-09-18', 'start' => '15:00', 'hours' => 2])->assertRedirect()->assertSessionHasNoErrors();
-        $this->assertSame(['2026-09-18 15:00', 800], [$booking->fresh()->starts_at->format('Y-m-d H:i'), $booking->fresh()->total_amount]);
+        $this->assertSame(['2026-09-18 15:00', 80000], [$booking->fresh()->starts_at->format('Y-m-d H:i'), $booking->fresh()->total_amount]);
         $this->actingAs($ops)->post("/panel/rezervasyonlar/lokasyon/{$this->kadikoy->slug}/{$booking->id}/iptal", ['reason' => 'oda arızası'])->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame(BookingStatus::CANCELLED, $booking->fresh()->status);
         $this->actingAs($this->staff('system_admin'))->get('/panel/denetim?tur=jit')->assertOk()->assertSee('booking.admin_override');
@@ -369,7 +369,7 @@ class BookingTest extends TestCase
         // Vitrin: gerçek odalar listelenir (fiyat, kapasite); teklif formunda toplantı odası seçeneği.
         $home = $this->get('http://localhost/')->assertOk()->getContent();
         $this->assertStringContainsString('Etkinlik', $home);
-        $this->assertStringContainsString('1.500 ₺/saat', $home);
+        $this->assertStringContainsString('1.500,00 ₺/saat', $home);
         $this->assertStringContainsString('Toplantı odası', $home);
 
         $event = Room::where('name', 'Etkinlik')->firstOrFail();

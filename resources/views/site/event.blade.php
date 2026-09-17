@@ -7,7 +7,7 @@
     <article class="wrap section" style="padding-top:64px">
         <p class="eyebrow"><a href="{{ route('site.events') }}">Etkinlikler</a></p>
         <h1 class="h1" style="font-size:clamp(34px,5vw,56px)">{{ $event->title }}</h1>
-        <p class="lede" style="margin:18px 0 0;max-width:60ch">{{ $event->starts_at->format('d.m.Y H:i') }} – {{ $event->ends_at->format($event->ends_at->isSameDay($event->starts_at) ? 'H:i' : 'd.m.Y H:i') }} · {{ $event->location?->name ?? 'Çevrimiçi' }}@if ($event->room) · {{ $event->room->name }}@endif · {{ $event->price > 0 ? number_format($event->price, 0, ',', '.').' ₺' : 'Ücretsiz' }}</p>
+        <p class="lede" style="margin:18px 0 0;max-width:60ch">{{ $event->starts_at->format('d.m.Y H:i') }} – {{ $event->ends_at->format($event->ends_at->isSameDay($event->starts_at) ? 'H:i' : 'd.m.Y H:i') }} · {{ $event->location?->name ?? 'Çevrimiçi' }}@if ($event->room) · {{ $event->room->name }}@endif · {{ $event->price > 0 ? money($event->price) : 'Ücretsiz' }}</p>
 
         <div class="grid-auto" style="--min:300px;--gap:32px;margin-top:36px;align-items:start">
             <div>

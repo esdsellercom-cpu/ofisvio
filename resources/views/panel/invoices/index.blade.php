@@ -17,9 +17,9 @@
 
     <div class="stack" style="gap:18px">
         <div class="kpis">
-            <div class="kpi"><span class="k">Aylık ciro</span><span class="v">{{ number_format($stats['revenue_month'], 0, ',', '.') }} ₺</span><span class="d">Bu ay kaydedilen tahsilat · bugün {{ number_format($stats['revenue_today'], 0, ',', '.') }} ₺</span></div>
-            <div class="kpi {{ $stats['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ number_format($stats['outstanding'], 0, ',', '.') }} ₺</span><span class="d">{{ $stats['outstanding_count'] }} açık fatura</span></div>
-            <div class="kpi {{ $stats['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş</span><span class="v">{{ $stats['overdue_count'] }}</span><span class="d">{{ number_format($stats['overdue'], 0, ',', '.') }} ₺ vadesi geçmiş</span></div>
+            <div class="kpi"><span class="k">Aylık ciro</span><span class="v">{{ money($stats['revenue_month']) }}</span><span class="d">Bu ay kaydedilen tahsilat · bugün {{ money($stats['revenue_today']) }}</span></div>
+            <div class="kpi {{ $stats['outstanding_count'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen tahsilat</span><span class="v">{{ money($stats['outstanding']) }}</span><span class="d">{{ $stats['outstanding_count'] }} açık fatura</span></div>
+            <div class="kpi {{ $stats['overdue_count'] > 0 ? 'alert' : 'ok' }}"><span class="k">Gecikmiş</span><span class="v">{{ $stats['overdue_count'] }}</span><span class="d">{{ money($stats['overdue']) }} vadesi geçmiş</span></div>
             <div class="kpi"><span class="k">7 gün içinde vade</span><span class="v">{{ $stats['due_7d_count'] }}</span><span class="d">Yayınlanmış fatura</span></div>
         </div>
 
@@ -48,8 +48,8 @@
                                     <td><b class="mono">{{ $inv->number ?? 'taslak #'.$inv->id }}</b><br><span class="mini">{{ $inv->description }}</span></td>
                                     <td>{{ $inv->company->legal_name }}@if ($inv->subscription)<br><span class="mini">{{ $inv->subscription->plan->name }}</span>@endif</td>
                                     <td>@if ($inv->due_on)<span class="mono small">{{ $inv->due_on->format('d.m.Y') }}</span>@if ($inv->isOpen() && $inv->daysOverdue() > 0) <span class="pill c flat">{{ $inv->daysOverdue() }} gün</span>@endif @else — @endif</td>
-                                    <td class="num">{{ number_format($inv->total, 0, ',', '.') }} ₺</td>
-                                    <td class="num">{{ $inv->isOpen() ? number_format($inv->outstanding(), 0, ',', '.').' ₺' : '—' }}</td>
+                                    <td class="num">{{ money($inv->total) }}</td>
+                                    <td class="num">{{ $inv->isOpen() ? money($inv->outstanding()) : '—' }}</td>
                                     <td><span class="pill {{ ['draft' => 'n', 'issued' => 'i', 'overdue' => 'c', 'paid' => 'g', 'cancelled' => 'n'][$inv->status] }}">{{ $inv->statusLabel() }}</span></td>
                                     <td class="num"><a href="{{ route('panel.invoices.show', $inv) }}" class="btn btn--quiet">Aç</a></td>
                                 </tr>
