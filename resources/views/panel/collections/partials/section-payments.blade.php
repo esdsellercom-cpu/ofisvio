@@ -1,21 +1,6 @@
-{{-- Tahsilatlar sekmesi (faz 47): kayıtlar, iptal (silme yok), makbuz --}}
-<form method="GET" class="inv-toolbar">
-    <input type="hidden" name="sekme" value="tahsilatlar">
-    <select class="control" name="yontem" style="max-width:180px" onchange="this.form.requestSubmit()">
-        <option value="">Tüm yöntemler</option>
-        @foreach ($methods as $k => $label)<option value="{{ $k }}" @selected(request('yontem') === $k)>{{ $label }}</option>@endforeach
-    </select>
-    <select class="control" name="durum" style="max-width:160px" onchange="this.form.requestSubmit()">
-        <option value="">Kayıtlı + iptal</option>
-        <option value="recorded" @selected(request('durum') === 'recorded')>Yalnız kayıtlı</option>
-        <option value="cancelled" @selected(request('durum') === 'cancelled')>Yalnız iptal</option>
-    </select>
-    <span class="spacer"></span>
-    <input class="control" type="search" name="q" value="{{ $q }}" placeholder="Fatura no, referans, açıklama…" style="max-width:260px">
-    <button type="submit" class="btn btn--ghost">Ara</button>
-</form>
+{{-- Son tahsilatlar (faz 47): kayıtlar, makbuz oluştur, iptal (silme yok) --}}
 <div class="card">
-    <div class="card__head"><h3>Tahsilatlar</h3><span class="sub">{{ $payments->count() }} kayıt · makbuz her satırdan</span></div>
+    <div class="card__head"><h3>Son tahsilatlar</h3><span class="sub">{{ $payments->count() }} kayıt · makbuz her satırdan · iptaller geçmişte kalır</span></div>
     @if ($payments->isEmpty())
         <div class="empty-state" style="border:0">Tahsilat kaydı yok.@can('payment_allocation.manage') <button type="button" class="btn btn--quiet" data-modal-open="#modal-payment" data-title="Manuel tahsilat">+ Manuel tahsilat</button>@endcan</div>
     @else

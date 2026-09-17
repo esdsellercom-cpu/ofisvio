@@ -5,7 +5,7 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.collections.index', ['sekme' => 'belgeler']) }}">Tahsilat &amp; belgeler</a> · {{ $document->kindLabel() }}</p>
+            <p class="eyebrow"><a href="{{ route('panel.collections.index') }}#belgeler">Tahsilat &amp; belgeler</a> · {{ $document->kindLabel() }}</p>
             <h1 class="h2 mono">{{ $document->number }} @if ($document->isCancelled())<span class="badge badge--danger">İptal</span>@else<span class="badge badge--ok">Geçerli</span>@endif</h1>
             <p>{{ $document->company?->legal_name }} @if ($document->invoice)· Fatura <a href="{{ route('panel.invoices.show', $document->invoice) }}" class="mono">{{ $document->invoice->number }}</a>@endif · {{ $document->created_at->format('d.m.Y H:i') }} · {{ $document->creator?->name ?? 'Sistem' }}</p>
         </div>

@@ -24,8 +24,6 @@ use Illuminate\Validation\Rule;
  */
 class CollectionController extends Controller
 {
-    public const TABS = ['ozet' => 'Özet', 'tahsilatlar' => 'Tahsilatlar', 'geciken' => 'Geciken ödemeler', 'belgeler' => 'Belgeler'];
-
     public function __construct(
         private readonly InvoiceService $invoices,
         private readonly SubscriptionService $subscriptions,
@@ -34,21 +32,15 @@ class CollectionController extends Controller
 
     public function index(Request $request): View
     {
-        $tab = isset(self::TABS[(string) $request->query('sekme')]) ? (string) $request->query('sekme') : 'ozet';
-        $q = trim((string) $request->query('q', ''));
-
+        // Mevcut takip ekranı (faz 39c) aynen; faz 47 yalnız aksiyonlar ve alttaki iki bölümü ekler.
         return view('panel.collections.index', [
-            'tab' => $tab,
-            'tabs' => self::TABS,
-            'q' => $q,
             'stats' => $this->invoices->dashboard(),
-            'open' => $tab === 'ozet' ? $this->invoices->collectionList() : collect(),
+            'open' => $this->invoices->collectionList(),
             'subscriptions' => $this->subscriptions->dashboard(),
-            'expiring' => $tab === 'ozet' ? collect($this->subscriptions->paginateAll(['tab' => 'expiring'], 20)->items()) : collect(),
-            'monthly' => $tab === 'ozet' ? $this->invoices->monthlyRevenue(6) : [],
-            'payments' => $tab === 'tahsilatlar' ? $this->invoices->payments(['q' => $q, 'method' => $request->query('yontem'), 'status' => $request->query('durum')]) : collect(),
-            'overdue' => $tab === 'geciken' ? $this->invoices->overdueList() : collect(),
-            'documentsList' => $tab === 'belgeler' ? $this->documents->all(['kind' => $request->query('tur'), 'q' => $q]) : collect(),
+            'expiring' => collect($this->subscriptions->paginateAll(['tab' => 'expiring'], 20)->items()),
+            'monthly' => $this->invoices->monthlyRevenue(6),
+            'payments' => $this->invoices->payments([], 30),
+            'documentsList' => $this->documents->all([], 30),
             'openInvoices' => $this->invoices->openForPayment(),
             'methods' => Payment::METHODS,
             'kinds' => DocumentTemplates::KINDS,
@@ -92,7 +84,7 @@ class CollectionController extends Controller
             return redirect()->route('panel.collections.documents.show', $document)->with('status', 'Tahsilat kaydedildi; makbuz '.$document->number.' oluşturuldu.');
         }
 
-        return redirect()->route('panel.collections.index', ['sekme' => 'tahsilatlar'])->with('status', Money::format($payment->amount, $invoice->currency).' tahsilat kaydedildi ('.$payment->methodLabel().'); fatura bakiyesi güncellendi.');
+        return redirect()->to(route('panel.collections.index').'#tahsilatlar')->with('status', Money::format($payment->amount, $invoice->currency).' tahsilat kaydedildi ('.$payment->methodLabel().'); fatura bakiyesi güncellendi.');
     }
 
     public function cancelPayment(Request $request, int $payment): RedirectResponse
@@ -106,7 +98,7 @@ class CollectionController extends Controller
             return back()->withErrors(['payment' => $e->getMessage()]);
         }
 
-        return redirect()->route('panel.collections.index', ['sekme' => 'tahsilatlar'])->with('status', 'Tahsilat iptal edildi; fatura bakiyesi geri alındı, kayıt geçmişte kaldı.');
+        return redirect()->to(route('panel.collections.index').'#tahsilatlar')->with('status', 'Tahsilat iptal edildi; fatura bakiyesi geri alındı, kayıt geçmişte kaldı.');
     }
 
     public function receipt(Request $request, int $payment): RedirectResponse

@@ -5,7 +5,7 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.collections.index', ['sekme' => 'belgeler']) }}">Tahsilat &amp; belgeler</a> · Belge ayarları</p>
+            <p class="eyebrow"><a href="{{ route('panel.collections.index') }}#belgeler">Tahsilat &amp; belgeler</a> · Belge ayarları</p>
             <h1 class="h2">{{ $kinds[$kind] }} şablonu</h1>
             <p>Logo, başlık, metinler, tablo sütunları, imza/kaşe ve alt bilgi. Metin alanlarında <code>@{{yer_tutucu}}</code> yazın; sağdaki önizleme gerçek son kayıtla (yoksa örnek etiketlerle) yazarken güncellenir.</p>
         </div>

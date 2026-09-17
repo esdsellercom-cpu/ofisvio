@@ -1,4 +1,4 @@
-{{-- Belgeler sekmesi (faz 47): şablonlar + düzenlenmiş belgeler --}}
+{{-- Belgeler (faz 47): şablonlar + düzenlenmiş belgeler --}}
 <div class="card">
     <div class="card__head"><h3>Belge ayarları / şablonlar</h3><span class="sub">Logo, başlık, metin, tablo, imza/kaşe, alt bilgi ve dinamik alanlar</span></div>
     <div class="rows">
@@ -10,20 +10,10 @@
         @endforeach
     </div>
 </div>
-<form method="GET" class="inv-toolbar">
-    <input type="hidden" name="sekme" value="belgeler">
-    <select class="control" name="tur" style="max-width:220px" onchange="this.form.requestSubmit()">
-        <option value="">Tüm belgeler</option>
-        @foreach ($kinds as $key => $label)<option value="{{ $key }}" @selected(request('tur') === $key)>{{ $label }}</option>@endforeach
-    </select>
-    <span class="spacer"></span>
-    <input class="control" type="search" name="q" value="{{ $q }}" placeholder="Belge no…" style="max-width:220px">
-    <button type="submit" class="btn btn--ghost">Ara</button>
-</form>
 <div class="card">
-    <div class="card__head"><h3>Düzenlenen belgeler</h3><span class="sub">{{ $documentsList->count() }} kayıt · son 100</span></div>
+    <div class="card__head"><h3>Düzenlenen belgeler</h3><span class="sub">{{ $documentsList->count() }} kayıt · son 30</span></div>
     @if ($documentsList->isEmpty())
-        <div class="empty-state" style="border:0">Henüz belge yok. Makbuz için Tahsilatlar, geciken ödeme belgesi için Geciken ödemeler sekmesi.</div>
+        <div class="empty-state" style="border:0">Henüz belge yok. Makbuz tahsilat satırından, geciken ödeme belgesi açık fatura satırındaki "Belge oluştur" ile.</div>
     @else
         <div class="tw"><table class="t">
             <thead><tr><th>Belge no</th><th>Tür</th><th>Müşteri</th><th>Fatura</th><th>Tarih</th><th>Durum</th><th></th></tr></thead>

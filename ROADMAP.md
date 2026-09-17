@@ -588,8 +588,10 @@ Demirbaşlar · Tahsisler**; durum süzgeci Müsait/Tahsisli/Bakımda/Pasif; lok
   önbelleği). Testler `InventoryScreenTest` (2); lokasyon künyesindeki eski alan/oda formları duruyor.
 
 ### 47. Tahsilat & belge merkezi — manuel tahsilat, makbuz, geciken ödeme belgesi, şablonlar ✅ (18 Eylül 2026)
-`/panel/tahsilat` (`CollectionController`, sekmeler Özet · Tahsilatlar · Geciken ödemeler · Belgeler; üstte
-**+ Manuel tahsilat · + Makbuz oluştur · Geciken ödemeler · Belgeler**). Mevcut fatura/tahsilat yapısı korunarak
+`/panel/tahsilat`: mevcut takip ekranı (KPI'lar, açık faturalar — gecikmiş önce/vadesi yaklaşan, aylık tahsilat,
+yaklaşan üyelik bitişleri) **aynen korunur**; üstüne yalnız aksiyonlar eklendi (**+ Manuel tahsilat · Tahsilat makbuzu ·
+Geciken ödeme belgesi · Belge şablonları**), açık fatura satırlarına "Tahsilat ekle" ve gecikmişlerde "Belge oluştur",
+altına "Son tahsilatlar" (makbuz/iptal) ve "Belgeler" bölümleri. Mevcut fatura/tahsilat yapısı korunarak
 genişletildi (`InvoiceService::recordPayment` aynı yol; `InvoiceController::payment` rotası duruyor).
 - **Manuel tahsilat** (modal, `payment_allocation.manage`): müşteri → fatura (şirkete göre süzülür; kalan tutar,
   hizmet ve para birimi otomatik) → tutar → ödeme yöntemi (Nakit / Kart-POS / Havale-EFT / Diğer) → tarih →
@@ -603,8 +605,8 @@ genişletildi (`InvoiceService::recordPayment` aynı yol; `InvoiceController::pa
   bilgisi site marka ayarından, müşteri/fatura/tahsilat kayıttan, tutar yazıyla `NumberWords`). Tahsilat başına tek
   geçerli makbuz. Belge sayfası: **Önizleme · Düzenle (yalnız metin alanları, audit) · PDF indir (dompdf) ·
   Yazdır (otomatik yazdırma görünümü) · İptal**. Aynı HTML önizleme/PDF/yazdırma için (`documents.render`).
-- **Geciken ödemeler sekmesi:** vadesi geçmiş açık faturalar (müşteri, fatura, vade, gecikme günü, toplam, ödenen,
-  kalan) + satırdan Tahsilat / **Geciken ödeme belgesi oluştur**.
+- **Geciken ödeme belgesi:** açık faturalar listesindeki gecikmiş satırlardan "Belge oluştur" (`InvoiceService::overdueList`
+  servis tarafında hazır).
 - **Belge ayarları / şablonlar** (`document_templates`, `App\Documents\DocumentTemplates`; yazma `invoice.issue`):
   logo, başlık, alt başlık, işletme bloğu, giriş metni, tablo sütunları, gövde, imza, kaşe, alt bilgi, vurgu rengi;
   dinamik alanlar `{{customer_name}} {{invoice_number}} {{amount}} {{payment_method}} {{date}} {{due_date}}
