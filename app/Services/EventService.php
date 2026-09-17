@@ -22,7 +22,7 @@ class EventService
 {
     public const TABS = ['upcoming' => 'Yaklaşan', 'past' => 'Geçmiş', 'draft' => 'Taslak', 'all' => 'Tümü'];
 
-    public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache) {}
+    public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache, private readonly NotificationService $notifications) {}
 
     // ---- Vitrin -----------------------------------------------------------------
 
@@ -88,6 +88,14 @@ class EventService
         ]);
         $registration->save();
         $this->bump();
+        $this->notifications->dispatch('event.registered', [
+            'event' => $event->title,
+            'date' => $event->starts_at->format('d.m.Y H:i'),
+            'location' => $event->location->name ?? 'Çevrimiçi',
+            'customer_name' => $registration->name,
+            'customer_email' => $registration->email,
+            'customer_phone' => $registration->phone,
+        ], $event->location_id, 'event_registration', $registration->id);
 
         return $registration;
     }

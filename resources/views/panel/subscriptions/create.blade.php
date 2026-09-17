@@ -40,7 +40,8 @@
                                 @foreach ($locations as $l)<option value="{{ $l->id }}" @selected((int) old('location_id') === $l->id)>{{ $l->name }}</option>@endforeach
                             </select>
                         </label>
-                        <label class="checkbox-row" style="align-self:end"><input type="checkbox" name="auto_renew" value="1" @checked(old('auto_renew', true))><span>Dönem sonunda yenilenecek (hatırlatma)</span></label>
+                        <label class="checkbox-row" style="align-self:end"><input type="checkbox" name="auto_renew" value="1" @checked(old('auto_renew', true))><span>Dönem sonunda otomatik yenile (yeni dönem + fatura)</span></label>
+                        <label class="checkbox-row" style="align-self:end"><input type="checkbox" name="issue_invoice" value="1" @checked(old('issue_invoice', true))><span>İlk dönem faturasını hemen yayınla</span></label>
                     </div>
                     <label class="field"><span class="label">Not (iç)</span><textarea class="control" name="note" maxlength="1000">{{ old('note') }}</textarea></label>
                     <div><button type="submit" class="btn btn--brand">Üyeliği aç</button> <a href="{{ route('panel.subscriptions.index') }}" class="btn btn--ghost">Vazgeç</a></div>

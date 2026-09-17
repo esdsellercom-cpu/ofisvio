@@ -180,16 +180,21 @@ class NotificationService
         $this->audit->record($actor, 'notification.rules_changed', 'notification_rules', null, ['enabled' => $this->flatten($before)], ['enabled' => $this->flatten($this->rulesMatrix())]);
     }
 
-    /** Varsayılan kural setini (NotificationEvents::defaults) yalnız hiç kural yoksa yazar (referans veri). */
+    /**
+     * Varsayılan kural setini (NotificationEvents::defaults) yalnız o OLAY için hiç kural yoksa yazar
+     * (referans veri): panelde düzenlenmiş olaylara dokunmaz, kataloğa eklenen yeni olay var olan
+     * kuruluma da varsayılanlarıyla gelir.
+     */
     public function seedDefaultRules(): int
     {
-        if (NotificationRule::query()->exists()) {
-            return 0;
-        }
-
+        $existing = NotificationRule::query()->pluck('event')->unique()->all();
         $n = 0;
 
         foreach (NotificationEvents::registry() as $event => $def) {
+            if (in_array($event, $existing, true)) {
+                continue;
+            }
+
             foreach ($def['defaults'] as [$channel, $group]) {
                 NotificationRule::query()->create(['event' => $event, 'channel' => $channel, 'recipient_group' => $group, 'enabled' => true]);
                 $n++;

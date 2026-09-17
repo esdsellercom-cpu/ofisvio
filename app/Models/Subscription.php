@@ -19,11 +19,11 @@ class Subscription extends Model
 
     protected $fillable = [
         'company_id', 'plan_id', 'location_id', 'status', 'starts_on', 'ends_on', 'price', 'period',
-        'auto_renew', 'note', 'created_by', 'cancelled_by', 'cancelled_at', 'cancel_reason',
+        'auto_renew', 'expiring_notice_sent_at', 'renewal_count', 'note', 'created_by', 'cancelled_by', 'cancelled_at', 'cancel_reason',
     ];
 
     protected $casts = [
-        'starts_on' => 'date', 'ends_on' => 'date', 'cancelled_at' => 'datetime',
+        'starts_on' => 'date', 'ends_on' => 'date', 'cancelled_at' => 'datetime', 'expiring_notice_sent_at' => 'datetime', 'renewal_count' => 'integer',
         'price' => 'integer', 'auto_renew' => 'boolean',
     ];
 

@@ -64,6 +64,7 @@ class SubscriptionController extends Controller
             'starts_on' => ['required', 'date'],
             'months' => ['required', 'integer', 'min:1', 'max:36'],
             'auto_renew' => ['nullable', 'boolean'],
+            'issue_invoice' => ['nullable', 'boolean'],
             'note' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -80,6 +81,7 @@ class SubscriptionController extends Controller
                 'months' => (int) $data['months'],
                 'location_id' => $data['location_id'] ?? null,
                 'auto_renew' => $request->boolean('auto_renew'),
+                'issue_invoice' => $request->boolean('issue_invoice'),
                 'note' => $data['note'] ?? null,
             ]);
         } catch (DomainException $e) {

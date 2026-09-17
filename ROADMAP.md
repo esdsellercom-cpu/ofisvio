@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **267/267** (Unit 12 · Feature 240 · Architecture 15) |
+| `php artisan test` | ✅ **270/270** (Unit 12 · Feature 243 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -445,6 +445,19 @@ Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sı
    `/panel/sirketler/{company}/alanlar`; paket → alan türü (`plans.space_kind`); dashboard/rapor doluluk. `SpaceTest`.
 3. **Para birimi:** tüm tutarlar kuruş (`Money`, `money()`), `MoneyTest`.
 4. **Fatura numarası:** `invoice_sequences` atomik sayaç.
+
+### 41. Audit P1 — üyelik yenileme, tahsilat otomasyonu, bildirim kataloğu ✅ (17 Eylül 2026)
+- **Yenileme (P1-5):** `subscriptions:renew` — auto_renew üyelik bitişte yeni döneme geçer (güncel paket fiyatı,
+  `renewal_count`), `finance.auto_invoice_on_renewal` ile sistem faturası (`InvoiceService::createSystem`,
+  aktörsüz, ayardaki KDV/vade) yayınlanır; panelden açılışta "ilk dönem faturasını yayınla" seçeneği.
+- **Bildirim kataloğu (P1-8):** `invoice.issued/due_soon/overdue/paid`, `company.suspended`,
+  `subscription.expiring/renewed/expired`, `event.registered`, `franchise.applied`; müşteri muhatabı
+  `MembershipService::primaryContact` (sahip → şirket yöneticisi). `seedDefaultRules` artık olay bazlı:
+  yeni olay var olan kuruluma varsayılan kurallarıyla gelir, düzenlenmiş olaylara dokunmaz.
+- **Tahsilat otomasyonu (P1-7):** `invoices:remind-due` (vadeye N gün kala tek seferlik, `finance.reminder_days_before`),
+  gecikmede `invoice.overdue`, ödemede `invoice.paid`, `finance:suspend-overdue` (N günden fazla gecikmiş
+  açık faturası olan AKTİF şirket `CompanyActivationService` ile askıya alınır — `finance.suspend_after_overdue_days`,
+  varsayılan 0 = kapalı), `subscriptions:remind-expiring` (`subscription.expiring_notice_days`). `AutomationTest` (3 test).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

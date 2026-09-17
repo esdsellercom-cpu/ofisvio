@@ -20,12 +20,12 @@ class Invoice extends Model
 
     protected $fillable = [
         'number', 'company_id', 'subscription_id', 'booking_id', 'status', 'description', 'subtotal', 'tax_rate', 'tax_amount',
-        'total', 'paid_amount', 'currency', 'issued_on', 'due_on', 'paid_at', 'note', 'created_by', 'issued_by',
+        'total', 'paid_amount', 'currency', 'issued_on', 'due_on', 'paid_at', 'due_reminder_sent_at', 'note', 'created_by', 'issued_by',
         'cancelled_by', 'cancelled_at', 'cancel_reason',
     ];
 
     protected $casts = [
-        'issued_on' => 'date', 'due_on' => 'date', 'paid_at' => 'datetime', 'cancelled_at' => 'datetime',
+        'issued_on' => 'date', 'due_on' => 'date', 'paid_at' => 'datetime', 'due_reminder_sent_at' => 'datetime', 'cancelled_at' => 'datetime',
         'subtotal' => 'integer', 'tax_rate' => 'integer', 'tax_amount' => 'integer', 'total' => 'integer', 'paid_amount' => 'integer',
     ];
 

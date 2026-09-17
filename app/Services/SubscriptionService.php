@@ -36,7 +36,13 @@ class SubscriptionService
 
     public const EXPIRING_DAYS = 30;
 
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly SettingsService $settings,
+        private readonly NotificationService $notifications,
+        private readonly MembershipService $members,
+        private readonly InvoiceService $invoices,
+    ) {}
 
     // ---- Paketler ---------------------------------------------------------------
 
@@ -169,7 +175,7 @@ class SubscriptionService
      * Personel: şirkete üyelik açar (subscription.manage). Askıdaki/fesihli şirkete açılmaz;
      * aynı paket için çakışan aktif üyelik varsa reddedilir.
      *
-     * @param  array{starts_on: string, months: int, location_id?: int|string|null, auto_renew?: bool, note?: string|null}  $data
+     * @param  array{starts_on: string, months: int, location_id?: int|string|null, auto_renew?: bool, issue_invoice?: bool, note?: string|null}  $data  issue_invoice: ilk dönem faturası hemen yayınlanır
      */
     public function create(User $actor, Company $company, Plan $plan, array $data): Subscription
     {
@@ -210,6 +216,14 @@ class SubscriptionService
         $sub->save();
         $this->audit->record($actor, 'subscription.created', 'subscription', $sub->id, [], $sub->toArray());
 
+        if (! empty($data['issue_invoice']) && $sub->price > 0) {
+            $this->invoices->createSystem($company, [
+                'description' => $plan->name.' · '.$sub->starts_on->format('d.m.Y').' – '.$sub->ends_on->format('d.m.Y'),
+                'subtotal_minor' => $sub->price,
+                'subscription_id' => $sub->id,
+            ], $actor);
+        }
+
         return $sub;
     }
 
@@ -248,19 +262,106 @@ class SubscriptionService
         return $sub;
     }
 
-    /** Zamanlayıcı: bitişi geçmiş aktif üyelikler expired. */
-    public function expireStale(): int
+    /**
+     * Zamanlayıcı (audit P1-5): bitişi geçen ve auto_renew açık üyelikler yeni döneme geçer (bitişten
+     * itibaren, paketin güncel fiyatı), isteğe bağlı fatura yayınlanır (finance.auto_invoice_on_renewal),
+     * subscription.renewed bildirilir. Paket pasifse yenilenmez → expireStale kapatır.
+     */
+    public function renewDue(): int
     {
         $n = 0;
 
-        foreach (Subscription::withoutTenantScope()->where('status', 'active')->whereDate('ends_on', '<', Carbon::today()->toDateString())->get() as $sub) {
+        foreach (Subscription::withoutTenantScope()->where('status', 'active')->where('auto_renew', true)->whereDate('ends_on', '<', Carbon::today()->toDateString())->with('plan')->get() as $sub) {
+            if (! $sub->plan->is_active) {
+                continue;
+            }
+
             $before = $sub->toArray();
-            $sub->fill(['status' => 'expired'])->save();
-            $this->audit->record(null, 'subscription.expired', 'subscription', $sub->id, $before, $sub->toArray());
+            $from = $sub->ends_on->copy()->addDay();
+            $months = $sub->plan->period === 'yearly' ? 12 : 1;
+            $sub->fill([
+                'starts_on' => $from->toDateString(),
+                'ends_on' => $from->copy()->addMonths($months)->subDay()->toDateString(),
+                'price' => $sub->plan->price,
+                'period' => $sub->plan->period,
+                'renewal_count' => $sub->renewal_count + 1,
+                'expiring_notice_sent_at' => null,
+            ])->save();
+            $this->audit->record(null, 'subscription.renewed', 'subscription', $sub->id, $before, $sub->toArray());
+
+            if ($this->settings->bool('finance.auto_invoice_on_renewal') && $sub->price > 0) {
+                $company = Company::withoutTenantScope()->find($sub->company_id);
+
+                if ($company !== null) {
+                    $this->invoices->createSystem($company, [
+                        'description' => $sub->plan->name.' · '.$sub->starts_on->format('d.m.Y').' – '.$sub->ends_on->format('d.m.Y'),
+                        'subtotal_minor' => $sub->price,
+                        'subscription_id' => $sub->id,
+                    ]);
+                }
+            }
+
+            $this->notify('subscription.renewed', $sub);
             $n++;
         }
 
         return $n;
+    }
+
+    /** Zamanlayıcı (audit P1-8): bitişe N gün kala tek seferlik bildirim (subscription.expiring_notice_days; 0 = kapalı). */
+    public function remindExpiring(): int
+    {
+        $days = $this->settings->int('subscription.expiring_notice_days');
+
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $n = 0;
+        $limit = Carbon::today()->addDays($days)->toDateString();
+
+        foreach (Subscription::withoutTenantScope()->where('status', 'active')->whereNull('expiring_notice_sent_at')->whereDate('ends_on', '<=', $limit)->whereDate('ends_on', '>=', Carbon::today()->toDateString())->with('plan')->get() as $sub) {
+            $sub->fill(['expiring_notice_sent_at' => Carbon::now()])->save();
+            $this->notify('subscription.expiring', $sub);
+            $n++;
+        }
+
+        return $n;
+    }
+
+    /** Zamanlayıcı: bitişi geçmiş aktif üyelikler expired (auto_renew olanlar önce renewDue ile yenilenir). */
+    public function expireStale(): int
+    {
+        $n = 0;
+
+        foreach (Subscription::withoutTenantScope()->where('status', 'active')->whereDate('ends_on', '<', Carbon::today()->toDateString())->with('plan')->get() as $sub) {
+            $before = $sub->toArray();
+            $sub->fill(['status' => 'expired'])->save();
+            $this->audit->record(null, 'subscription.expired', 'subscription', $sub->id, $before, $sub->toArray());
+            $this->notify('subscription.expired', $sub);
+            $n++;
+        }
+
+        return $n;
+    }
+
+    /** Üyelik olayını müşteri muhatabı + finans grubuna gönderir. */
+    private function notify(string $event, Subscription $sub): void
+    {
+        $company = Company::withoutTenantScope()->find($sub->company_id);
+        $contact = $this->members->primaryContact($sub->company_id);
+
+        $this->notifications->dispatch($event, [
+            'plan' => (string) ($sub->plan->name ?? ''),
+            'company_name' => (string) ($company->legal_name ?? ''),
+            'customer_name' => $contact?->name,
+            'customer_email' => $contact?->email,
+            'customer_user_id' => $contact?->id,
+            'starts' => $sub->starts_on->format('d.m.Y'),
+            'ends' => $sub->ends_on->format('d.m.Y'),
+            'price' => Money::format($sub->price).' / '.(Plan::PERIODS[$sub->period] ?? $sub->period),
+            'renewal' => $sub->auto_renew ? 'dönem sonunda otomatik yenilenir' : 'yenilenmeyecek',
+        ], null, 'subscription', $sub->id);
     }
 
     /**

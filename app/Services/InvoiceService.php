@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CompanyStatus;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -34,7 +35,13 @@ class InvoiceService
 {
     public const TABS = ['open' => 'Tahsilat bekleyen', 'overdue' => 'Gecikmiş', 'paid' => 'Ödenen', 'draft' => 'Taslak', 'cancelled' => 'İptal', 'all' => 'Tümü'];
 
-    public function __construct(private readonly AuditService $audit, private readonly SettingsService $settings) {}
+    public function __construct(
+        private readonly AuditService $audit,
+        private readonly SettingsService $settings,
+        private readonly NotificationService $notifications,
+        private readonly MembershipService $members,
+        private readonly CompanyActivationService $activation,
+    ) {}
 
     /**
      * @param  array{tab?: string|null, q?: string|null}  $filters
@@ -141,8 +148,37 @@ class InvoiceService
         return $invoice;
     }
 
+    /**
+     * Sistem faturası (üyelik yenileme, audit P1-5): aktör yok, tutar kuruş, ayardaki KDV/vade, doğrudan yayın.
+     *
+     * @param  array{description: string, subtotal_minor: int, subscription_id?: int|null}  $data
+     */
+    public function createSystem(Company $company, array $data, ?User $actor = null): Invoice
+    {
+        $subtotal = max(0, (int) $data['subtotal_minor']);
+        $rate = $this->settings->int('finance.default_tax_rate');
+        $tax = Money::percent($subtotal, $rate);
+
+        $invoice = new Invoice([
+            'company_id' => $company->id,
+            'subscription_id' => $data['subscription_id'] ?? null,
+            'status' => 'draft',
+            'description' => trim($data['description']),
+            'subtotal' => $subtotal,
+            'tax_rate' => $rate,
+            'tax_amount' => $tax,
+            'total' => $subtotal + $tax,
+            'currency' => $this->settings->string('general.currency'),
+            'created_by' => $actor?->id,
+        ]);
+        $invoice->save();
+        $this->audit->record($actor, 'invoice.created', 'invoice', $invoice->id, [], $invoice->toArray());
+
+        return $this->issue($actor, $invoice);
+    }
+
     /** Yayınla: numara (önek-yıl-sıra) + yayın tarihi + vade (yoksa ayardan). Sıfır tutarlı fatura yayınlanmaz. */
-    public function issue(User $actor, Invoice $invoice): Invoice
+    public function issue(?User $actor, Invoice $invoice): Invoice
     {
         if ($invoice->status !== 'draft') {
             throw new DomainException('Yalnız taslak fatura yayınlanır.');
@@ -164,9 +200,10 @@ class InvoiceService
                 'status' => 'issued',
                 'issued_on' => $today->toDateString(),
                 'due_on' => $invoice->due_on?->toDateString() ?? $today->copy()->addDays($this->settings->int('finance.due_days'))->toDateString(),
-                'issued_by' => $actor->id,
+                'issued_by' => $actor?->id,
             ])->save();
             $this->audit->record($actor, 'invoice.issued', 'invoice', $invoice->id, $before, $invoice->toArray());
+            DB::afterCommit(fn () => $this->notify('invoice.issued', $invoice));
 
             return $invoice;
         });
@@ -256,6 +293,10 @@ class InvoiceService
             $this->audit->record($actor, 'payment.recorded', 'payment', $payment->id, [], $payment->toArray());
             $this->audit->record($actor, $invoice->status === 'paid' ? 'invoice.paid' : 'invoice.partially_paid', 'invoice', $invoice->id, $before, $invoice->toArray());
 
+            if ($invoice->status === 'paid') {
+                DB::afterCommit(fn () => $this->notify('invoice.paid', $invoice));
+            }
+
             return $payment;
         });
     }
@@ -270,10 +311,87 @@ class InvoiceService
             $before = $invoice->toArray();
             $invoice->fill(['status' => 'overdue'])->save();
             $this->audit->record(null, 'invoice.overdue', 'invoice', $invoice->id, $before, $invoice->toArray());
+            $this->notify('invoice.overdue', $invoice);
             $n++;
         }
 
         return $n;
+    }
+
+    /**
+     * Zamanlayıcı (audit P1-7): vadeye N gün kala tek seferlik hatırlatma (finance.reminder_days_before; 0 = kapalı).
+     */
+    public function remindDueSoon(): int
+    {
+        $days = $this->settings->int('finance.reminder_days_before');
+
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $n = 0;
+        $limit = Carbon::today()->addDays($days)->toDateString();
+
+        foreach (Invoice::withoutTenantScope()->where('status', 'issued')->whereNull('due_reminder_sent_at')->whereDate('due_on', '<=', $limit)->whereDate('due_on', '>=', Carbon::today()->toDateString())->get() as $invoice) {
+            $invoice->fill(['due_reminder_sent_at' => Carbon::now()])->save();
+            $this->notify('invoice.due_soon', $invoice);
+            $n++;
+        }
+
+        return $n;
+    }
+
+    /**
+     * Zamanlayıcı (audit P1-7): vadesi N günden fazla geçmiş açık faturası olan AKTİF şirket askıya alınır
+     * (finance.suspend_after_overdue_days; 0 = kapalı). Durum yalnız CompanyActivationService yazar; audit + bildirim.
+     */
+    public function suspendLongOverdue(): int
+    {
+        $days = $this->settings->int('finance.suspend_after_overdue_days');
+
+        if ($days <= 0) {
+            return 0;
+        }
+
+        $limit = Carbon::today()->subDays($days)->toDateString();
+        $n = 0;
+        $companyIds = Invoice::withoutTenantScope()->where('status', 'overdue')->whereDate('due_on', '<', $limit)->distinct()->pluck('company_id');
+
+        foreach (Company::withoutTenantScope()->whereIn('id', $companyIds)->where('status', CompanyStatus::ACTIVE->value)->get() as $company) {
+            $reason = "Vadesi {$days} günden fazla geçmiş açık fatura (otomatik)";
+            $this->activation->transitionTo($company, CompanyStatus::SUSPENDED, null, $reason);
+            $this->audit->record(null, 'company.suspended_overdue', 'company', $company->id, ['status' => CompanyStatus::ACTIVE->value], ['status' => CompanyStatus::SUSPENDED->value, 'reason' => $reason], $company->organization_id);
+            $contact = $this->members->primaryContact($company->id);
+            $this->notifications->dispatch('company.suspended', [
+                'company_name' => $company->legal_name,
+                'customer_name' => $contact?->name,
+                'customer_email' => $contact?->email,
+                'customer_user_id' => $contact?->id,
+                'reason' => $reason,
+            ], null, 'company', $company->id);
+            $n++;
+        }
+
+        return $n;
+    }
+
+    /** Fatura olayını müşteri muhatabı + finans grubuna gönderir (kurallar Bildirim Merkezi'nden). */
+    private function notify(string $event, Invoice $invoice): void
+    {
+        $company = Company::withoutTenantScope()->find($invoice->company_id);
+        $contact = $this->members->primaryContact($invoice->company_id);
+
+        $this->notifications->dispatch($event, [
+            'number' => (string) $invoice->number,
+            'company_name' => (string) ($company->legal_name ?? ''),
+            'customer_name' => $contact?->name,
+            'customer_email' => $contact?->email,
+            'customer_user_id' => $contact?->id,
+            'description' => $invoice->description,
+            'total' => Money::format($invoice->total),
+            'outstanding' => Money::format($invoice->outstanding()),
+            'due_date' => $invoice->due_on?->format('d.m.Y') ?? '',
+        ], null, 'invoice', $invoice->id);
     }
 
     /**

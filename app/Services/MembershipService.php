@@ -52,6 +52,24 @@ class MembershipService
     }
 
     /**
+     * Şirketin bildirim muhatabı (audit P1-8): aktif sahip, yoksa şirket yöneticisi.
+     * Fatura/üyelik olaylarında 'customer' grubu bu kişiye çözülür.
+     */
+    public function primaryContact(int $companyId): ?User
+    {
+        foreach (['owner', 'company_admin'] as $role) {
+            $row = UserRole::query()->with('user')->where('company_id', $companyId)->where('status', 'active')
+                ->whereHas('role', fn ($q) => $q->where('name', $role))->orderBy('id')->first();
+
+            if ($row?->user !== null) {
+                return $row->user;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Üye dizini (faz 39): verilen şirketlerin tüm üyeleri (company kapsamlı roller).
      * Çağıran şirket listesini CompanyService::visibleTo ile alır — görünürlük orada karar verilir.
      *

@@ -15,7 +15,7 @@ use Illuminate\Support\Carbon;
  */
 class FranchiseService
 {
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(private readonly AuditService $audit, private readonly NotificationService $notifications) {}
 
     /**
      * @param  array{name: string, email: string, phone?: string|null, city: string, district?: string|null, budget?: string|null, experience?: string|null, message?: string|null}  $data
@@ -37,6 +37,12 @@ class FranchiseService
             'consent_ip' => $consent['ip'] ?? null,
         ]);
         $application->save();
+        $this->notifications->dispatch('franchise.applied', [
+            'name' => $application->name,
+            'email' => $application->email,
+            'phone' => $application->phone,
+            'city' => $application->city,
+        ], null, 'franchise_application', $application->id);
 
         return $application;
     }
