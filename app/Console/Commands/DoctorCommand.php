@@ -165,6 +165,13 @@ class DoctorCommand extends Command
         $session === 'array'
             ? $this->strict($production, 'Oturum', 'array — oturum tutulmaz')
             : $this->add('Oturum', 'ok', $session);
+
+        // Çerez sertleştirme (audit S-2): üretimde secure + httponly + same_site zorunlu.
+        $secure = (bool) config('session.secure');
+        $sameSite = (string) config('session.same_site');
+        $secure && (bool) config('session.http_only') && in_array($sameSite, ['lax', 'strict'], true)
+            ? $this->add('Oturum çerezi', 'ok', 'secure · httponly · same_site='.$sameSite)
+            : $this->strict($production, 'Oturum çerezi', 'SESSION_SECURE_COOKIE=true, SESSION_HTTP_ONLY=true, SESSION_SAME_SITE=lax|strict olmalı');
     }
 
     private function checkScanner(bool $production, MalwareScanner $scanner): void

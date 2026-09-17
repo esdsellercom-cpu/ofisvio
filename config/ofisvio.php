@@ -88,6 +88,17 @@ return [
      * websites tablosu + site_blocks (SiteBlockSeeder / panel "Ana sayfa").
      * Audit kuralı: config'te fiyat ya da müşteri-görünür ticari veri olmaz.
      */
+    /*
+     * Güvenlik başlıkları (SecurityHeaders middleware). Dış kaynak listesi burada;
+     * yeni bir CDN/gömme eklenirse önce buraya yazılır. HSTS yalnız HTTPS yanıtlarında.
+     */
+    'security' => [
+        'hsts' => (bool) env('SECURITY_HSTS', true),
+        'style_src' => ['https://fonts.googleapis.com'],
+        'font_src' => ['https://fonts.gstatic.com'],
+        'frame_src' => ['https://www.openstreetmap.org'],
+    ],
+
     'brand' => [
         'name' => 'Ofisvio',
     ],

@@ -8,6 +8,7 @@ use App\Http\Middleware\NormalizeTotpCode;
 use App\Http\Middleware\PerRequestCaches;
 use App\Http\Middleware\PublicCacheHeaders;
 use App\Http\Middleware\ResolveWebsite;
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,7 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Çoklu website: Host -> Website çözümlemesi her web isteğinde.
-        $middleware->web(append: [ResolveWebsite::class, PerRequestCaches::class]);
+        $middleware->web(append: [ResolveWebsite::class, PerRequestCaches::class, SecurityHeaders::class]);
 
         $middleware->alias([
             'public.cache' => PublicCacheHeaders::class,

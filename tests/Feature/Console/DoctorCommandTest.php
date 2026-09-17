@@ -58,7 +58,7 @@ class DoctorCommandTest extends TestCase
         $this->assertStringContainsString('ortam: production', $out);
 
         // Üretimde düzgün ayarlarla: kalan hata yalnız tarayıcı/zamanlayıcı.
-        config(['app.debug' => false, 'app.url' => 'https://ofisvio.com', 'mail.default' => 'smtp', 'cache.default' => 'file', 'session.driver' => 'database']);
+        config(['app.debug' => false, 'app.url' => 'https://ofisvio.com', 'mail.default' => 'smtp', 'cache.default' => 'file', 'session.driver' => 'database', 'session.secure' => true, 'session.same_site' => 'lax'] /* audit S-2: üretimde secure çerez şart */);
         $this->app->instance(MalwareScanner::class, new class implements MalwareScanner
         {
             public function scan(string $path): ScanResult
@@ -79,7 +79,7 @@ class DoctorCommandTest extends TestCase
     #[Test]
     public function tarayici_erisilemezse_ve_zamanlayici_sessizse_hata(): void
     {
-        config(['app.env' => 'production', 'app.debug' => false, 'app.url' => 'https://ofisvio.com', 'mail.default' => 'smtp', 'ofisvio.kyc.scanner' => 'clamav', 'cache.default' => 'file', 'session.driver' => 'database']);
+        config(['app.env' => 'production', 'app.debug' => false, 'app.url' => 'https://ofisvio.com', 'mail.default' => 'smtp', 'ofisvio.kyc.scanner' => 'clamav', 'cache.default' => 'file', 'session.driver' => 'database', 'session.secure' => true, 'session.same_site' => 'lax'] /* audit S-2: üretimde secure çerez şart */);
         $this->app->instance(MalwareScanner::class, new class implements MalwareScanner
         {
             public function scan(string $path): ScanResult

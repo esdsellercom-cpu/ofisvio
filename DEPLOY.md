@@ -16,6 +16,8 @@ betiği bunu kapı olarak kullanır.
 | `DB_CONNECTION` | `mysql` / `pgsql` | SQLite yalnız geliştirme |
 | `CACHE_STORE` | `redis` (ya da `database`) | ContentCache sürüm sayacı, named throttle, doctor kalp atışı |
 | `SESSION_DRIVER` | `redis` / `database` | — |
+| `SESSION_SECURE_COOKIE` | `true` | Doctor üretimde şart koşar (secure + httponly + same_site) |
+| `SECURITY_HSTS` | `true` | HTTPS yanıtlarında HSTS; ters proxy zaten ekliyorsa `false` |
 | `QUEUE_CONNECTION` | `redis` / `database` + worker | `sync` yalnız geliştirme |
 | `MAIL_MAILER` | gerçek sağlayıcı (`smtp`, `ses`, …) | Davet, şifre sıfırlama, 2FA kurtarma |
 | `KYC_SCANNER` | `clamav` | Zorunlu; `none` üretimde açılmaz |
