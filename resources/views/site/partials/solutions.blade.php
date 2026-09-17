@@ -4,14 +4,14 @@
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">01 — Çözümler</p>
-            <h2 class="h2" style="max-width:24ch">{{ $s['title'] ?? $texts['solutions_title'] }}</h2>
+            <h2 class="h2" style="max-width:24ch"{!! ofv($s, 'title', 'texts.solutions_title') !!}>{{ $s['title'] ?? $texts['solutions_title'] }}</h2>
         </div>
         @if (($s['lede'] ?? $texts['solutions_lede']) !== '')
-            <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">{{ $s['lede'] ?? $texts['solutions_lede'] }}</p>
+            <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px"{!! ofv($s, 'lede', 'texts.solutions_lede') !!}>{{ $s['lede'] ?? $texts['solutions_lede'] }}</p>
         @endif
     </div>
 
-    <div class="grid-auto">
+    <div class="grid-auto sec-grid">
         @foreach ($services as $service)
             <a href="{{ $service->path() }}" class="card card--link" data-solution-pick="{{ $service->name }}">
                 @if ($service->cover)

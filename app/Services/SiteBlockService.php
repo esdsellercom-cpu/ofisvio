@@ -186,6 +186,20 @@ class SiteBlockService
     }
 
     /**
+     * Önizleme için blok metnini çözer, kaydetmez (görsel editör global taslağı). Bozuk satır → boş liste.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function parseForPreview(string $key, string $text): array
+    {
+        try {
+            return $this->parse($key, $text);
+        } catch (DomainException) {
+            return [];
+        }
+    }
+
+    /**
      * Kayıtlı blok anahtarları.
      *
      * @return array<int, string>

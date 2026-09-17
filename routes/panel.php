@@ -317,6 +317,11 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
                 Route::delete('/{website}/bolum/{section}', [SiteBuilderController::class, 'destroy'])->middleware('permission:content.edit')->name('destroy');
                 Route::post('/{website}/yayinla', [SiteBuilderController::class, 'publish'])->middleware('permission:content.publish')->name('publish');
                 Route::post('/{website}/geri-al/{revision}', [SiteBuilderController::class, 'rollback'])->middleware('permission:content.publish')->name('rollback');
+                // Görsel editör (faz 49): tek gönderimli taslak kaydı, kayıtlı bloklar, editörden yeni sayfa.
+                Route::put('/{website}/taslak', [SiteBuilderController::class, 'saveDraft'])->middleware('permission:content.edit')->name('draft');
+                Route::post('/{website}/blok-kaydet', [SiteBuilderController::class, 'presetStore'])->middleware('permission:content.edit')->name('preset.store');
+                Route::delete('/{website}/blok/{preset}', [SiteBuilderController::class, 'presetDestroy'])->where('preset', '[0-9]+')->middleware('permission:content.edit')->name('preset.destroy');
+                Route::post('/{website}/sayfa', [SiteBuilderController::class, 'pageStore'])->middleware('permission:content.create')->name('page.store');
             });
 
             // Vitrin blokları (faz 10): doğrudan canlıya çıkar -> content.publish.

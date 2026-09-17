@@ -4,8 +4,8 @@
     <div style="background:var(--surface-warm);border-radius:var(--r-xl);padding:clamp(28px,4vw,56px);display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:48px;align-items:start">
         <div style="min-width:0">
             <p class="eyebrow">07 — Teklif</p>
-            <h2 class="h2" style="max-width:20ch;font-size:clamp(28px,3.4vw,42px)">{{ $s['title'] ?? $texts['lead_title'] }}</h2>
-            <p class="body-muted" style="margin:22px 0 0;font-size:16.5px;max-width:42ch">{{ $s['lede'] ?? $texts['lead_lede'] }}</p>
+            <h2 class="h2" style="max-width:20ch;font-size:clamp(28px,3.4vw,42px)"{!! ofv($s, 'title', 'texts.lead_title') !!}>{{ $s['title'] ?? $texts['lead_title'] }}</h2>
+            <p class="body-muted" style="margin:22px 0 0;font-size:16.5px;max-width:42ch"{!! ofv($s, 'lede', 'texts.lead_lede') !!}>{{ $s['lede'] ?? $texts['lead_lede'] }}</p>
             <div class="stack" style="margin-top:30px;gap:10px;font-size:15px;color:#3C3A32">
                 @foreach (['lead_claim_1', 'lead_claim_2', 'lead_claim_3'] as $claim)
                     @if ($texts[$claim] !== '')<span>· {{ $texts[$claim] }}</span>@endif

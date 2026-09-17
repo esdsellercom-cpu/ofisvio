@@ -1,17 +1,17 @@
 {{-- Menü: yayınlanmış bölümlerin çapaları (SiteLayoutComposer); ana sayfa dışındaysa köke bağlanır. --}}
 @php($onHome = request()->routeIs('site.home', 'site.preview'))
-@php($navLinks = array_map(fn ($l) => ['label' => $l['label'], 'href' => ($onHome ? '' : route('site.home')).$l['href']], $siteNavLinks))
+@php($navLinks = array_map(fn ($l) => ['label' => $l['label'], 'href' => ($onHome ? '' : route('site.home')).$l['href'], 'key' => $l['key'] ?? ''], $siteNavLinks))
 
-<header class="site-header">
+<header class="site-header"{!! ofv_editor() ? ' data-ofv-global-area="header"' : '' !!}>
     <div class="wrap site-header__inner">
         <a href="{{ route('site.home') }}" class="brand">
             <span class="brand__mark" aria-hidden="true"></span>
-            <span class="brand__name">{{ $brand['name'] }}</span>
+            <span class="brand__name"{!! ofv_editor() ? ' data-ofv-brand="name"' : '' !!}>{{ $brand['name'] }}</span>
         </a>
 
         <nav class="nav-main" aria-label="Ana menü">
             @foreach ($navLinks as $link)
-                <a href="{{ $link['href'] }}">{{ $link['label'] }}</a>
+                <a href="{{ $link['href'] }}"{!! ofv_global('texts.'.$link['key']) !!}>{{ $link['label'] }}</a>
             @endforeach
         </nav>
 
@@ -26,7 +26,7 @@
             @else
                 <a href="{{ route('login') }}" style="font-size:15px;font-weight:500">Giriş Yap</a>
             @endauth
-            <a href="#teklif" class="btn btn--brand btn--pill">{{ $texts['cta_header'] }}</a>
+            <a href="#teklif" class="btn btn--brand btn--pill"{!! ofv_global('texts.cta_header') !!}>{{ $texts['cta_header'] }}</a>
         </div>
     </div>
 

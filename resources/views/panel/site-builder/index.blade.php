@@ -2,171 +2,207 @@
 
 @section('title', 'Ana sayfa tasarımı')
 
+{{-- Görsel site editörü (faz 49): gerçek vitrin imzalı çerçevede (?editor=1), elemente tıkla → sağ panel, sürükle-bırak,
+     inline metin, görsel bırak, undo/redo; tek form gönderimiyle taslak kaydı (payload JSON + görseller). JS HTTP çağrısı yapmaz. --}}
 @section('content')
-    <div class="panel-head">
-        <div>
-            <p class="eyebrow">Sayfa kurucu · {{ $website?->name }} @if ($hasChanges)<span class="badge badge--warn">yayınlanmamış değişiklik</span>@else<span class="badge badge--ok">yayınla eşit</span>@endif</p>
-            <h1 class="h2">Ana sayfa tasarımı</h1>
-        </div>
-        <div class="panel-head__actions">
-            @if ($websites->count() > 1)
-                <form method="GET" class="inline-form"><select class="control" name="website" onchange="this.form.requestSubmit()">@foreach ($websites as $w)<option value="{{ $w->id }}" @selected($website && $w->id === $website->id)>{{ $w->name }}</option>@endforeach</select></form>
-            @endif
-            @if ($previewUrl)<a href="{{ $previewUrl }}" target="_blank" rel="noopener" class="btn btn--ghost">Önizle (yeni sekme)</a>@endif
-            @can('content.publish')
-                @if ($website)
-                    <form method="POST" action="{{ route('panel.content.builder.publish', $website) }}" class="inline-form">@csrf
-                        <input class="control" type="text" name="note" maxlength="200" placeholder="Yayın notu (isteğe bağlı)" style="min-width:200px">
-                        <button type="submit" class="btn btn--brand" @disabled(! $hasChanges)>Yayınla</button>
-                    </form>
+    <style>.ap-view{padding:0}.ap-view .ap-wrap{max-width:none;padding:0;height:100%}</style>
+    @if (! $website)
+        <div class="empty-state" style="margin:24px">Site yok.</div>
+    @else
+    @php($sectionRows = $sections->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'anchor' => $s->anchor, 'is_visible' => $s->is_visible, 'hide_on_mobile' => $s->hide_on_mobile, 'hide_on_desktop' => $s->hide_on_desktop, 'locked' => $s->locked, 'label' => $s->label, 'settings' => $s->settings ?? [], 'publish_from' => $s->publish_from?->format('Y-m-d\TH:i'), 'publish_until' => $s->publish_until?->format('Y-m-d\TH:i')])->values())
+    @php($config = [
+        'websiteId' => $website->id,
+        'library' => $library, 'groups' => $groups, 'defaults' => $defaults, 'ctaActions' => $ctaActions, 'styleKeys' => $styleKeys, 'fieldStyleKeys' => $fieldStyleKeys,
+        'sections' => $sectionRows, 'texts' => $texts, 'textKeys' => $textKeys, 'footerColumns' => $footerColumns,
+        'media' => $mediaOptions, 'presets' => $presets->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'type' => $p->type, 'settings' => $p->settings ?? []])->values(),
+        'canPublish' => auth()->user()->can('content.publish'), 'device' => $device, 'selected' => $selected,
+        'frameUrl' => $frameUrl, 'revisionPreviewBase' => $revisionPreviewBase, 'previewUrl' => $previewUrl,
+    ])
+    <div class="ve" data-ve data-config="{{ json_encode($config, JSON_UNESCAPED_UNICODE) }}">
+        {{-- ================= ÜST ÇUBUK ================= --}}
+        <div class="ve-top">
+            <div class="ve-top__group">
+                <span class="eyebrow" style="margin:0">Site editörü</span>
+                @if ($websites->count() > 1)
+                    <form method="GET" class="inline-form"><select class="control" name="website" onchange="this.form.requestSubmit()">@foreach ($websites as $w)<option value="{{ $w->id }}" @selected($w->id === $website->id)>{{ $w->name }}</option>@endforeach</select></form>
+                @else
+                    <b>{{ $website->name }}</b>
                 @endif
-            @endcan
-        </div>
-    </div>
-
-    @error('builder')<div class="notice notice--error" role="alert" style="margin-bottom:22px"><span class="notice__dot" aria-hidden="true"></span><div>{{ $message }}</div></div>@enderror
-    <p class="small muted" style="margin:0 0 18px">Taslak değişiklikleri vitrine çıkmaz; <strong>Yayınla</strong> anlık görüntüyü revizyon olarak kaydeder ve site önbelleğini yeniler. Metin kaynakları: <a href="{{ route('panel.content.blocks') }}">Ana sayfa metinleri/blokları</a>; dinamik bölümler (lokasyon, oda, yazı) gerçek kayıtlardan.</p>
-
-    @if ($website)
-    <div style="display:grid;grid-template-columns:minmax(280px,1fr) minmax(320px,1.4fr);gap:20px;align-items:start">
-        {{-- SOL: bölüm listesi (sürükle-bırak + düğmeler) ve kütüphane --}}
-        <div class="stack" style="gap:16px">
-            <div class="panel">
-                <p class="eyebrow">Bölümler (taslak)</p>
-                <form id="reorder-sections" method="POST" action="{{ route('panel.content.builder.reorder', $website) }}">@csrf
-                    <input type="hidden" name="order" data-sortable-order value="{{ $sections->pluck('id')->implode(',') }}">
-                    <noscript><button type="submit" class="btn btn--ghost" style="margin-bottom:8px">Sırayı kaydet</button></noscript>
-                </form>
-                <div data-sortable data-sortable-form="reorder-sections">
-                    <ol class="stack" style="gap:8px;list-style:none;padding:0;margin:0" data-sortable-list>
-                        @foreach ($sections as $sec)
-                            @php($def = $library[$sec->type] ?? ['label' => $sec->type, 'source' => ''])
-                            <li class="card" draggable="true" data-sortable-item="{{ $sec->id }}" style="padding:10px 12px;display:flex;align-items:center;gap:10px;border-color:{{ $editing && $editing->id === $sec->id ? 'var(--brand)' : 'var(--line)' }};opacity:{{ $sec->is_visible ? 1 : .55 }}">
-                                <span class="mono muted" style="cursor:grab" title="Sürükle" aria-hidden="true">⋮⋮</span>
-                                <div style="flex:1;min-width:0">
-                                    <a href="{{ route('panel.content.builder.index', ['website' => $website->id, 'bolum' => $sec->id]) }}" style="font-weight:600">{{ $def['label'] }}</a>
-                                    <span class="small muted" style="display:block">{{ $sec->anchor ? '#'.$sec->anchor.' · ' : '' }}{{ $def['source'] }}@if ($sec->publish_from || $sec->publish_until) · zamanlı @endif @if ($sec->hide_on_mobile) · mobilde gizli @endif @if ($sec->hide_on_desktop) · masaüstünde gizli @endif</span>
-                                </div>
-                                <div class="row-actions" style="flex:none">
-                                    <button type="submit" form="mv-{{ $sec->id }}-up" class="btn btn--ghost btn--pill" title="Yukarı" @disabled($loop->first)>↑</button>
-                                    <button type="submit" form="mv-{{ $sec->id }}-down" class="btn btn--ghost btn--pill" title="Aşağı" @disabled($loop->last)>↓</button>
-                                    <button type="submit" form="tg-{{ $sec->id }}" class="btn btn--ghost btn--pill" title="{{ $sec->is_visible ? 'Gizle' : 'Göster' }}">{{ $sec->is_visible ? '◉' : '○' }}</button>
-                                    @unless ($library[$sec->type]['unique'] ?? false)<button type="submit" form="dp-{{ $sec->id }}" class="btn btn--ghost btn--pill" title="Çoğalt">⧉</button>@endunless
-                                    <button type="submit" form="rm-{{ $sec->id }}" class="btn btn--ghost btn--pill" title="Sil" style="color:var(--danger)" onclick="return confirm('Bölüm taslaktan silinsin mi?')">×</button>
-                                </div>
-                            </li>
-                        @endforeach
-                    </ol>
+                <span class="badge {{ $hasChanges ? 'badge--warn' : 'badge--ok' }}" data-publish-badge>{{ $hasChanges ? 'yayınlanmamış değişiklik' : 'yayınla eşit' }}</span>
+                <span class="badge badge--warn" data-dirty-badge hidden>kaydedilmedi</span>
+            </div>
+            <div class="ve-top__group">
+                <button type="button" class="btn btn--ghost" data-undo title="Geri al (Ctrl+Z)" disabled>↶ Geri al</button>
+                <button type="button" class="btn btn--ghost" data-redo title="Yinele (Ctrl+Y)" disabled>↷ Yinele</button>
+                <span class="ve-sep"></span>
+                <div class="tabbar" data-device-bar style="border:0">
+                    <button type="button" data-device="desktop" aria-selected="{{ $device === 'desktop' ? 'true' : 'false' }}">Masaüstü</button>
+                    <button type="button" data-device="tablet" aria-selected="{{ $device === 'tablet' ? 'true' : 'false' }}">Tablet</button>
+                    <button type="button" data-device="mobile" aria-selected="{{ $device === 'mobile' ? 'true' : 'false' }}">Mobil</button>
                 </div>
-                @foreach ($sections as $sec)
-                    <form id="mv-{{ $sec->id }}-up" method="POST" action="{{ route('panel.content.builder.move', [$website, $sec->id]) }}" hidden>@csrf<input type="hidden" name="direction" value="up"></form>
-                    <form id="mv-{{ $sec->id }}-down" method="POST" action="{{ route('panel.content.builder.move', [$website, $sec->id]) }}" hidden>@csrf<input type="hidden" name="direction" value="down"></form>
-                    <form id="tg-{{ $sec->id }}" method="POST" action="{{ route('panel.content.builder.toggle', [$website, $sec->id]) }}" hidden>@csrf</form>
-                    <form id="dp-{{ $sec->id }}" method="POST" action="{{ route('panel.content.builder.duplicate', [$website, $sec->id]) }}" hidden>@csrf</form>
-                    <form id="rm-{{ $sec->id }}" method="POST" action="{{ route('panel.content.builder.destroy', [$website, $sec->id]) }}" hidden>@csrf @method('DELETE')</form>
-                @endforeach
-            </div>
-
-            <div class="panel">
-                <p class="eyebrow">Bölüm kütüphanesi</p>
-                <form method="POST" action="{{ route('panel.content.builder.store', $website) }}" class="inline-form">@csrf
-                    <select class="control" name="type" style="flex:1 1 200px">
-                        @foreach ($library as $key => $def)
-                            <option value="{{ $key }}" @disabled(($def['unique'] ?? false) && $sections->contains('type', $key))>{{ $def['label'] }} — {{ $def['description'] }}</option>
-                        @endforeach
-                    </select>
-                    <select class="control" name="after" style="flex:0 1 160px"><option value="">Sona ekle</option>@foreach ($sections as $sec)<option value="{{ $sec->id }}">{{ $library[$sec->type]['label'] ?? $sec->type }}'dan sonra</option>@endforeach</select>
-                    <button type="submit" class="btn btn--brand">Ekle</button>
-                </form>
-            </div>
-
-            <div class="panel">
-                <p class="eyebrow">Revizyonlar</p>
-                <table class="data">
-                    <thead><tr><th>#</th><th>Yayın</th><th>Kim</th><th>Not</th><th></th></tr></thead>
-                    <tbody>
-                        @forelse ($revisions as $rev)
-                            <tr>
-                                <td class="mono">{{ $rev->number }}</td>
-                                <td class="small mono">{{ $rev->published_at->format('d.m.Y H:i') }}</td>
-                                <td class="small">{{ $rev->author?->name ?? '—' }}</td>
-                                <td class="small">{{ $rev->note ?? '—' }} <span class="muted">({{ count($rev->snapshot) }} bölüm)</span></td>
-                                <td>@can('content.publish')@unless ($loop->first)<form method="POST" action="{{ route('panel.content.builder.rollback', [$website, $rev->id]) }}" onsubmit="return confirm('Revizyon {{ $rev->number }} yeniden yayınlansın mı?')">@csrf<button type="submit" class="btn btn--ghost btn--pill">Geri al</button></form>@endunless @endcan</td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="5" class="muted">Henüz yayın yok — vitrin varsayılan yerleşimi basıyor.</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
+                <span class="ve-sep"></span>
+                <button type="button" class="btn btn--ghost" data-save title="Taslağı kaydet (Ctrl+S)">Kaydet</button>
+                <button type="button" class="btn btn--ghost" data-save-preview title="Kaydet ve gerçek önizlemeyi aç">Önizle</button>
+                @can('content.publish')
+                    <form method="POST" action="{{ route('panel.content.builder.publish', $website) }}" class="inline-form" data-publish-form>@csrf
+                        <input type="hidden" name="note" value="">
+                        <button type="submit" class="btn btn--brand" data-publish @disabled(! $hasChanges)>Yayınla</button>
+                    </form>
+                @endcan
             </div>
         </div>
 
-        {{-- SAĞ: seçili bölüm ayarları ya da cihaz önizlemesi --}}
-        <div class="stack" style="gap:16px">
-            @if ($editing)
-                @php($def = $library[$editing->type])
-                @php($set = $editing->settings ?? [])
-                <form method="POST" action="{{ route('panel.content.builder.update', [$website, $editing->id]) }}" class="panel stack" style="gap:12px">
-                    @csrf @method('PUT')
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
-                        <p class="eyebrow" style="margin:0">{{ $def['label'] }} · ayarlar</p>
-                        <span class="small muted">Veri kaynağı: {{ $def['source'] }}</span>
+        @error('builder')<div class="notice notice--error" role="alert" style="margin:10px 12px 0"><span class="notice__dot" aria-hidden="true"></span><div>{{ $message }}</div></div>@enderror
+
+        <div class="ve-body">
+            {{-- ================= SOL PANEL ================= --}}
+            <aside class="ve-left">
+                <nav class="tabbar ve-tabs" data-left-tabs>
+                    <button type="button" data-tab="blocks" aria-selected="true" title="Bloklar">Bloklar</button>
+                    <button type="button" data-tab="layers" title="Katmanlar">Katmanlar</button>
+                    <button type="button" data-tab="presets" title="Kayıtlı bloklar">Kayıtlı</button>
+                    <button type="button" data-tab="pages" title="Sayfalar">Sayfalar</button>
+                    <button type="button" data-tab="history" title="Sürümler">Sürümler</button>
+                    <button type="button" data-tab="ai" title="AI tasarım yardımcısı">✦ AI</button>
+                </nav>
+                <div class="ve-left__body">
+                    <div data-left-panel="blocks">
+                        <p class="small muted" style="margin:0 0 8px">Sayfaya sürükleyin ya da tıklayıp seçili bölümün altına ekleyin. Gerçek veri blokları (hizmet, lokasyon, yazı…) canlı kayıtlardan basılır.</p>
+                        @foreach ($groups as $gk => $gl)
+                            <p class="eyebrow" style="margin:12px 0 6px">{{ $gl }}</p>
+                            <div class="ve-palette">
+                                @foreach ($library as $type => $def)
+                                    @if ($def['group'] === $gk)
+                                        <button type="button" class="ve-chip" draggable="true" data-add-type="{{ $type }}" title="{{ $def['description'] }} · Kaynak: {{ $def['source'] }}"><span class="ve-chip__icon" aria-hidden="true">{{ $def['icon'] }}</span>{{ $def['label'] }}@if ($def['unique'] ?? false)<span class="ve-chip__one" title="Sayfada bir kez">1</span>@endif</button>
+                                    @endif
+                                @endforeach
+                            </div>
+                        @endforeach
                     </div>
-                    @foreach ($def['fields'] as $key => $field)
-                        @if ($field['type'] === 'cta')
-                            @php($cta = $set['cta'] ?? ['action' => 'none', 'target' => '', 'label' => ''])
-                            <fieldset class="stack" style="gap:8px;border:1px solid var(--line);border-radius:var(--r-md);padding:12px">
-                                <legend class="label">{{ $field['label'] }}</legend>
-                                <div class="grid-auto" style="--min:160px;--gap:10px">
-                                    <label class="field"><span class="label">Eylem</span>
-                                        <select class="control" name="settings[{{ $key }}][action]">@foreach ($ctaActions as $ak => $al)<option value="{{ $ak }}" @selected(($cta['action'] ?? 'none') === $ak)>{{ $al }}</option>@endforeach</select>
-                                    </label>
-                                    <label class="field"><span class="label">Hedef (çapa adı / sayfa yolu / https adres)</span><input class="control mono" type="text" name="settings[{{ $key }}][target]" value="{{ $cta['target'] ?? '' }}" maxlength="200"></label>
-                                    <label class="field"><span class="label">Düğme metni</span><input class="control" type="text" name="settings[{{ $key }}][label]" value="{{ $cta['label'] ?? '' }}" maxlength="60"></label>
+                    <div data-left-panel="layers" hidden>
+                        <p class="small muted" style="margin:0 0 8px">Sürükleyerek sıralayın. ◉ göster/gizle · 🔒 kilit · ⧉ kopyala · × sil.</p>
+                        <ol class="ve-layers" data-layers></ol>
+                    </div>
+                    <div data-left-panel="presets" hidden>
+                        <p class="small muted" style="margin:0 0 8px">Seçili bölümü sağ panelden <b>Blok olarak kaydet</b> ile ekleyin; buradan sayfaya sürükleyin/ekleyin.</p>
+                        <div class="ve-palette" data-preset-list>
+                            @forelse ($presets as $p)
+                                <div class="ve-chip ve-chip--preset" draggable="true" data-add-type="preset:{{ $p->id }}">
+                                    <span class="ve-chip__icon" aria-hidden="true">{{ $library[$p->type]['icon'] ?? '▣' }}</span><span style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">{{ $p->name }}</b><span class="small muted">{{ $library[$p->type]['label'] ?? $p->type }}</span></span>
+                                    <form method="POST" action="{{ route('panel.content.builder.preset.destroy', [$website, $p->id]) }}" onsubmit="return confirm('Kayıtlı blok silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--quiet" title="Sil">×</button></form>
                                 </div>
-                                <span class="small muted">Telefon/WhatsApp/e-posta hedefi site ayarından gelir; ayar boşsa düğme basılmaz.</span>
-                            </fieldset>
-                        @elseif ($field['type'] === 'textarea' || $field['type'] === 'markdown' || $field['type'] === 'lines')
-                            <label class="field"><span class="label">{{ $field['label'] }}</span>
-                                <textarea class="control {{ $field['type'] === 'markdown' ? 'mono' : '' }}" name="settings[{{ $key }}]" style="min-height:{{ $field['type'] === 'textarea' ? 70 : 160 }}px">{{ old('settings.'.$key, is_array($set[$key] ?? null) ? implode("\n", $set[$key]) : ($set[$key] ?? '')) }}</textarea>
-                            </label>
-                        @elseif ($field['type'] === 'select')
-                            <label class="field"><span class="label">{{ $field['label'] }}</span>
-                                <select class="control" name="settings[{{ $key }}]">@foreach ($field['options'] ?? [] as $ov => $ol)<option value="{{ $ov }}" @selected(($set[$key] ?? array_key_first($field['options'])) === $ov)>{{ $ol }}</option>@endforeach</select>
-                            </label>
-                        @else
-                            <label class="field"><span class="label">{{ $field['label'] }}</span><input class="control" type="text" name="settings[{{ $key }}]" value="{{ old('settings.'.$key, $set[$key] ?? '') }}" maxlength="300"></label>
-                        @endif
-                    @endforeach
-                    <div class="grid-auto" style="--min:160px;--gap:10px">
-                        <label class="field"><span class="label">Çapa (#id)</span><input class="control mono" type="text" name="anchor" value="{{ old('anchor', $editing->anchor) }}" maxlength="40" pattern="[a-z0-9-]{2,40}"></label>
-                        <label class="field"><span class="label">Yayın başlangıcı</span><input class="control mono" type="datetime-local" name="publish_from" value="{{ old('publish_from', $editing->publish_from?->format('Y-m-d\TH:i')) }}"></label>
-                        <label class="field"><span class="label">Yayın bitişi</span><input class="control mono" type="datetime-local" name="publish_until" value="{{ old('publish_until', $editing->publish_until?->format('Y-m-d\TH:i')) }}"></label>
-                    </div>
-                    <div style="display:flex;gap:16px;flex-wrap:wrap">
-                        <label class="checkbox-row"><input type="checkbox" name="is_visible" value="1" @checked(old('is_visible', $editing->is_visible))><span>Görünür</span></label>
-                        <label class="checkbox-row"><input type="checkbox" name="hide_on_mobile" value="1" @checked(old('hide_on_mobile', $editing->hide_on_mobile))><span>Mobilde gizle</span></label>
-                        <label class="checkbox-row"><input type="checkbox" name="hide_on_desktop" value="1" @checked(old('hide_on_desktop', $editing->hide_on_desktop))><span>Masaüstünde gizle</span></label>
-                    </div>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap">
-                        <button type="submit" class="btn btn--brand">Taslağa kaydet</button>
-                        <a href="{{ route('panel.content.builder.index', ['website' => $website->id]) }}" class="btn btn--ghost">Önizlemeye dön</a>
-                    </div>
-                </form>
-            @else
-                <div class="panel">
-                    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-                        <p class="eyebrow" style="margin:0">Canlı önizleme (taslak)</p>
-                        <div style="display:flex;gap:6px">
-                            @foreach (['desktop' => 'Masaüstü', 'tablet' => 'Tablet', 'mobile' => 'Mobil'] as $dk => $dl)
-                                <a href="{{ route('panel.content.builder.index', ['website' => $website->id, 'cihaz' => $dk]) }}" class="chip" aria-pressed="{{ $device === $dk ? 'true' : 'false' }}">{{ $dl }}</a>
-                            @endforeach
+                            @empty
+                                <div class="empty-state" style="border:0;padding:12px">Kayıtlı blok yok.</div>
+                            @endforelse
                         </div>
                     </div>
-                    <iframe src="{{ $previewUrl }}" title="Ana sayfa önizleme" class="builder-frame builder-frame--{{ $device }}" loading="lazy"></iframe>
+                    <div data-left-panel="pages" hidden>
+                        <div class="ve-pagelist">
+                            <button type="button" class="ve-page is-active" data-open-page="home"><b>Ana sayfa</b><span class="small muted">bölümler · header · footer</span></button>
+                            <button type="button" class="ve-page" data-open-global="header"><b>Header &amp; üst şerit</b><span class="small muted">menü etiketleri, CTA — tüm sayfalarda</span></button>
+                            <button type="button" class="ve-page" data-open-global="footer"><b>Footer</b><span class="small muted">sütunlar — tüm sayfalarda</span></button>
+                            <p class="eyebrow" style="margin:12px 0 6px">Sayfalar</p>
+                            @forelse ($pages ?? [] as $page)
+                                <div class="ve-page ve-page--row">
+                                    <div style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">{{ $page->title }}</b><span class="small muted mono">{{ $page->path() }}</span><span class="small" style="display:block;margin-top:4px"><span class="pill {{ $page->status->isLive() ? 'g' : 'n' }} flat">{{ $page->status->label() }}</span> <span class="pill {{ $page->seo_score === null ? 'n' : ($page->seo_score >= 80 ? 'g' : ($page->seo_score >= 50 ? 'w' : 'c')) }} flat" title="SEO skoru">SEO {{ $page->seo_score ?? '—' }}</span> <span class="pill {{ $page->geoReady() ? 'g' : 'n' }} flat" title="GEO">GEO {{ $page->geoReady() ? 'hazır' : 'eksik' }}</span></span></div>
+                                    <div class="stack" style="gap:4px">
+                                        <a href="{{ route('panel.content.preview', $page) }}" class="btn btn--quiet" title="Gerçek görünüm">Önizle</a>
+                                        @can('content.edit')<a href="{{ $page->status->isLive() ? route('panel.content.show', $page) : route('panel.content.edit', $page) }}" class="btn btn--quiet" title="İçerik, SEO, GEO, şema">Stüdyo</a>@endcan
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="empty-state" style="border:0;padding:12px">Sayfa yok.</div>
+                            @endforelse
+                            @can('content.create')
+                                <button type="button" class="btn btn--brand" style="margin-top:10px;width:100%" data-modal-open="#modal-new-page">+ Yeni sayfa</button>
+                            @endcan
+                        </div>
+                    </div>
+                    <div data-left-panel="history" hidden>
+                        <p class="small muted" style="margin:0 0 8px">Her yayın bir sürümdür. Önizle: o sürümün görünümü; Geri dön: sürümü taslağa alır ve yeni sürüm olarak yayınlar.</p>
+                        <div class="ve-history">
+                            @forelse ($revisions as $rev)
+                                <div class="ve-rev">
+                                    <div><b>Versiyon {{ $rev->number }}</b> <span class="small muted">· {{ $rev->published_at?->format('d.m.Y H:i') }} · {{ $rev->author?->name ?? '—' }}</span>@if ($rev->note)<div class="small">{{ $rev->note }}</div>@endif</div>
+                                    <div style="display:flex;gap:4px">
+                                        <button type="button" class="btn btn--quiet" data-preview-revision="{{ $rev->number }}">Önizle</button>
+                                        @can('content.publish')<form method="POST" action="{{ route('panel.content.builder.rollback', [$website, $rev->id]) }}" onsubmit="return confirm('Versiyon {{ $rev->number }} taslağa alınıp yeni sürüm olarak yayınlanacak. Devam?')">@csrf<button type="submit" class="btn btn--quiet">Geri dön</button></form>@endcan
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="empty-state" style="border:0;padding:12px">Henüz yayın yok.</div>
+                            @endforelse
+                        </div>
+                        <button type="button" class="btn btn--ghost" style="margin-top:8px;width:100%" data-preview-revision="">Taslağa dön</button>
+                    </div>
+                    <div data-left-panel="ai" hidden>
+                        <p class="small muted" style="margin:0 0 8px">✦ Komutu yazın; yardımcı mevcut bileşen sistemiyle bir değişiklik <b>önerisi</b> hazırlar, siz onaylayınca çerçeveye uygulanır (kaydetmeden önce görürsünüz). Kural tabanlıdır; dış AI sağlayıcı bağlandığında aynı öneri arayüzü onu kullanır.</p>
+                        <textarea class="control" data-ai-input rows="3" placeholder='Örn. "Hero bölümünü daha modern yap", "Bu bölüme 3 hizmet kartı ekle", "Bu bölümü mobilde iki kolona çevir", "SSS ekle", "Referanslar bölümünü koyu yap"'></textarea>
+                        <div style="display:flex;gap:6px;margin-top:6px"><button type="button" class="btn btn--brand" data-ai-run>Öneri hazırla</button><button type="button" class="btn btn--quiet" data-ai-help>Örnekler</button></div>
+                        <div class="ve-ai-out" data-ai-out hidden></div>
+                    </div>
                 </div>
-            @endif
+            </aside>
+
+            {{-- ================= TUVAL ================= --}}
+            <div class="ve-canvas" data-canvas>
+                <div class="ve-frame-wrap" data-frame-wrap data-device="{{ $device }}">
+                    <iframe src="{{ $frameUrl }}" title="Site editörü" data-frame></iframe>
+                </div>
+                <div class="ve-toast" data-toast hidden></div>
+            </div>
+
+            {{-- ================= SAĞ PANEL ================= --}}
+            <aside class="ve-right">
+                <div class="ve-right__head" data-right-head><b>Seçim yok</b><span class="small muted">Sayfada bir bölüme, metne ya da görsele tıklayın.</span></div>
+                <nav class="tabbar ve-tabs" data-right-tabs hidden>
+                    <button type="button" data-tab="content" aria-selected="true">İçerik</button>
+                    <button type="button" data-tab="design">Tasarım</button>
+                    <button type="button" data-tab="visibility">Görünürlük</button>
+                    <button type="button" data-tab="seo">SEO</button>
+                </nav>
+                <div class="ve-right__body" data-right-body></div>
+            </aside>
         </div>
+
+        {{-- Kayıt formu: payload JSON + bırakılan görseller (DataTransfer ile eklenir). --}}
+        <form method="POST" action="{{ route('panel.content.builder.draft', $website) }}?cihaz={{ $device }}" enctype="multipart/form-data" data-save-form hidden>@csrf @method('PUT')
+            <textarea name="payload" data-payload></textarea>
+            <input type="hidden" name="then" value="stay" data-save-then>
+            <div data-upload-slot></div>
+        </form>
+        <form method="POST" action="{{ route('panel.content.builder.preset.store', $website) }}" data-preset-form hidden>@csrf<input type="hidden" name="name"><input type="hidden" name="type"><input type="hidden" name="settings"></form>
+
+        {{-- + Yeni sayfa --}}
+        @can('content.create')
+        <dialog class="modal" id="modal-new-page">
+            <form method="POST" action="{{ route('panel.content.builder.page.store', $website) }}" class="modal__form">@csrf
+                <div class="modal__head"><h2>Yeni sayfa</h2><button type="button" class="btn btn--quiet" data-modal-close>×</button></div>
+                <div class="modal__body stack" style="gap:10px">
+                    <label class="field"><span class="label">Sayfa başlığı</span><input class="control" type="text" name="title" required minlength="3" maxlength="190"></label>
+                    <label class="field"><span class="label">Başlangıç</span>
+                        <select class="control" name="mode" data-newpage-mode>
+                            <option value="blank">Boş sayfa</option>
+                            <option value="template">Hazır şablon</option>
+                            @if (($pages?->count() ?? 0) > 0)<option value="copy">Mevcut sayfayı kopyala</option>@endif
+                        </select>
+                    </label>
+                    <label class="field" data-newpage-for="template" hidden><span class="label">Şablon</span>
+                        <select class="control" name="template">@foreach ($pageTemplates as $k => $t)<option value="{{ $k }}">{{ $t['label'] }} — {{ $t['description'] }}</option>@endforeach</select>
+                    </label>
+                    <label class="field" data-newpage-for="copy" hidden><span class="label">Kaynak sayfa</span>
+                        <select class="control" name="source">@foreach ($pages ?? [] as $page)<option value="{{ $page->id }}">{{ $page->title }} ({{ $page->path() }})</option>@endforeach</select>
+                    </label>
+                    <p class="small muted" style="margin:0">Sayfa taslak olarak oluşturulur ve CMS stüdyoda açılır (içerik, SEO, GEO, şema, önizleme, yayın).</p>
+                </div>
+                <div class="modal__foot"><button type="button" class="btn btn--ghost" data-modal-close>Vazgeç</button><button type="submit" class="btn btn--brand">Oluştur</button></div>
+            </form>
+        </dialog>
+        @endcan
     </div>
     @endif
 @endsection
+
+@push('scripts')
+    <script src="{{ asset_v('js/site-editor.js') }}" defer></script>
+@endpush

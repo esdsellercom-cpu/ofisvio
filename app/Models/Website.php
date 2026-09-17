@@ -23,13 +23,13 @@ class Website extends Model
     protected $fillable = [
         'organization_id', 'name', 'slug', 'domain', 'theme', 'is_default',
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
-        'same_as', 'legal_name', 'nav_links',
+        'same_as', 'legal_name', 'nav_links', 'builder_globals',
         'cache_ttl_seconds', 'http_max_age', 'http_s_maxage',
         'contact_phone', 'contact_email', 'tagline', 'address', 'hero_media_id', 'whatsapp_number', 'business_hours',
         'announcement_text', 'announcement_href', 'announcement_until',
     ];
 
-    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'seo_settings' => 'array', 'nav_links' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'seo_settings' => 'array', 'nav_links' => 'array', 'builder_globals' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
 
     /**
      * Marka/iletişim bilgisi (faz 29): yalnız site alanları (boşsa gösterilmez).

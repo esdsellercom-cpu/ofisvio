@@ -673,6 +673,12 @@ class ContentService
     }
 
     /** Başka organizasyonun içeriği null döner (çağıran 404 verir; 403 varlığı sızdırır). */
+    /** Siteye ait içerik (görsel editör sayfa kopyalama); başka sitenin kaydı null. */
+    public function findForWebsite(Website $website, int $contentId): ?Content
+    {
+        return Content::query()->where('website_id', $website->id)->find($contentId);
+    }
+
     public function findForOrganization(int $organizationId, int $contentId): ?Content
     {
         return Content::query()

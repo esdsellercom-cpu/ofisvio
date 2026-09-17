@@ -1,8 +1,8 @@
 {{-- SSS bölümü: soru | cevap satırları; FAQPage JSON-LD --}}
 @php($items = collect((array) ($s['items'] ?? []))->map(fn ($l) => array_map('trim', explode('|', (string) $l, 2)))->filter(fn ($p) => count($p) === 2 && $p[0] !== '' && $p[1] !== '')->values())
-@if ($items->isNotEmpty())
+@if ($items->isNotEmpty() || ofv_editor())
 <section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section">
-    <h2 class="h2" style="max-width:24ch;margin-bottom:24px">{{ $s['title'] ?? 'Sık sorulanlar' }}</h2>
+    <h2 class="h2" style="max-width:24ch;margin-bottom:24px"{!! ofv($s, 'title') !!}>{{ $s['title'] ?? 'Sık sorulanlar' }}</h2>
     <div class="stack" style="gap:10px;max-width:76ch">
         @foreach ($items as [$q, $a])
             <details class="card" style="padding:16px 18px;display:block">

@@ -13,7 +13,7 @@
     <div class="section-head">
         <div style="min-width:0">
             <p class="eyebrow">02 — Nasıl çalışır</p>
-            <h2 class="h2" style="max-width:22ch">{{ $s['title'] ?? $texts['journey_title'] }}</h2>
+            <h2 class="h2" style="max-width:22ch"{!! ofv($s, 'title', 'texts.journey_title') !!}>{{ $s['title'] ?? $texts['journey_title'] }}</h2>
         </div>
         <p class="body-muted" style="margin:0;max-width:34ch;font-size:16px">
             {{ $s['lede'] ?? $texts['journey_lede'] }}

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **301/301** (Unit 12 · Feature 273 · Architecture 16) |
+| `php artisan test` | ✅ **306/306** (Unit 12 · Feature 278 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -655,6 +655,44 @@ stüdyoya dönüştü: **İçerik · Görseller · İç bağlantı · SEO · GEO
   audit; onay gerektiren içerik reddedilir).
 - Taslak (`content_drafts`) aynı stüdyo alanlarını taşır ve yayınlanınca birleşir. Yeni sütunlar
   `2026_09_18_000026_cms_studio_fields`. Testler `CmsStudioTest` (7).
+
+### 49. Görsel site editörü — `/panel/icerik/tasarim` ✅ (18 Eylül 2026)
+Form listesi yerine **gerçek vitrin üzerinde** düzenleme. Mevcut mimari korunur: `site_sections` taslak → `publish`
+anlık görüntü (`site_revisions`) → vitrin; `SectionLibrary` bileşenleri; dinamik bölümler gerçek kayıtlardan.
+- **Çerçeve:** imzalı `site.preview?editor=1` (30 dk) iframe'de; yalnız bu modda `ofv_editor()` işaretleri
+  (`data-ofv-section/-field/-global/-image/-md`) ve `public/js/site-editor-frame.js` basılır — canlı vitrine editör
+  kodu gitmez (`VisualEditorTest` bunu zorlar). Aynı kökende doğrudan DOM erişimi; JS'ten HTTP çağrısı yok.
+- **Üst çubuk:** Geri al · Yinele (bellekte anlık görüntü yığını, Ctrl+Z/Y) · Kaydet (Ctrl+S) · Önizle (kaydet +
+  gerçek önizleme) · Masaüstü/Tablet/Mobil (çerçeve genişliği + cihaz bazlı tasarım) · Yayınla (content.publish).
+- **Elemente tıkla → sağ panel:** İçerik (kütüphane şemasından alanlar, CTA, medya seçici) · Tasarım (cihaz başına
+  `SectionStyle`: arka plan/renk, padding/margin, hizalama, kolon 1–4, maks. genişlik, z-index, köşe, gölge, kenarlık,
+  gizle; alan başına metin biçimi: boyut/ağırlık/yazı tipi/renk/satır yüksekliği/harf aralığı/hizalama/italik) ·
+  Görünürlük (görünür, mobil/masaüstü gizle, kilit, zamanlama) · SEO (çerçeveden başlık/açıklama/H1/başlık
+  hiyerarşisi/iç bağlantı/alt/kelime/canonical/şema; sayfa bazlı SEO-GEO-şema CMS stüdyoya bağlı).
+- **Inline metin:** `data-ofv-field` alanları contenteditable; yüzen çubuk (kalın/italik/hizalama/boyut/renk);
+  global metinler (menü etiketi, CTA, hero satırları) `data-ofv-global` ile aynı yerden düzenlenir.
+- **Hover araç çubuğu:** Düzenle · ↑ · ↓ · Kopyala · Gizle · Ayarlar · Sil (kilitli bölümde kapalı).
+- **Sürükle-bırak:** sol palet (Temel · İçerik · Yerleşim · Gerçek veri; yeni tipler `heading image buttons divider
+  spacer columns content features testimonials gallery map`) → çerçeveye bırakma çizgisi; katmanlar listesinde ve
+  çerçevede bölüm taşıma; **bilgisayardan görseli sayfadaki görselin üstüne bırakma** (kaydedince `MediaService::upload`
+  karantina zinciri, `upload:token` → medya id). Şablonlar `<template data-ofv-template>` ile gerçek bileşen olarak
+  çizilir; ekleme sunucu çağrısız.
+- **Katmanlar:** Header · bölümler (+ alan çocukları) · Footer; göster/gizle, kilit, kopyala, sil, sürükle.
+- **Global alanlar:** Header/üst şerit/Footer tıklanır; metinler ve footer sütunları `websites.builder_globals`
+  taslağına yazılır, önizlemede biner, **yayınlayınca** `SiteBlockService`'e geçer (tüm sayfalarda). Site ana görseli
+  (hero) yalnız `website.manage` ile.
+- **Kayıt:** tek `PUT tasarim/{website}/taslak` — `payload` JSON (sıra, yeni/silinen, kilit, etiket, ayarlar,
+  globaller) + `uploads[token]`; `SiteBuilderService::applyDraft` her bölümü `normalizeSettings` (alan tipi + stil
+  allowlist) ile doğrular, tekil tip/tip değişimi/çapa/harita kaynağı hatalarında hiçbir şey yazmaz. Kaydedilmemiş
+  değişiklikte çıkış uyarısı.
+- **Sayfalar:** liste (durum, SEO skoru, GEO rozeti, Önizle, Stüdyo) + **+ Yeni sayfa** (boş / hazır şablon
+  `PageTemplates` / mevcut sayfayı kopyala) → CMS stüdyo. **Kayıtlı bloklar** (`site_block_presets`): "Blok olarak
+  kaydet" → palette/çerçeve şablonu. **Sürümler:** revizyon listesi, "Önizle" (`?revision=N`) ve geri dön.
+- **✦ AI tasarım yardımcısı:** kural tabanlı komut yorumlayıcı ("hero bölümünü daha modern yap", "bu bölüme 3 kart
+  ekle", "SSS ekle", "mobilde iki kolon", "koyu yap", "görseli değiştir", "gizle/taşı") → öneri listesi →
+  Uygula → çerçevede önizleme; dış AI sağlayıcı yok (bağlanınca aynı öneri arayüzü). Uydurma içerik üretmez.
+- Migrasyon `2026_09_18_000027_visual_editor` (`site_sections.locked/label`, `websites.builder_globals`,
+  `site_block_presets`). Testler `VisualEditorTest` (5); `SiteBuilderTest` değişmeden geçer.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

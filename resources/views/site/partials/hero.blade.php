@@ -1,15 +1,15 @@
 <section @if ($anchor) id="{{ $anchor }}" @endif class="wrap" style="padding-top:72px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:56px;align-items:end">
     <div style="min-width:0">
-        <p class="eyebrow" style="margin-bottom:22px">{{ $s['eyebrow'] ?? $texts['hero_eyebrow'] }}</p>
-        <h1 class="h1">
+        <p class="eyebrow" style="margin-bottom:22px"{!! ofv($s, 'eyebrow', 'texts.hero_eyebrow') !!}>{{ $s['eyebrow'] ?? $texts['hero_eyebrow'] }}</p>
+        <h1 class="h1"{!! empty($s['title']) ? '' : ofv($s, 'title') !!}>
             @if (! empty($s['title']))
                 {{ $s['title'] }}
             @else
-                {{ $texts['hero_title'] }}<br>
-                <span class="serif-accent">{{ $texts['hero_accent'] }}</span> {{ $texts['hero_title_after'] }}
+                @if (ofv_editor())<span data-ofv-global="texts.hero_title">{{ $texts['hero_title'] }}</span>@else{{ $texts['hero_title'] }}@endif<br>
+                <span class="serif-accent"{!! ofv_global('texts.hero_accent') !!}>{{ $texts['hero_accent'] }}</span> @if (ofv_editor())<span data-ofv-global="texts.hero_title_after">{{ $texts['hero_title_after'] }}</span>@else{{ $texts['hero_title_after'] }}@endif
             @endif
         </h1>
-        <p class="lede" style="margin:26px 0 0;max-width:50ch">{{ $s['lede'] ?? $texts['hero_lede'] }}</p>
+        <p class="lede" style="margin:26px 0 0;max-width:50ch"{!! ofv($s, 'lede', 'texts.hero_lede') !!}>{{ $s['lede'] ?? $texts['hero_lede'] }}</p>
         @if ($heroCta)<p style="margin:22px 0 0"><a href="{{ $heroCta['href'] }}" class="btn btn--brand" @if ($heroCta['external']) target="_blank" rel="noopener" @endif>{{ $heroCta['label'] }}</a></p>@endif
 
         <div class="panel" style="margin-top:38px;border-radius:var(--r-lg);padding:20px">
@@ -51,10 +51,10 @@
 
     <div style="min-width:0">
         @if ($currentWebsite?->hero)
-            <img src="{{ $currentWebsite->hero->url() }}" alt="{{ $currentWebsite->hero->alt ?? '' }}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block">
+            <img src="{{ $currentWebsite->hero->url() }}" alt="{{ $currentWebsite->hero->alt ?? '' }}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block"{!! ofv_editor() ? ' data-ofv-site-image="hero"' : '' !!}>
         @else
             <div class="shot" style="aspect-ratio:4/5;border-radius:20px;border:1px solid var(--line);align-items:flex-end;padding:22px">
-                <span class="shot__note">lokasyon ana görseli · 1200×1500</span>
+                <span class="shot__note"{!! ofv_editor() ? ' data-ofv-site-image="hero"' : '' !!}>lokasyon ana görseli · 1200×1500</span>
             </div>
         @endif
     </div>

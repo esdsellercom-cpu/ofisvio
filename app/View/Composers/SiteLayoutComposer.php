@@ -72,6 +72,11 @@ class SiteLayoutComposer
         $brand = $site?->brand() ?? ['name' => (string) config('ofisvio.brand.name'), 'legal_name' => (string) config('ofisvio.brand.name'), 'phone' => '', 'phone_href' => '', 'email' => '', 'tagline' => '', 'address' => '', 'whatsapp' => '', 'whatsapp_href' => '', 'hours' => [], 'announcement' => null];
         $texts = $this->blocks->texts($site);
 
+        // Görsel editör / önizleme (faz 49): header/footer metin taslağı canlının üstüne biner; yayınlanana kadar vitrine çıkmaz.
+        if ($site !== null && ($data['preview'] ?? false) && ! $tenant) {
+            $texts = array_merge($texts, $this->builder->globalsDraft($site)['texts']);
+        }
+
         if ($brand['whatsapp_href'] !== '' && ($texts['whatsapp_message'] ?? '') !== '') {
             $brand['whatsapp_href'] .= '?text='.rawurlencode($texts['whatsapp_message']);
         }
@@ -85,9 +90,10 @@ class SiteLayoutComposer
         if ($site !== null && ! $tenant) {
             $labels = ['solutions' => 'nav_solutions', 'journey' => 'nav_journey', 'locations' => 'nav_locations', 'meeting' => 'nav_meeting', 'pricing' => 'nav_pricing'];
 
-            foreach ($this->builder->published($site) as $section) {
+            // Önizleme/editörde menü taslağın çapalarından (yayınlanınca aynı olacak görünüm).
+            foreach (($data['preview'] ?? false) ? $this->builder->draftForPreview($site) : $this->builder->published($site) as $section) {
                 if (isset($labels[$section['type']]) && $section['anchor'] !== null && ($texts[$labels[$section['type']]] ?? '') !== '') {
-                    $navLinks[] = ['label' => $texts[$labels[$section['type']]], 'href' => '#'.$section['anchor']];
+                    $navLinks[] = ['label' => $texts[$labels[$section['type']]], 'href' => '#'.$section['anchor'], 'key' => $labels[$section['type']]];
                 }
             }
         }

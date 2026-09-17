@@ -1,11 +1,11 @@
-<footer class="site-footer">
+<footer class="site-footer"{!! ofv_editor() ? ' data-ofv-global-area="footer"' : '' !!}>
     <div class="wrap grid-auto" style="--min:190px;--gap:40px 32px;padding-block:64px 28px">
         <div style="min-width:0">
             <div style="display:flex;align-items:baseline;gap:9px;margin-bottom:18px">
                 <span style="width:13px;height:13px;background:var(--brand-light);border-radius:3px;display:block" aria-hidden="true"></span>
                 <span class="brand__name" style="color:var(--dark-ink)">{{ $brand['name'] }}</span>
             </div>
-            <p style="margin:0;font-size:14.5px;line-height:1.6;max-width:30ch">{{ $brand['tagline'] }}</p>
+            <p style="margin:0;font-size:14.5px;line-height:1.6;max-width:30ch"{!! ofv_editor() ? ' data-ofv-brand="tagline"' : '' !!}>{{ $brand['tagline'] }}</p>
             <div class="stack mono" style="margin-top:22px;gap:6px;font-size:13.5px">
                 @if ($brand['phone'])<a href="{{ $brand['phone_href'] }}" style="color:var(--dark-ink)">{{ $brand['phone'] }}</a>@endif
                 @if ($brand['email'])<a href="mailto:{{ $brand['email'] }}" style="color:var(--dark-ink)">{{ $brand['email'] }}</a>@endif
@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        @foreach ($blocks['footer_columns'] as $col)
+        @foreach ($blocks['footer_columns'] as $col)@if ($loop->first && ofv_editor())<div hidden data-ofv-footer-columns></div>@endif
             <div style="min-width:0">
                 <div class="label" style="margin-bottom:16px">{{ $col['title'] }}</div>
                 <div class="stack" style="gap:9px;font-size:14.5px">

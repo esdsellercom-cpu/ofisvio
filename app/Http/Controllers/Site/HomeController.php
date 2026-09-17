@@ -13,6 +13,7 @@ use App\Services\SiteBuilderService;
 use App\Support\ActivationJourney;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 /**
@@ -41,15 +42,23 @@ class HomeController extends Controller
         return $this->render(false);
     }
 
-    /** İmzalı önizleme (route 'signed' middleware): taslak bölümler, noindex, önbellek yok. */
-    public function preview(int $website): View
+    /**
+     * İmzalı önizleme (route 'signed' middleware): taslak bölümler, noindex, önbellek yok.
+     * `?editor=1` görsel editör çerçevesi (faz 49): tüm taslak bölümler + düzenleme işaretleri + şablonlar, editör betiği
+     * yalnız burada yüklenir. `?revision=N` eski revizyonun görünümü (sürüm geçmişi önizlemesi).
+     */
+    public function preview(Request $request, int $website): View
     {
         abort_if($this->website->get()?->id !== $website, 404);
 
-        return $this->render(true);
+        if ($request->boolean('editor')) {
+            $request->attributes->set('ofv.editor', true);
+        }
+
+        return $this->render(true, $request->boolean('editor'), $request->integer('revision') ?: null);
     }
 
-    private function render(bool $preview): View
+    private function render(bool $preview, bool $editor = false, ?int $revision = null): View
     {
         // Müşteri sitesi (Host eşleşti): Ofisvio pazarlama blokları DEĞİL,
         // o sitenin kendi sayfa/yazıları.
@@ -64,6 +73,23 @@ class HomeController extends Controller
         }
 
         $locations = Location::published()->with(['cover', 'services'])->get();
+        $site = $this->website->get();
+        $sections = match (true) {
+            $editor => $this->builder->draftForEditor($site),
+            $revision !== null => $this->builder->revisionForPreview($site, $revision),
+            $preview => $this->builder->draftForPreview($site),
+            default => $this->builder->published($site),
+        };
+        $blocks = $this->blocks->all($site);
+
+        // Önizleme/editör: global (footer sütunları) taslağı canlının üstüne biner; yayınlanana kadar vitrine çıkmaz.
+        if ($preview) {
+            $globals = $this->builder->globalsDraft($site);
+
+            if ($globals['footer_columns'] !== '') {
+                $blocks['footer_columns'] = $this->blocks->parseForPreview('footer_columns', $globals['footer_columns']);
+            }
+        }
 
         return view('site.home', [
             'locations' => $locations,
@@ -79,10 +105,13 @@ class HomeController extends Controller
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'homePosts' => $this->contents->livePosts($this->website->get(), 6),
             // Sayfa kurucu: yayınlanmış bölümler (önizlemede taslak).
-            'sections' => $preview ? $this->builder->draftForPreview($this->website->get()) : $this->builder->published($this->website->get()),
+            'sections' => $sections,
             'preview' => $preview,
+            'editor' => $editor,
+            'editorTemplates' => $editor ? $this->builder->templates($site) : [],
+            'revisionPreview' => $revision,
             // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).
-            'blocks' => $this->blocks->all($this->website->get()),
+            'blocks' => $blocks,
         ]);
     }
 
