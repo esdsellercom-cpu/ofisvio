@@ -7,6 +7,7 @@ use App\Http\Requests\StoreRoomRequest;
 use App\Models\Location;
 use App\Models\Room;
 use App\Services\BookingService;
+use App\Services\LocationMediaService;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -18,7 +19,7 @@ use Illuminate\Http\Request;
  */
 class RoomController extends Controller
 {
-    public function __construct(private readonly BookingService $bookings) {}
+    public function __construct(private readonly BookingService $bookings, private readonly LocationMediaService $media) {}
 
     public function index(Location $location): View
     {
@@ -26,6 +27,7 @@ class RoomController extends Controller
             'location' => $location,
             'rooms' => $this->bookings->rooms($location),
             'kinds' => Room::KINDS,
+            'gallery' => $this->media->links($location),
         ]);
     }
 

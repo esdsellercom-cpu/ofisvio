@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Company;
 use App\Models\Location;
+use App\Models\LocationMedia;
 use App\Models\Scopes\TenantScope;
 use App\Models\Space;
 use App\Models\SpaceAssignment;
@@ -59,6 +60,7 @@ class SpaceService
     {
         $space = new Space($this->attributes($data) + ['location_id' => $location->id]);
         $this->assertUniqueName($space);
+        $this->assertCoverInGallery($location, $space->cover_media_id);
         $space->save();
         $this->audit->record($actor, 'space.created', 'space', $space->id, [], $space->toArray());
 
@@ -71,6 +73,7 @@ class SpaceService
         $before = $space->toArray();
         $space->fill($this->attributes($data));
         $this->assertUniqueName($space);
+        $this->assertCoverInGallery($space->location, $space->cover_media_id);
 
         if (! $space->is_active && $space->occupied() > 0) {
             throw new DomainException('Aktif tahsisi olan alan pasife alınamaz; önce tahsisi sonlandırın.');
@@ -104,6 +107,10 @@ class SpaceService
             throw new DomainException('Pasif alana tahsis yapılamaz.');
         }
 
+        if ($space->isUnderMaintenance()) {
+            throw new DomainException('Alan bakımda'.($space->maintenance_note ? ' ('.$space->maintenance_note.')' : '').'; bakım bitişi '.$space->maintenance_until?->format('d.m.Y').'.');
+        }
+
         if (in_array($company->status, BookingService::BLOCKED_COMPANY_STATUSES, true)) {
             throw new DomainException('Askıda ya da fesih sürecindeki şirkete tahsis yapılamaz.');
         }
@@ -122,7 +129,9 @@ class SpaceService
         }
 
         return DB::transaction(function () use ($actor, $space, $company, $subscription, $data, $starts, $ends) {
-            // Çift tahsis yarışı: alanın aktif tahsisleri kilitlenir, kapasite sayılır.
+            // Çift tahsis yarışı: önce alan satırı kilitlenir (eşzamanlı tahsisler sıraya girer; aktif tahsis
+            // henüz yokken yalnız tahsis satırlarını kilitlemek phantom read'e açıktır), sonra kapasite sayılır.
+            Space::query()->whereKey($space->id)->lockForUpdate()->first();
             $active = SpaceAssignment::withoutTenantScope()->where('space_id', $space->id)->where('status', 'active')->lockForUpdate()->count();
 
             if ($active >= $space->slots()) {
@@ -281,6 +290,10 @@ class SpaceService
             'monthly_price' => max(0, (int) ($data['monthly_price'] ?? 0)),
             'is_active' => (bool) ($data['is_active'] ?? true),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
+            'amenities' => self::amenities($data['amenities'] ?? null),
+            'cover_media_id' => ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null,
+            'maintenance_until' => $this->maintenanceUntil($data['maintenance_until'] ?? null),
+            'maintenance_note' => $this->blank($data['maintenance_note'] ?? null),
             'notes' => $this->blank($data['notes'] ?? null),
         ];
     }
@@ -291,6 +304,48 @@ class SpaceService
 
         if ($exists) {
             throw new DomainException('Bu lokasyonda aynı adlı alan var.');
+        }
+    }
+
+    /** Olanak listesi: virgül/satır ayrımlı → en çok 20 madde, 40 karakter, tekil. @return array<int, string>|null */
+    public static function amenities(mixed $raw): ?array
+    {
+        $items = is_array($raw) ? $raw : (preg_split('/[,\r\n]+/', (string) $raw) ?: []);
+        $clean = [];
+
+        foreach ($items as $item) {
+            $item = trim((string) $item);
+
+            if ($item !== '' && ! in_array($item, $clean, true)) {
+                $clean[] = mb_substr($item, 0, 40);
+            }
+        }
+
+        $clean = array_slice($clean, 0, 20);
+
+        return $clean === [] ? null : $clean;
+    }
+
+    private function maintenanceUntil(mixed $raw): ?string
+    {
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+
+        $date = Carbon::parse((string) $raw)->startOfDay();
+
+        if ($date->lt(Carbon::today())) {
+            throw new DomainException('Bakım bitiş tarihi bugünden önce olamaz; bakımı kaldırmak için alanı boşaltın.');
+        }
+
+        return $date->toDateString();
+    }
+
+    /** Kapak görseli lokasyon galerisinden olmalı. */
+    private function assertCoverInGallery(Location $location, ?int $mediaId): void
+    {
+        if ($mediaId !== null && ! LocationMedia::query()->where('location_id', $location->id)->where('media_id', $mediaId)->exists()) {
+            throw new DomainException('Kapak görseli bu lokasyonun galerisinden seçilmeli.');
         }
     }
 

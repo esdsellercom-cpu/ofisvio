@@ -42,6 +42,7 @@ class InvoiceService
         private readonly NotificationService $notifications,
         private readonly MembershipService $members,
         private readonly CompanyActivationService $activation,
+        private readonly BookingService $bookings,
     ) {}
 
     /**
@@ -215,6 +216,20 @@ class InvoiceService
         return $invoice === null ? null : $this->cancel(null, $invoice, $reason);
     }
 
+    /** Rezervasyon faturası ise ödeme durumu rezervasyona yansır (faz 45; BookingService yazar). */
+    private function syncBookingPayment(Invoice $invoice, string $status): void
+    {
+        if ($invoice->booking_id === null) {
+            return;
+        }
+
+        $booking = Booking::withoutTenantScope()->find($invoice->booking_id);
+
+        if ($booking !== null) {
+            $this->bookings->syncPaymentStatus($booking, $status, $invoice->paid_at);
+        }
+    }
+
     /** Yayınla: numara (önek-yıl-sıra) + yayın tarihi + vade (yoksa ayardan). Sıfır tutarlı fatura yayınlanmaz. */
     public function issue(?User $actor, Invoice $invoice): Invoice
     {
@@ -285,6 +300,7 @@ class InvoiceService
         $before = $invoice->toArray();
         $invoice->fill(['status' => 'cancelled', 'cancelled_by' => $actor?->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => $reason])->save();
         $this->audit->record($actor, 'invoice.cancelled', 'invoice', $invoice->id, $before, $invoice->toArray());
+        $this->syncBookingPayment($invoice, 'unpaid');
 
         return $invoice;
     }
@@ -330,6 +346,7 @@ class InvoiceService
 
             $this->audit->record($actor, 'payment.recorded', 'payment', $payment->id, [], $payment->toArray());
             $this->audit->record($actor, $invoice->status === 'paid' ? 'invoice.paid' : 'invoice.partially_paid', 'invoice', $invoice->id, $before, $invoice->toArray());
+            $this->syncBookingPayment($invoice, $invoice->status === 'paid' ? 'paid' : 'partial');
 
             if ($invoice->status === 'paid') {
                 DB::afterCommit(fn () => $this->notify('invoice.paid', $invoice));

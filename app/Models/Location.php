@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasMaintenanceStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,11 +12,14 @@ use Illuminate\Support\Str;
 
 class Location extends Model
 {
+    use HasMaintenanceStatus;
+
     protected $fillable = [
         'name', 'slug', 'city', 'region', 'address_line', 'badge',
         'price_from', 'is_active', 'is_published', 'sort_order',
         'latitude', 'longitude', 'district', 'postal_code', 'phone', 'opening_hours',
         'geo_description', 'geo_meta_description', 'cover_media_id',
+        'maintenance_until', 'maintenance_note',
     ];
 
     protected $casts = [
@@ -25,6 +29,7 @@ class Location extends Model
         'sort_order' => 'integer',
         'latitude' => 'float',
         'longitude' => 'float',
+        'maintenance_until' => 'date',
     ];
 
     /**

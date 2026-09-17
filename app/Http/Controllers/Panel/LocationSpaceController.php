@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Panel;
 use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Space;
+use App\Services\LocationMediaService;
 use App\Services\SpaceService;
 use App\Support\Money;
 use DomainException;
@@ -19,7 +20,7 @@ use Illuminate\Validation\Rule;
  */
 class LocationSpaceController extends Controller
 {
-    public function __construct(private readonly SpaceService $spaces) {}
+    public function __construct(private readonly SpaceService $spaces, private readonly LocationMediaService $media) {}
 
     public function index(Location $location): View
     {
@@ -28,6 +29,7 @@ class LocationSpaceController extends Controller
             'spaces' => $this->spaces->forLocation($location),
             'kinds' => Space::KINDS,
             'occupancy' => $this->spaces->occupancy($location),
+            'gallery' => $this->media->links($location),
         ]);
     }
 
@@ -77,6 +79,10 @@ class LocationSpaceController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
             'notes' => ['nullable', 'string', 'max:300'],
+            'amenities' => ['nullable', 'string', 'max:1000'],
+            'cover_media_id' => ['nullable', 'integer', 'min:1'],
+            'maintenance_until' => ['nullable', 'date_format:Y-m-d'],
+            'maintenance_note' => ['nullable', 'string', 'max:200', 'required_with:maintenance_until'],
         ]);
 
         return array_replace($v, ['monthly_price' => Money::parse((string) ($v['monthly_price'] ?? 0)), 'is_active' => $request->boolean('is_active')]); // doğrulanmış ham değerin üstüne yaz

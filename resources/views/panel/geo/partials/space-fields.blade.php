@@ -17,4 +17,5 @@
     <label class="field"><span class="label">Sıra</span><input class="control" type="number" name="sort_order" value="{{ $s?->sort_order ?? 0 }}" min="0" max="999"></label>
     <label class="field"><span class="label">Not</span><input class="control" type="text" name="notes" value="{{ $s?->notes }}" maxlength="300"></label>
 </div>
+@include('panel.geo.partials.ops-fields', ['m' => $s])
 <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" @checked($s?->is_active ?? true)><span>Aktif (tahsis edilebilir, doluluğa sayılır)</span></label>

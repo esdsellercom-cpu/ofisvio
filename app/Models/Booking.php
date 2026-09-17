@@ -27,7 +27,11 @@ class Booking extends Model
         'approval_required', 'approved_by', 'approved_at', 'rejected_reason', 'expires_at',
         'checked_in_at', 'completed_at', 'consented_at', 'consent_ip',
         'total_amount', 'note', 'internal_note', 'overridden', 'cancelled_at', 'cancelled_by', 'cancel_reason',
+        'discount_amount', 'discount_reason', 'tax_rate', 'tax_amount', 'payment_status', 'paid_at',
     ];
+
+    /** Ödeme durumu etiketleri (faturadan senkron; indirimle sıfırlanan tutar 'waived'). */
+    public const PAYMENT_STATUSES = ['unpaid' => 'Ödenmedi', 'partial' => 'Kısmi ödendi', 'paid' => 'Ödendi', 'waived' => 'Ücretsiz'];
 
     protected $casts = [
         'status' => BookingStatus::class,
@@ -36,7 +40,30 @@ class Booking extends Model
         'completed_at' => 'datetime', 'consented_at' => 'datetime',
         'total_amount' => 'integer', 'participant_count' => 'integer',
         'overridden' => 'boolean', 'approval_required' => 'boolean',
+        'discount_amount' => 'integer', 'tax_rate' => 'integer', 'tax_amount' => 'integer', 'paid_at' => 'datetime',
     ];
+
+    /** Fiyat ayrıştırması (kuruş): brüt = net + indirim; KDV net üstünden; genel toplam = net + KDV. */
+    public function subtotal(): int
+    {
+        return $this->total_amount + $this->discount_amount;
+    }
+
+    public function grandTotal(): int
+    {
+        return $this->total_amount + $this->tax_amount;
+    }
+
+    public function paymentLabel(): string
+    {
+        return self::PAYMENT_STATUSES[$this->payment_status] ?? (string) $this->payment_status;
+    }
+
+    /** @return HasMany<BookingSlot, $this> */
+    public function slots(): HasMany
+    {
+        return $this->hasMany(BookingSlot::class);
+    }
 
     /** @return BelongsTo<Company, $this> */
     public function company(): BelongsTo

@@ -23,7 +23,7 @@
                 @csrf @method('PUT')
                 <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
                     <p class="eyebrow" style="margin:0">{{ $r->name }} · {{ $r->kindLabel() }}</p>
-                    <span class="badge badge--{{ $r->is_active ? 'ok' : 'muted' }}">{{ $r->is_active ? 'Rezervasyona açık' : 'Pasif' }}</span>
+                    <span class="badge badge--{{ match ($r->operationalStatus()) {'active' => 'ok', 'maintenance' => 'warn', default => 'muted'} }}">{{ $r->operationalStatus() === 'active' ? 'Rezervasyona açık' : $r->operationalLabel() }}@if ($r->isUnderMaintenance()) · {{ $r->maintenance_until?->format('d.m.Y') }}@endif</span>
                 </div>
                 @include('panel.geo.partials.room-fields', ['r' => $r])
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">

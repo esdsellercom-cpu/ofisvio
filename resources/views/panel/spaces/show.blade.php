@@ -95,6 +95,8 @@
                         <dt>Tür</dt><dd>{{ $space->kindLabel() }}</dd>
                         <dt>Kapasite</dt><dd>{{ $space->capacity }} {{ $space->kind === 'desk_flex' ? 'eşzamanlı üye' : 'kişi' }}</dd>
                         <dt>Aylık ücret</dt><dd>{{ money($space->monthly_price) }}</dd>
+                        <dt>Durum</dt><dd>{{ $space->operationalLabel() }}@if ($space->isUnderMaintenance()) · {{ $space->maintenance_until?->format('d.m.Y') }} — {{ $space->maintenance_note }}@endif</dd>
+                        @if ($space->amenityList() !== [])<dt>Olanaklar</dt><dd>{{ implode(', ', $space->amenityList()) }}</dd>@endif
                         @if ($space->notes)<dt>Not</dt><dd>{{ $space->notes }}</dd>@endif
                     </dl>
                 </div>

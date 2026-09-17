@@ -30,8 +30,9 @@
                         'Tarih' => $b->starts_at->format('d.m.Y'),
                         'Saat' => $b->starts_at->format('H:i').' – '.$b->ends_at->format('H:i').' ('.rtrim(rtrim(number_format($b->hours(), 2, ',', ''), '0'), ',').' sa)',
                         'Kişi sayısı' => $b->participant_count,
-                        'Tutar' => money($b->total_amount).' (KDV hariç)',
-                        'Ödeme' => 'Ödeme modülü yok (faz 19+) — yerinde/fatura',
+                        'Tutar' => money($b->subtotal()).($b->discount_amount > 0 ? ' − indirim '.money($b->discount_amount).($b->discount_reason ? ' ('.$b->discount_reason.')' : '').' = '.money($b->total_amount) : '').' + KDV %'.$b->tax_rate.' '.money($b->tax_amount).' = '.money($b->grandTotal()),
+                        'Ödeme' => $b->paymentLabel().($b->paid_at ? ' · '.$b->paid_at->format('d.m.Y') : '').' — tahsilat fatura üzerinden (Finans)',
+                        'Olanaklar' => implode(', ', $b->room->amenityList()) ?: '—',
                         'Kaynak' => ($sources[$b->source] ?? $b->source).($b->booker ? ' · '.$b->booker->name : ''),
                         'Onay' => $b->approval_required ? ($b->approved_at ? 'Onaylandı '.$b->approved_at->format('d.m.Y H:i').($b->approver ? ' · '.$b->approver->name : '') : 'Bekliyor'.($b->expires_at ? ' · son: '.$b->expires_at->format('d.m.Y H:i') : '')) : 'Otomatik',
                         'Müşteri notu' => $b->note ?? '—',
@@ -124,6 +125,16 @@
                     @endif
                     @if (in_array($b->status, [$S::CONFIRMED, $S::CHECKED_IN], true))
                         <form method="POST" action="{{ route('panel.bookings.complete', [$location, $b->id]) }}">@csrf<button type="submit" class="btn btn--ghost btn--block">Tamamlandı</button></form>
+                    @endif
+                    @if ($b->isActive() && ! in_array($b->payment_status, ['paid', 'partial'], true))
+                        <details>
+                            <summary class="small" style="cursor:pointer">İndirim uygula</summary>
+                            <form method="POST" action="{{ route('panel.bookings.discount', [$location, $b->id]) }}" class="stack" style="gap:8px;margin-top:8px">@csrf @method('PUT')
+                                <input class="control mono" type="number" name="discount" value="{{ \App\Support\Money::major($b->discount_amount) }}" min="0" step="0.01" placeholder="₺ (brüt {{ money($b->subtotal()) }})" required>
+                                <input class="control" type="text" name="reason" value="{{ $b->discount_reason }}" minlength="3" maxlength="200" placeholder="Gerekçe (üye indirimi, iyi niyet…)" required>
+                                <button type="submit" class="btn btn--ghost btn--block">İndirimi kaydet</button>
+                            </form>
+                        </details>
                     @endif
                     <details>
                         <summary class="small" style="cursor:pointer">Yeniden planla / oda değiştir</summary>

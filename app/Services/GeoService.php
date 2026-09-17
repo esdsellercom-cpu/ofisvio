@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Models\Website;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -98,7 +99,25 @@ class GeoService
             'badge' => $this->blank($data['badge'] ?? null),
             'price_from' => $this->blank($data['price_from'] ?? null),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
+            'maintenance_until' => $this->maintenanceUntil($data['maintenance_until'] ?? null),
+            'maintenance_note' => $this->blank($data['maintenance_note'] ?? null),
         ];
+    }
+
+    /** Şube bakımı (faz 45): tarih bugünden önce olamaz; boş = bakım yok. */
+    private function maintenanceUntil(mixed $raw): ?string
+    {
+        if ($raw === null || trim((string) $raw) === '') {
+            return null;
+        }
+
+        $date = Carbon::parse((string) $raw)->startOfDay();
+
+        if ($date->lt(Carbon::today())) {
+            throw new DomainException('Bakım bitiş tarihi bugünden önce olamaz; bakımı kaldırmak için alanı boşaltın.');
+        }
+
+        return $date->toDateString();
     }
 
     private function blank(mixed $value): ?string

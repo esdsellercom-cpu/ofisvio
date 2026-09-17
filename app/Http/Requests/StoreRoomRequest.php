@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Room;
+use App\Services\SpaceService;
 use App\Support\Money;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -25,11 +26,16 @@ class StoreRoomRequest extends FormRequest
             'hourly_rate' => ['required', Money::RULE], // büyük birim; serviste kuruşa çevrilir
             'open_from' => ['required', 'date_format:H:i'],
             'open_until' => ['required', 'date_format:H:i'],
-            'slot_minutes' => ['required', 'integer', Rule::in([30, 60, 120])],
+            'slot_minutes' => ['required', 'integer', Rule::in([15, 30, 45, 60, 90, 120])],
             'max_hours' => ['required', 'integer', 'min:1', 'max:24'],
             'is_active' => ['sometimes', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
             'description' => ['nullable', 'string', 'max:300'],
+            // Faz 45: olanaklar, kapak (lokasyon galerisi — serviste doğrulanır), bakım.
+            'amenities' => ['nullable', 'string', 'max:1000'],
+            'cover_media_id' => ['nullable', 'integer', 'min:1'],
+            'maintenance_until' => ['nullable', 'date_format:Y-m-d'],
+            'maintenance_note' => ['nullable', 'string', 'max:200', 'required_with:maintenance_until'],
         ];
     }
 
@@ -52,6 +58,10 @@ class StoreRoomRequest extends FormRequest
             'is_active' => (bool) ($v['is_active'] ?? false),
             'sort_order' => (int) ($v['sort_order'] ?? 0),
             'description' => trim((string) ($v['description'] ?? '')) ?: null,
+            'amenities' => SpaceService::amenities($v['amenities'] ?? null),
+            'cover_media_id' => ! empty($v['cover_media_id']) ? (int) $v['cover_media_id'] : null,
+            'maintenance_until' => ! empty($v['maintenance_until']) ? (string) $v['maintenance_until'] : null,
+            'maintenance_note' => ! empty($v['maintenance_until']) ? trim((string) ($v['maintenance_note'] ?? '')) : null,
         ];
     }
 }

@@ -88,6 +88,8 @@ class GeoController extends Controller
         'price_from' => ['nullable', 'string', 'max:48'],
         'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
         'is_active' => ['sometimes', 'boolean'],
+        'maintenance_until' => ['nullable', 'date_format:Y-m-d'],
+        'maintenance_note' => ['nullable', 'string', 'max:200', 'required_with:maintenance_until'],
     ];
 
     /** geo.edit: yeni şube (yayında değil). */
@@ -110,7 +112,11 @@ class GeoController extends Controller
     {
         $validated = $request->validate(self::BASICS_RULES);
 
-        $this->geo->updateBasics($location, $this->basicsPayload($validated) + ['is_active' => (bool) ($validated['is_active'] ?? false)]);
+        try {
+            $this->geo->updateBasics($location, $this->basicsPayload($validated) + ['is_active' => (bool) ($validated['is_active'] ?? false)]);
+        } catch (DomainException $e) {
+            return back()->withErrors(['maintenance_until' => $e->getMessage()])->withInput();
+        }
         // Hizmetler: yalnız seçim (Hizmetler modülünde var olanlar); lokasyon ekranı hizmet oluşturmaz.
         $this->services->syncLocation($request->user(), $location, array_map('intval', (array) ($validated['services'] ?? [])));
         $this->cache->invalidate($this->contents->defaultWebsite());
@@ -144,6 +150,8 @@ class GeoController extends Controller
             'badge' => $validated['badge'] ?? null,
             'price_from' => $validated['price_from'] ?? null,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
+            'maintenance_until' => $validated['maintenance_until'] ?? null,
+            'maintenance_note' => ! empty($validated['maintenance_until']) ? ($validated['maintenance_note'] ?? null) : null,
         ];
     }
 

@@ -34,6 +34,7 @@
                                 <div>
                                     <strong style="font-size:16px">{{ $room->name }}</strong>
                                     <span class="small muted" style="display:block">{{ $room->kindLabel() }} · {{ $room->capacity }} kişi · {{ $room->open_from }}–{{ $room->open_until }} @if ($room->description)· {{ $room->description }}@endif</span>
+                                    @if ($room->amenityList() !== [])<span class="small muted" style="display:block">{{ implode(' · ', $room->amenityList()) }}</span>@endif
                                 </div>
                                 <span class="mono" style="color:var(--brand);font-weight:600">{{ money($room->hourly_rate) }}/saat</span>
                             </div>

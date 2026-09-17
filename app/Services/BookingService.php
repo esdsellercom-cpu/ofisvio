@@ -6,19 +6,23 @@ use App\Enums\BookingStatus;
 use App\Enums\CompanyStatus;
 use App\Events\BookingStatusChanged;
 use App\Models\Booking;
+use App\Models\BookingSlot;
 use App\Models\BookingStatusHistory;
 use App\Models\Company;
 use App\Models\Location;
+use App\Models\LocationMedia;
 use App\Models\Room;
 use App\Models\Scopes\TenantScope;
 use App\Models\User;
 use App\Models\Website;
 use App\Settings\SettingsRegistry;
+use App\Support\Money;
 use Carbon\CarbonInterface;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -76,8 +80,12 @@ class BookingService
      */
     public function bookableRooms(bool $publishedOnly = false, ?int $locationId = null): Collection
     {
+        // Bakımdaki oda ya da lokasyon (maintenance_until bugün/ileri) rezervasyona kapalıdır (faz 45).
+        $today = Carbon::today()->toDateString();
+
         return Room::query()->where('is_active', true)
-            ->whereHas('location', fn (Builder $q) => $q->where('is_active', true)->when($publishedOnly, fn (Builder $w) => $w->where('is_published', true)))
+            ->where(fn (Builder $q) => $q->whereNull('maintenance_until')->orWhereDate('maintenance_until', '<', $today))
+            ->whereHas('location', fn (Builder $q) => $q->where('is_active', true)->where(fn (Builder $m) => $m->whereNull('maintenance_until')->orWhereDate('maintenance_until', '<', $today))->when($publishedOnly, fn (Builder $w) => $w->where('is_published', true)))
             ->when($locationId !== null, fn (Builder $q) => $q->where('location_id', $locationId))
             ->with('location')
             ->get()
@@ -101,11 +109,12 @@ class BookingService
     }
 
     /**
-     * @param  array{name: string, kind: string, capacity: int, hourly_rate: int, open_from: string, open_until: string, slot_minutes: int, max_hours: int, is_active?: bool, sort_order?: int, description?: string|null}  $data
+     * @param  array{name: string, kind: string, capacity: int, hourly_rate: int, open_from: string, open_until: string, slot_minutes: int, max_hours: int, is_active?: bool, sort_order?: int, description?: string|null, amenities?: array<int, string>|null, cover_media_id?: int|null, maintenance_until?: string|null, maintenance_note?: string|null}  $data
      */
     public function createRoom(?User $actor, Location $location, array $data): Room
     {
         $this->assertRoomRules($data);
+        $this->assertCoverInGallery($location, ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null);
 
         $room = new Room(array_merge($data, ['location_id' => $location->id]));
         $room->save();
@@ -119,6 +128,7 @@ class BookingService
     public function updateRoom(?User $actor, Room $room, array $data): Room
     {
         $this->assertRoomRules(array_merge($room->toArray(), $data));
+        $this->assertCoverInGallery($room->location, ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null);
         $before = $room->toArray();
         $room->fill($data)->save();
         $this->bumpSiteCaches();
@@ -152,11 +162,28 @@ class BookingService
         if (($this->minutes($until) - $this->minutes($from)) % (int) ($data['slot_minutes'] ?? 60) !== 0) {
             throw new DomainException('Açık saat aralığı slot süresinin katı olmalı.');
         }
+
+        // Dilim kilidi (booking_slots) 15 dakikalık; slot süresi bunun katı olmalı.
+        if ((int) ($data['slot_minutes'] ?? 60) % BookingSlot::MINUTES !== 0) {
+            throw new DomainException('Slot süresi '.BookingSlot::MINUTES.' dakikanın katı olmalı.');
+        }
+
+        if (! empty($data['maintenance_until']) && Carbon::parse((string) $data['maintenance_until'])->lt(Carbon::today())) {
+            throw new DomainException('Bakım bitiş tarihi bugünden önce olamaz; bakımı kaldırmak için alanı boşaltın.');
+        }
+    }
+
+    /** Kapak görseli lokasyon galerisinden olmalı (yabancı medya id'si kabul edilmez). */
+    private function assertCoverInGallery(Location $location, ?int $mediaId): void
+    {
+        if ($mediaId !== null && ! LocationMedia::query()->where('location_id', $location->id)->where('media_id', $mediaId)->exists()) {
+            throw new DomainException('Kapak görseli bu lokasyonun galerisinden seçilmeli.');
+        }
     }
 
     // ---- Politika (ayarlardan; lokasyon üzerine yazabilir) ---------------------
 
-    /** @return array{auto_confirm: bool, min_advance_hours: int, max_advance_days: int, buffer_minutes: int, cancel_notice_hours: int, expires_hours: int, sla: string} */
+    /** @return array{auto_confirm: bool, min_advance_hours: int, max_advance_days: int, buffer_minutes: int, cancel_notice_hours: int, expires_hours: int, sla: string, max_active: int, max_per_day: int} */
     public function policy(?int $locationId): array
     {
         $ctx = $locationId !== null ? ['location_id' => $locationId] : [];
@@ -169,6 +196,8 @@ class BookingService
             'cancel_notice_hours' => $this->settings->int('booking.cancel_notice_hours', $ctx),
             'expires_hours' => $this->settings->int('booking.request_expires_hours'),
             'sla' => $this->settings->string('booking.confirmation_sla', $ctx),
+            'max_active' => $this->settings->int('booking.max_active_per_company', $ctx),
+            'max_per_day' => $this->settings->int('booking.max_per_day', $ctx),
         ];
     }
 
@@ -208,6 +237,7 @@ class BookingService
             ->get(['starts_at', 'ends_at']);
 
         $slots = [];
+        $closed = $this->closedOn($room, $dayStart);
 
         for ($m = $this->minutes($room->open_from); $m + $room->slot_minutes <= $this->minutes($room->open_until); $m += $room->slot_minutes) {
             $start = $dayStart->copy()->addMinutes($m);
@@ -216,7 +246,8 @@ class BookingService
             $slots[] = [
                 'start' => $start->format('H:i'),
                 'end' => $end->format('H:i'),
-                'taken' => $taken->contains(fn (Booking $b) => $b->starts_at->copy()->subMinutes($buffer)->lessThan($end) && $b->ends_at->copy()->addMinutes($buffer)->greaterThan($start)),
+                // Bakımdaki oda/lokasyon: o gün bakım bitiş tarihinden önceyse tüm dilimler dolu (faz 45).
+                'taken' => $closed || $taken->contains(fn (Booking $b) => $b->starts_at->copy()->subMinutes($buffer)->lessThan($end) && $b->ends_at->copy()->addMinutes($buffer)->greaterThan($start)),
                 'past' => $start->lessThan($earliest),
             ];
         }
@@ -256,10 +287,24 @@ class BookingService
             throw new DomainException('Tek rezervasyon en fazla '.$room->max_hours.' saat olabilir.');
         }
 
+        $participants = max(1, (int) ($data['participants'] ?? 1));
+
         if (! $override) {
             if (! $room->is_active || ! $room->location->is_active) {
                 throw new DomainException('Bu oda şu anda rezervasyona kapalı.');
             }
+
+            // Kapasite: katılımcı sayısı odayı aşamaz (override yalnız resepsiyon JIT).
+            if ($participants > $room->capacity) {
+                throw new DomainException('Oda kapasitesi '.$room->capacity.' kişi; '.$participants.' katılımcı sığmaz.');
+            }
+
+            // Bakım: rezervasyon günü bakım bitişinden önceyse kapalı.
+            if ($this->closedOn($room, $start)) {
+                throw new DomainException('Oda/lokasyon o tarihte bakımda; '.($room->maintenance_note ?: $room->location->maintenance_note ?: 'başka bir tarih seçin').'.');
+            }
+
+            $this->assertReservationLimits($company, (string) ($data['customer_email'] ?? ''), $start, $policy);
 
             if ($start->lessThan(Carbon::now()->addHours($policy['min_advance_hours']))) {
                 throw new DomainException($policy['min_advance_hours'] > 0 ? 'Başlangıca en az '.$policy['min_advance_hours'].' saat kala talep alınır.' : 'Geçmiş bir saat için rezervasyon yapılamaz.');
@@ -276,7 +321,13 @@ class BookingService
             }
         }
 
-        $booking = DB::transaction(function () use ($actor, $company, $room, $start, $end, $minutes, $data, $override, $policy) {
+        $net = (int) round($room->hourly_rate * $minutes / 60);
+        $taxRate = max(0, min(100, $this->settings->int('finance.default_tax_rate')));
+
+        $booking = DB::transaction(function () use ($actor, $company, $room, $start, $end, $data, $override, $policy, $participants, $net, $taxRate) {
+            // Yarış: aynı oda için eşzamanlı istekler oda satırında sıraya girer (phantom read'e karşı
+            // yalnız aday satırları kilitlemek yetmez); ardından çakışma sorgusu ve dilim tekil kısıtı.
+            $this->lockRoom($room);
             $this->assertNoConflict($room, $start, $end, $policy['buffer_minutes']);
 
             $initial = $policy['auto_confirm'] || $override ? BookingStatus::CONFIRMED : BookingStatus::PENDING_APPROVAL;
@@ -293,20 +344,25 @@ class BookingService
                 'company_name' => $this->blankToNull($data['company_name'] ?? null),
                 'starts_at' => $start,
                 'ends_at' => $end,
-                'participant_count' => max(1, (int) ($data['participants'] ?? 1)),
+                'participant_count' => $participants,
                 'status' => BookingStatus::REQUESTED,
                 'source' => (string) ($data['source'] ?? 'panel'),
                 'approval_required' => $initial === BookingStatus::PENDING_APPROVAL,
                 'expires_at' => $initial === BookingStatus::PENDING_APPROVAL ? Carbon::now()->addHours($policy['expires_hours']) : null,
                 'consented_at' => $company === null ? Carbon::now() : null,
                 'consent_ip' => $this->blankToNull($data['consent_ip'] ?? null),
-                'total_amount' => (int) round($room->hourly_rate * $minutes / 60),
+                'total_amount' => $net,
+                'discount_amount' => 0,
+                'tax_rate' => $taxRate,
+                'tax_amount' => Money::percent($net, $taxRate),
+                'payment_status' => $net === 0 ? 'waived' : 'unpaid',
                 'note' => $this->blankToNull($data['note'] ?? null),
                 'overridden' => $override,
             ]);
             $booking->save();
             $booking->reference = $this->reference($booking);
             $booking->save();
+            $this->reserveSlots($booking);
 
             $this->history($booking, null, BookingStatus::REQUESTED, $actor, null);
             $this->audit->record($actor, 'booking.created', 'booking', $booking->id, [], $booking->only(['reference', 'room_id', 'starts_at', 'ends_at', 'status', 'source', 'total_amount']), $company?->organization_id);
@@ -342,6 +398,78 @@ class BookingService
 
         if ($conflict) {
             throw new DomainException('Seçilen saat aralığı dolu; başka bir saat seçin.');
+        }
+    }
+
+    /** Oda satırı kilidi: aynı odaya eşzamanlı rezervasyon işlemleri sıraya girer (işlem içinde çağrılır). */
+    private function lockRoom(Room $room): void
+    {
+        Room::query()->whereKey($room->id)->lockForUpdate()->first();
+    }
+
+    /**
+     * Dilim kilidi: rezervasyon aralığı 15 dk dilimlere bölünüp booking_slots'a yazılır; (room_id, slot_at)
+     * tekil kısıtı ihlali = başka bir işlem aynı anda aynı dilimi aldı → DomainException (işlem geri alınır).
+     * Tampon süre dilime girmez; onu çakışma sorgusu + oda kilidi karşılar.
+     */
+    private function reserveSlots(Booking $booking): void
+    {
+        $rows = [];
+
+        for ($t = $booking->starts_at->copy(); $t->lessThan($booking->ends_at); $t->addMinutes(BookingSlot::MINUTES)) {
+            $rows[] = ['room_id' => $booking->room_id, 'booking_id' => $booking->id, 'slot_at' => $t->format('Y-m-d H:i:s')];
+        }
+
+        try {
+            BookingSlot::query()->insert($rows);
+        } catch (UniqueConstraintViolationException) {
+            throw new DomainException('Seçilen saat aralığı az önce başka bir rezervasyonla dolduruldu; başka bir saat seçin.');
+        }
+    }
+
+    private function releaseSlots(Booking $booking): void
+    {
+        BookingSlot::query()->where('booking_id', $booking->id)->delete();
+    }
+
+    /** Oda ya da lokasyonu o gün bakımda mı (maintenance_until ≥ gün)? */
+    private function closedOn(Room $room, CarbonInterface $day): bool
+    {
+        $room->loadMissing('location');
+
+        foreach ([$room->maintenance_until, $room->location->maintenance_until] as $until) {
+            if ($until !== null && Carbon::parse($until)->endOfDay()->greaterThanOrEqualTo($day)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Rezervasyon sınırları (ayar; 0 = sınırsız): şirket başına açık rezervasyon, gün başına rezervasyon
+     * (vitrin talebinde e-posta başına). Override (JIT) sınırları aşar.
+     *
+     * @param  array{auto_confirm: bool, min_advance_hours: int, max_advance_days: int, buffer_minutes: int, cancel_notice_hours: int, expires_hours: int, sla: string, max_active: int, max_per_day: int}  $policy
+     */
+    private function assertReservationLimits(?Company $company, string $email, CarbonInterface $start, array $policy): void
+    {
+        $base = Booking::withoutTenantScope()->whereIn('status', BookingStatus::blockingValues());
+
+        if ($company !== null) {
+            $base->where('company_id', $company->id);
+        } elseif ($email !== '') {
+            $base->whereNull('company_id')->where('customer_email', $email);
+        } else {
+            return;
+        }
+
+        if ($policy['max_active'] > 0 && (clone $base)->where('ends_at', '>', Carbon::now())->count() >= $policy['max_active']) {
+            throw new DomainException('Açık rezervasyon sınırına ulaşıldı ('.$policy['max_active'].'); önce mevcut rezervasyonlardan birini tamamlayın ya da iptal edin.');
+        }
+
+        if ($policy['max_per_day'] > 0 && (clone $base)->whereDate('starts_at', $start->toDateString())->count() >= $policy['max_per_day']) {
+            throw new DomainException('Aynı gün için rezervasyon sınırına ulaşıldı ('.$policy['max_per_day'].').');
         }
     }
 
@@ -387,6 +515,11 @@ class BookingService
         $from = $booking->status;
         $booking->status = $to;
         $booking->save();
+
+        if (! $to->blocksRoom()) {
+            $this->releaseSlots($booking); // iptal/red/süre dolumu/gelmedi/tamamlandı: dilimler serbest
+        }
+
         $this->history($booking, $from, $to, $actor, $reason);
         $this->audit->record($actor, 'booking.status_changed', 'booking', $booking->id, ['status' => $from->value], ['status' => $to->value, 'reason' => $reason], $booking->company?->organization_id);
     }
@@ -399,7 +532,10 @@ class BookingService
     public function approve(User $actor, Booking $booking, ?string $note = null): Booking
     {
         // Onay anında çakışma yeniden doğrulanır (kural dışı açılmış bir kayıt araya girmiş olabilir).
-        DB::transaction(fn () => $this->assertNoConflict($booking->room, $booking->starts_at, $booking->ends_at, $this->policy($booking->location_id)['buffer_minutes'], $booking->id));
+        DB::transaction(function () use ($booking) {
+            $this->lockRoom($booking->room);
+            $this->assertNoConflict($booking->room, $booking->starts_at, $booking->ends_at, $this->policy($booking->location_id)['buffer_minutes'], $booking->id);
+        });
 
         return $this->transition($booking, BookingStatus::CONFIRMED, $actor, $note);
     }
@@ -460,16 +596,76 @@ class BookingService
             throw new DomainException('Süre '.$room->slot_minutes.' dakikanın katı ve en fazla '.$room->max_hours.' saat olmalı.');
         }
 
-        $before = $booking->only(['room_id', 'starts_at', 'ends_at', 'total_amount']);
+        if ($booking->participant_count > $room->capacity) {
+            throw new DomainException('Oda kapasitesi '.$room->capacity.' kişi; rezervasyonda '.$booking->participant_count.' katılımcı var.');
+        }
+
+        if ($this->closedOn($room, $start)) {
+            throw new DomainException('Oda/lokasyon o tarihte bakımda.');
+        }
+
+        $before = $booking->only(['room_id', 'starts_at', 'ends_at', 'total_amount', 'tax_amount']);
 
         DB::transaction(function () use ($booking, $room, $start, $end, $minutes) {
+            $this->lockRoom($room);
             $this->assertNoConflict($room, $start, $end, $this->policy($room->location_id)['buffer_minutes'], $booking->id);
-            $booking->forceFill(['room_id' => $room->id, 'location_id' => $room->location_id, 'starts_at' => $start, 'ends_at' => $end, 'total_amount' => (int) round($room->hourly_rate * $minutes / 60)])->save();
+            // Yeniden fiyatlama: brüt yeni süreden, indirim korunur (net negatif olamaz), KDV kayıttaki orandan.
+            $gross = (int) round($room->hourly_rate * $minutes / 60);
+            $net = max(0, $gross - $booking->discount_amount);
+            $booking->forceFill(['room_id' => $room->id, 'location_id' => $room->location_id, 'starts_at' => $start, 'ends_at' => $end, 'total_amount' => $net, 'tax_amount' => Money::percent($net, $booking->tax_rate)])->save();
+            $this->releaseSlots($booking);
+            $this->reserveSlots($booking);
         });
 
-        $this->audit->record($actor, 'booking.rescheduled', 'booking', $booking->id, $before, $booking->only(['room_id', 'starts_at', 'ends_at', 'total_amount']));
+        $this->audit->record($actor, 'booking.rescheduled', 'booking', $booking->id, $before, $booking->only(['room_id', 'starts_at', 'ends_at', 'total_amount', 'tax_amount']));
 
         return $booking;
+    }
+
+    /**
+     * İndirim (booking.manage): brüt tutardan düşülür, KDV yeniden hesaplanır; fatura yayınlanmışsa
+     * (tahsilat başlamış olabilir) izin verilmez — indirim faturadan önce ya da faturasız rezervasyonda.
+     */
+    public function applyDiscount(User $actor, Booking $booking, int $discountMinor, string $reason): Booking
+    {
+        if (! $booking->isActive()) {
+            throw new DomainException('Yalnız aktif rezervasyona indirim uygulanır.');
+        }
+
+        $gross = $booking->subtotal();
+
+        if ($discountMinor < 0 || $discountMinor > $gross) {
+            throw new DomainException('İndirim 0 ile brüt tutar ('.Money::format($gross).') arasında olmalı.');
+        }
+
+        if ($booking->payment_status === 'paid' || $booking->payment_status === 'partial') {
+            throw new DomainException('Tahsilatı başlamış rezervasyona indirim uygulanamaz; finans ekibi iade/kredi notu düzenler.');
+        }
+
+        $before = $booking->only(['total_amount', 'discount_amount', 'discount_reason', 'tax_amount', 'payment_status']);
+        $net = $gross - $discountMinor;
+        $booking->forceFill([
+            'discount_amount' => $discountMinor,
+            'discount_reason' => $this->blankToNull($reason),
+            'total_amount' => $net,
+            'tax_amount' => Money::percent($net, $booking->tax_rate),
+            'payment_status' => $net === 0 ? 'waived' : ($booking->payment_status === 'waived' ? 'unpaid' : $booking->payment_status),
+        ])->save();
+        $this->audit->record($actor, 'booking.discounted', 'booking', $booking->id, $before, $booking->only(['total_amount', 'discount_amount', 'discount_reason', 'tax_amount', 'payment_status']), $booking->company?->organization_id);
+
+        return $booking;
+    }
+
+    /** Ödeme durumu faturadan senkron (InvoiceService çağırır): paid/partial/unpaid; ücretsiz rezervasyon korunur. */
+    public function syncPaymentStatus(Booking $booking, string $status, ?CarbonInterface $paidAt = null): void
+    {
+        if (! isset(Booking::PAYMENT_STATUSES[$status]) || $booking->payment_status === 'waived') {
+            return;
+        }
+
+        $before = $booking->only(['payment_status', 'paid_at']);
+        $booking->forceFill(['payment_status' => $status, 'paid_at' => $status === 'paid' ? ($paidAt ?? Carbon::now()) : null])->save();
+        $this->audit->record(null, 'booking.payment_status', 'booking', $booking->id, $before, $booking->only(['payment_status', 'paid_at']), $booking->company?->organization_id);
     }
 
     public function setInternalNote(User $actor, Booking $booking, ?string $note): Booking

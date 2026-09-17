@@ -13,7 +13,7 @@
             <dl class="stack" style="margin:18px 0 0;gap:8px;font-size:15px">
                 <div style="display:flex;gap:12px"><dt class="label" style="min-width:110px">Tarih</dt><dd style="margin:0" class="mono">{{ $b->starts_at->format('d.m.Y') }} · {{ $b->starts_at->format('H:i') }}–{{ $b->ends_at->format('H:i') }}</dd></div>
                 <div style="display:flex;gap:12px"><dt class="label" style="min-width:110px">Kişi</dt><dd style="margin:0">{{ $b->participant_count }}</dd></div>
-                <div style="display:flex;gap:12px"><dt class="label" style="min-width:110px">Tutar</dt><dd style="margin:0" class="mono">{{ money($b->total_amount) }} <span class="small muted">(KDV hariç)</span></dd></div>
+                <div style="display:flex;gap:12px"><dt class="label" style="min-width:110px">Tutar</dt><dd style="margin:0" class="mono">{{ money($b->grandTotal()) }} <span class="small muted">(KDV dahil@if ($b->discount_amount > 0), {{ money($b->discount_amount) }} indirimli@endif)</span></dd></div>
                 <div style="display:flex;gap:12px"><dt class="label" style="min-width:110px">İletişim</dt><dd style="margin:0">{{ $b->customer_name }} · {{ $b->customer_email }}</dd></div>
             </dl>
             <p class="body-muted" style="margin:18px 0 0">

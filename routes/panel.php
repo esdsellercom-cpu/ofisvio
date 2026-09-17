@@ -190,6 +190,7 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
                 Route::post('/tamamla', [BookingDeskController::class, 'complete'])->middleware('permission:booking.manage,location')->name('complete');
                 Route::post('/gelmedi', [BookingDeskController::class, 'noShow'])->middleware('permission:booking.manage,location')->name('noshow');
                 Route::put('/not', [BookingDeskController::class, 'note'])->middleware('permission:booking.manage,location')->name('note');
+                Route::put('/indirim', [BookingDeskController::class, 'discount'])->middleware('permission:booking.manage,location')->name('discount');
                 Route::put('/planla', [BookingDeskController::class, 'reschedule'])->middleware('permission:booking.manage,location')->name('reschedule');
                 Route::post('/iptal', [BookingDeskController::class, 'cancel'])
                     ->middleware('permission:booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.cancel');

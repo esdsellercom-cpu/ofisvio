@@ -22,6 +22,17 @@
             <span class="badge badge--{{ $location->is_published ? 'ok' : 'muted' }}">{{ $location->is_published ? 'Vitrinde' : 'Gizli' }}</span>
         </div>
         @include('panel.geo.partials.basics-fields', ['loc' => $location])
+        <div class="grid-auto" style="--min:200px;--gap:12px">
+            <label class="field"><span class="label">Bakım bitişi (şube geneli)</span>
+                <input class="control mono" type="date" name="maintenance_until" value="{{ old('maintenance_until', $location->maintenance_until?->format('Y-m-d')) }}">
+                <span class="small muted">Doluysa o tarihe kadar şubenin tüm odaları rezervasyona kapalı; boş = bakım yok.</span>
+            </label>
+            <label class="field"><span class="label">Bakım notu</span>
+                <input class="control" type="text" name="maintenance_note" value="{{ old('maintenance_note', $location->maintenance_note) }}" maxlength="200">
+            </label>
+        </div>
+        @error('maintenance_note')<p class="field-error">{{ $message }}</p>@enderror
+        @error('maintenance_until')<p class="field-error">{{ $message }}</p>@enderror
         <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $location->is_active))><span><strong>Operasyonda aktif</strong> — kapalı şube vitrinde görünse de talep almaz.</span></label>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button type="submit" class="btn btn--brand">Künyeyi kaydet</button>

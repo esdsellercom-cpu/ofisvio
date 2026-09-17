@@ -31,7 +31,7 @@
                 @csrf @method('PUT')
                 <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap">
                     <p class="eyebrow" style="margin:0"><a href="{{ route('panel.spaces.show', $s->id) }}">{{ $s->name }}</a> · {{ $s->kindLabel() }}</p>
-                    <span>@if ($s->is_active)<span class="pill {{ $s->isFull() ? 'w' : 'g' }}">{{ $s->isFull() ? 'Dolu' : 'Boş' }} · {{ $s->occupied() }}/{{ $s->slots() }}</span>@else<span class="pill n">Pasif</span>@endif</span>
+                    <span>@if ($s->isUnderMaintenance())<span class="pill w">Bakımda · {{ $s->maintenance_until?->format('d.m.Y') }}</span> @endif @if ($s->is_active)<span class="pill {{ $s->isFull() ? 'w' : 'g' }}">{{ $s->isFull() ? 'Dolu' : 'Boş' }} · {{ $s->occupied() }}/{{ $s->slots() }}</span>@else<span class="pill n">Pasif</span>@endif</span>
                 </div>
                 @include('panel.geo.partials.space-fields', ['s' => $s])
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **285/285** (Unit 12 · Feature 257 · Architecture 16) |
+| `php artisan test` | ✅ **289/289** (Unit 12 · Feature 261 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -537,6 +537,31 @@ yazma rotası sekme moduna göre: **edit** `seo.edit` · **critical** `seo.setti
   Indexing API servis hesabı ister — dışarıda.
 - **Güvenlik:** SecurityHeaders özeti (salt okunur) + X-Robots-Tag. **Geliştirici:** head/body kodu, özel meta,
   özel başlık, preload/dns-prefetch/preconnect. Testler `SeoAdvancedTest` (6).
+
+### 45. Coworking operasyon sertleştirme — çift rezervasyon, kapasite, bakım, fiyat/KDV/indirim ✅ (18 Eylül 2026)
+Kapsam denetimi (lokasyon · masa/ofis · toplantı odası · rezervasyon) ve kapatılan açıklar:
+- **Çift rezervasyon savunması (3 katman):** (1) `BookingService::lockRoom` — rezervasyon/onay/yeniden planlama
+  işlemi oda satırını `lockForUpdate` ile kilitler (aynı odaya eşzamanlı istekler sıraya girer; yalnız aday
+  rezervasyon satırlarını kilitlemek phantom read'e açıktı), (2) çakışma sorgusu (tampon dahil, tüm şirketler),
+  (3) `booking_slots` tablosu — aralık 15 dk dilimlere bölünür, `(room_id, slot_at)` TEKİL; ihlal →
+  `DomainException`, işlem geri alınır. Dilimler odayı meşgul eden durumlarda var, serbest kalınca silinir
+  (`apply`), yeniden planlamada taşınır. Slot süresi 15'in katı (15/30/45/60/90/120).
+- **Kapasite:** katılımcı ≤ oda kapasitesi (JIT override aşar); yeniden planlamada da. **Rezervasyon sınırları:**
+  `booking.max_active_per_company`, `booking.max_per_day` (0 = sınırsız; vitrinde e-posta başına).
+- **Bakım durumu:** `maintenance_until` + `maintenance_note` (oda, masa/ofis, lokasyon; `HasMaintenanceStatus`:
+  aktif/bakımda/pasif). Bakımdaki oda/lokasyon rezervasyona kapalı (uygunluk tablosu dolu, vitrin listesi dışı,
+  `book/reschedule` reddeder); bakımdaki alana tahsis yok; tarih geçince kendiliğinden biter.
+- **Olanaklar + kapak görseli:** `amenities` (virgülle, ≤ 20), `cover_media_id` yalnız lokasyon galerisinden
+  (`assertCoverInGallery`); oda kartında ve alan detayında gösterilir.
+- **Fiyat:** rezervasyon anında `tax_rate` (finance.default_tax_rate) + `tax_amount`; `discount_amount/reason`
+  (`applyDiscount`, booking.manage, `/indirim`; tahsilatı başlamışa uygulanmaz; tam indirim = ücretsiz);
+  `subtotal()/grandTotal()`. **Ödeme durumu** `payment_status` (unpaid/partial/paid/waived) faturadan senkron
+  (`InvoiceService::recordPayment/cancel` → `BookingService::syncPaymentStatus`, audit).
+- **Alan tahsisi yarışı:** `SpaceService::assign` alan satırını kilitler, sonra kapasiteyi sayar.
+- Mevcut olan ve doğrulanan: oda/alan/lokasyon CRUD + doğrulama + `geo.edit/publish` yetkisi, çalışma saatleri
+  (`open_from/until`, lokasyon `opening_hours`), durum makinesi (create/approve/reject/cancel/reschedule/check-in/
+  complete/no-show/expire), bildirim olayları, denetim izi, iptal bildirim süresi, onay süresi dolumu.
+  Testler `OperationsHardeningTest` (4).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

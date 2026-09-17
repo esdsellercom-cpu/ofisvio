@@ -25,7 +25,7 @@
     </label>
     <label class="field"><span class="label">Slot (dk)</span>
         <select class="control" name="slot_minutes">
-            @foreach ([30, 60, 120] as $m)
+            @foreach ([15, 30, 45, 60, 90, 120] as $m)
                 <option value="{{ $m }}" @selected(($r?->slot_minutes ?? 60) === $m)>{{ $m }}</option>
             @endforeach
         </select>
@@ -40,6 +40,7 @@
 <label class="field"><span class="label">Açıklama (isteğe bağlı)</span>
     <input class="control" type="text" name="description" value="{{ $r?->description }}" maxlength="300" placeholder="Projektör, beyaz tahta, 55&quot; ekran">
 </label>
+@include('panel.geo.partials.ops-fields', ['m' => $r])
 <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" @checked($r?->is_active ?? true)><span><strong>Rezervasyona açık</strong> — pasif oda vitrin saatlerinde ve müşteri panelinde görünmez.</span></label>
 @error('open_until')<p class="field-error">{{ $message }}</p>@enderror
 @error('name')<p class="field-error">{{ $message }}</p>@enderror

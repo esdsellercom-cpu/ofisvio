@@ -13,6 +13,7 @@ use App\Services\BookingService;
 use App\Services\GeoService;
 use App\Services\JitAccessService;
 use App\Services\NotificationService;
+use App\Support\Money;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -191,6 +192,14 @@ class BookingDeskController extends Controller
         $note = (string) ($request->validate(['note' => ['nullable', 'string', 'max:200']])['note'] ?? '');
 
         return $this->act($location, $booking, fn (Booking $b) => $this->bookings->noShow($request->user(), $b, $note !== '' ? $note : null), '"Gelmedi" işaretlendi.');
+    }
+
+    /** İndirim (booking.manage): büyük birim girdisi kuruşa; gerekçe zorunlu (audit). */
+    public function discount(Request $request, Location $location, int $booking): RedirectResponse
+    {
+        $v = $request->validate(['discount' => ['required', Money::RULE], 'reason' => ['required', 'string', 'min:3', 'max:200']]);
+
+        return $this->act($location, $booking, fn (Booking $b) => $this->bookings->applyDiscount($request->user(), $b, Money::parse((string) $v['discount']), (string) $v['reason']), 'İndirim kaydedildi; tutar ve KDV yeniden hesaplandı.', 'discount');
     }
 
     public function note(Request $request, Location $location, int $booking): RedirectResponse
