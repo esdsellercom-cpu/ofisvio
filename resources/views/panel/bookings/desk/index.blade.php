@@ -56,6 +56,7 @@
             @foreach ($locations as $loc)
                 @can('booking.view', $loc)
                     <a href="{{ route('panel.bookings.location', $loc) }}" class="chip">{{ $loc->name }}</a>
+                    <a href="{{ route('panel.bookings.calendar', $loc) }}" class="chip" title="Takvim">{{ $loc->name }} · takvim</a>
                 @endcan
             @endforeach
         </div>

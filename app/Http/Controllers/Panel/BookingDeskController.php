@@ -65,6 +65,28 @@ class BookingDeskController extends Controller
         ]);
     }
 
+    /** Takvim: hafta × oda ızgarası (booking.view; lokasyon kapsamı ?lokasyon= ile). */
+    public function calendar(Request $request, Location $location): View
+    {
+        $view = $request->query('gorunum') === 'day' ? 'day' : 'week';
+        $anchor = $this->day((string) $request->query('gun', Carbon::today()->toDateString()));
+        $from = $view === 'week' ? $anchor->copy()->startOfWeek() : $anchor->copy();
+        $to = $view === 'week' ? $from->copy()->addWeek() : $from->copy()->addDay();
+        $rooms = $this->bookings->rooms($location);
+        $rows = $this->bookings->forLocationRange($location, $from, $to);
+
+        return view('panel.bookings.desk.calendar', [
+            'location' => $location,
+            'view' => $view,
+            'from' => $from,
+            'days' => collect(range(0, $view === 'week' ? 6 : 0))->map(fn (int $i) => $from->copy()->addDays($i)),
+            'rooms' => $rooms,
+            'cells' => $rows->groupBy(fn (Booking $b) => $b->room_id.'|'.$b->starts_at->toDateString()),
+            'locations' => $this->geo->allLocations(),
+            'today' => Carbon::today(),
+        ]);
+    }
+
     public function location(Request $request, Location $location): View
     {
         $day = $this->day((string) $request->query('gun', Carbon::today()->toDateString()));

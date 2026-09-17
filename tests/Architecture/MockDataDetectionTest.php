@@ -124,4 +124,38 @@ class MockDataDetectionTest extends TestCase
 
         $this->assertSame([], $offenders, "Frontend doğrudan HTTP istemcisi kullanıyor:\n".implode("\n", $offenders));
     }
+
+    #[Test]
+    public function kaynak_kodda_sabit_telefon_whatsapp_ve_fiyat_yok(): void
+    {
+        // Master prompt §40/§48: telefon (+90…, 0xxx xxx xx xx), wa.me sabit adresi ve ₺ fiyat
+        // literalleri uygulama kodunda/görünümlerde/JS'te/config'te/seeder'da bulunamaz — kaynak
+        // veritabanı/ayar. placeholder="…" biçim örnekleri (kullanıcıya biçim gösterir) muaftır.
+        $patterns = [
+            'telefon' => '/(?<![\w.])(\+90\s?\d{3}\s?\d{3}\s?\d{2}\s?\d{2}|0\d{3}\s\d{3}\s\d{2}\s\d{2})(?![\w])/u',
+            'wa.me sabit adres' => '~wa\.me/\d+~',
+            'fiyat literali' => '/(?<![{$\w])\d{1,3}(\.\d{3})*\s?₺(?![}])/u',
+        ];
+        $files = array_merge(self::files('app', '/\.php$/'), self::files('resources/views', '/\.blade\.php$/'), self::files('public/js', '/\.js$/'), self::files('config', '/\.php$/'), self::files('database/seeders', '/\.php$/'));
+        $offenders = [];
+
+        foreach ($files as $path) {
+            $source = (string) file_get_contents($path);
+
+            foreach ($patterns as $label => $pattern) {
+                preg_match_all($pattern, $source, $m);
+
+                foreach ($m[0] as $hit) {
+                    if (preg_match('/placeholder="[^"]*'.preg_quote($hit, '/').'/u', $source) === 1) {
+                        continue;
+                    }
+
+                    $offenders[] = str_replace(dirname(__DIR__, 2).DIRECTORY_SEPARATOR, '', $path).": {$label} → {$hit}";
+                }
+            }
+        }
+
+        $offenders = array_values(array_unique($offenders));
+        $this->assertSame([], $offenders, "Kaynak kodda sabit ticari veri:\n".implode("\n", $offenders));
+    }
 }

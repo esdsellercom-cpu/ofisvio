@@ -519,6 +519,24 @@ class BookingService
     }
 
     /**
+     * Takvim (§50): lokasyonun bir aralıktaki rezervasyonları (hafta/gün görünümü), oda bazında.
+     *
+     * @return Collection<int, Booking>
+     */
+    public function forLocationRange(Location $location, Carbon $from, Carbon $to): Collection
+    {
+        return Booking::withoutTenantScope()
+            ->where('location_id', $location->id)
+            // Takvimde iptal/red/süresi dolan görünmez; tamamlanan ve gelmedi (geçmiş) görünür.
+            ->whereNotIn('status', [BookingStatus::REJECTED->value, BookingStatus::CANCELLED->value, BookingStatus::EXPIRED->value])
+            ->where('starts_at', '<', $to)
+            ->where('ends_at', '>', $from)
+            ->with(['room', 'booker', 'company' => fn ($q) => $q->withoutGlobalScope(TenantScope::class)])
+            ->orderBy('starts_at')
+            ->get();
+    }
+
+    /**
      * Personel genel listesi (booking.view global) — sekme + süzgeç.
      *
      * @param  array{tab?: string|null, location_id?: int|null, room_id?: int|null, from?: string|null, q?: string|null}  $filters

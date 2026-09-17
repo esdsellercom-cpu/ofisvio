@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **245/245** (Unit 10 · Feature 221 · Architecture 14) |
+| `php artisan test` | ✅ **246/246** (Unit 10 · Feature 221 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -370,7 +370,9 @@ oda, yazı, blok). Taslak (content.edit) ≠ yayın (content.publish → revizyo
 **revizyon listesi + geri alma**; **imzalı süreli önizleme** (`/onizleme/{website}`, noindex,
 masaüstü/tablet/mobil iframe). Üst menü yayınlanmış bölümlerin çapalarından (gizli bölüme ölü
 bağlantı yok). Hepsi denetim izli. Kalan: çok dillilik, alt sayfalar için kurucu (şimdilik
-Markdown sayfalar), A/B deneyi.
+Markdown sayfalar), A/B deneyi. Ek: duyuru şeridi (global bileşen), rezervasyon takvimi
+(hafta/gün × oda), lead/KYC olayları Bildirim Merkezi'nde, `MockDataDetectionTest` sabit telefon/
+WhatsApp/fiyat taraması. Kapsama matrisi: `COVERAGE.md`.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

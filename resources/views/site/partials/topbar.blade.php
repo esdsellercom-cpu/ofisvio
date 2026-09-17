@@ -1,3 +1,11 @@
+@if ($brand['announcement'] ?? null)
+    {{-- Duyuru şeridi: site ayarı (metin/bağlantı/bitiş) — global bileşen --}}
+    <div class="topbar" style="background:var(--brand);color:var(--surface)">
+        <div class="wrap" style="padding-block:8px;font-size:13px;text-align:center">
+            @if ($brand['announcement']['href'] !== '')<a href="{{ $brand['announcement']['href'] }}" style="color:inherit;font-weight:600">{{ $brand['announcement']['text'] }}</a>@else{{ $brand['announcement']['text'] }}@endif
+        </div>
+    </div>
+@endif
 <div class="topbar">
     <div class="wrap" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding-block:9px">
         <span>@isset($locations){{ $locations->count() }} lokasyon · @endisset{{ $texts['topbar'] }}</span>

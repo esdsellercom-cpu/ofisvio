@@ -26,15 +26,16 @@ class Website extends Model
         'same_as', 'legal_name', 'nav_links',
         'cache_ttl_seconds', 'http_max_age', 'http_s_maxage',
         'contact_phone', 'contact_email', 'tagline', 'address', 'hero_media_id', 'whatsapp_number', 'business_hours',
+        'announcement_text', 'announcement_href', 'announcement_until',
     ];
 
-    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array', 'business_hours' => 'array'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
 
     /**
      * Marka/iletişim bilgisi (faz 29): yalnız site alanları (boşsa gösterilmez).
      * phone_href telefon rakamlarından türer.
      *
-     * @return array{name: string, legal_name: string, phone: string, phone_href: string, email: string, tagline: string, address: string, whatsapp: string, whatsapp_href: string, hours: array<int, string>}
+     * @return array{name: string, legal_name: string, phone: string, phone_href: string, email: string, tagline: string, address: string, whatsapp: string, whatsapp_href: string, hours: array<int, string>, announcement: array{text: string, href: string}|null}
      */
     public function brand(): array
     {
@@ -54,6 +55,10 @@ class Website extends Model
             // wa.me yalnız rakam ister; ön yazılı mesaj texts bloğundan (SiteLayoutComposer ekler).
             'whatsapp_href' => $this->whatsapp_number ? 'https://wa.me/'.preg_replace('/\D+/', '', $this->whatsapp_number) : '',
             'hours' => array_values(array_filter(array_map('strval', (array) ($this->business_hours ?? [])))),
+            // Duyuru şeridi: metin varsa ve bitiş geçmemişse.
+            'announcement' => $this->announcement_text && ($this->announcement_until === null || $this->announcement_until->isFuture())
+                ? ['text' => (string) $this->announcement_text, 'href' => (string) ($this->announcement_href ?? '')]
+                : null,
         ];
     }
 

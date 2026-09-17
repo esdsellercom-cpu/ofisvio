@@ -9,6 +9,7 @@
             <h1 class="h2">{{ $location->name }} masası</h1>
         </div>
         <div class="panel-head__actions">
+            <a href="{{ route('panel.bookings.calendar', [$location, 'gun' => $day->toDateString()]) }}" class="btn btn--ghost">Takvim</a>
             @can('geo.edit')
                 <a href="{{ route('panel.geo.rooms.index', $location) }}" class="btn btn--ghost">Odalar</a>
             @endcan

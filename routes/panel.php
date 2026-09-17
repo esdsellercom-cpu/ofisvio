@@ -82,6 +82,7 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::prefix('rezervasyonlar')->name('bookings.')->group(function () {
             Route::get('/', [BookingDeskController::class, 'index'])->middleware('permission:booking.view')->name('index');
             Route::get('/lokasyon/{location}', [BookingDeskController::class, 'location'])->middleware('permission:booking.view|booking.admin_override,location')->name('location');
+            Route::get('/lokasyon/{location}/takvim', [BookingDeskController::class, 'calendar'])->middleware('permission:booking.view|booking.admin_override,location')->name('calendar');
             Route::post('/lokasyon/{location}', [BookingDeskController::class, 'store'])->middleware('permission:booking.create|booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.store');
             Route::post('/lokasyon/{location}/jit', [BookingDeskController::class, 'requestJit'])
                 ->middleware(['permission:booking.view|booking.admin_override,location', 'throttle:jit-request'])->name('location.jit');

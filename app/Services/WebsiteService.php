@@ -196,7 +196,7 @@ class WebsiteService
      * Site genel ayarları (faz 29): iletişim/kimlik. Personel (website.manage)
      * ve müşteri (content.edit, kendi sitesi) aynı yolu kullanır.
      *
-     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null, whatsapp_number?: string|null, business_hours?: string|null}  $data
+     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null, whatsapp_number?: string|null, business_hours?: string|null, announcement_text?: string|null, announcement_href?: string|null, announcement_until?: string|null}  $data
      */
     public function updateSettings(Website $website, array $data): Website
     {
@@ -208,6 +208,9 @@ class WebsiteService
             'legal_name' => $this->blankToNull($data['legal_name'] ?? $website->legal_name),
             'whatsapp_number' => $this->blankToNull($data['whatsapp_number'] ?? null),
             'business_hours' => $this->lines($data['business_hours'] ?? null),
+            'announcement_text' => $this->blankToNull($data['announcement_text'] ?? null),
+            'announcement_href' => $this->blankToNull($data['announcement_href'] ?? null),
+            'announcement_until' => $this->blankToNull($data['announcement_until'] ?? null),
         ]);
         $website->save();
 

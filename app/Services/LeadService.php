@@ -20,6 +20,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class LeadService
 {
+    public function __construct(private readonly NotificationService $notifications) {}
+
     /**
      * @param  array{kind: string, name: string, email: string, phone?: ?string,
      *               location_id?: ?int, solution?: ?string, team_size?: ?string,
@@ -28,7 +30,7 @@ class LeadService
      */
     public function capture(array $data, array $consent): Lead
     {
-        return Lead::create([
+        $lead = Lead::create([
             'kind' => $data['kind'],
             'name' => $data['name'],
             'email' => $data['email'],
@@ -48,6 +50,14 @@ class LeadService
                 ? mb_substr((string) $consent['user_agent'], 0, 255)
                 : null,
         ]);
+
+        // Bildirim merkezi: CRM grubuna yeni talep (kural/alıcı panelden).
+        $this->notifications->dispatch('lead.created', [
+            'name' => $lead->name, 'email' => $lead->email, 'phone' => (string) ($lead->phone ?? ''), 'kind' => $lead->kind,
+            'solution' => (string) ($lead->solution ?? ''), 'location' => (string) ($lead->location->name ?? ''),
+        ], $lead->location_id, 'lead', $lead->id);
+
+        return $lead;
     }
 
     /**

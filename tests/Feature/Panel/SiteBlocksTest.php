@@ -158,6 +158,14 @@ class SiteBlocksTest extends TestCase
         app(ContentCache::class)->invalidate($default);
         $this->assertStringContainsString('href="/kvkk-aydinlatma"', $this->get('http://localhost/')->assertOk()->getContent());
 
+        // Duyuru şeridi (global bileşen): metin + bağlantı + bitiş; süresi geçince kaybolur; bozuk bağlantı reddedilir.
+        $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->put("/panel/websiteler/{$default->id}/ayarlar", ['announcement_text' => 'Yeni şube açıldı', 'announcement_href' => 'javascript:alert(1)'])->assertSessionHasErrors('announcement_href');
+        $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", ['announcement_text' => 'Yeni şube açıldı', 'announcement_href' => '/lokasyonlar', 'announcement_until' => now()->addDay()->format('Y-m-d\TH:i')])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertStringContainsString('href="/lokasyonlar" style="color:inherit;font-weight:600">Yeni şube açıldı', $this->get('http://localhost/')->assertOk()->getContent());
+        $this->travel(2)->days();
+        $this->assertStringNotContainsString('Yeni şube açıldı', $this->get('http://localhost/')->assertOk()->getContent());
+        $this->travelBack();
+
         // Müşteri sitesi: kendi WhatsApp'ı; Ofisvio'nunki sızmaz.
         $acme = $this->organization('Acme');
         $site = Website::create(['organization_id' => $acme->id, 'name' => 'Acme', 'slug' => 'acme', 'domain' => 'acme.example', 'whatsapp_number' => '+905550001122', 'business_hours' => ['Her gün 09–18']]);

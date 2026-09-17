@@ -28,6 +28,9 @@ class WebsiteController extends Controller
         'address' => ['nullable', 'string', 'max:300'],
         'whatsapp_number' => ['nullable', 'string', 'regex:/^\+[1-9][0-9]{7,14}$/'], // E.164
         'business_hours' => ['nullable', 'string', 'max:500'], // satır satır
+        'announcement_text' => ['nullable', 'string', 'max:160'],
+        'announcement_href' => ['nullable', 'string', 'max:300', 'regex:~^(/[^\s]*|#[\w-]+|https://[^\s]+)$~'],
+        'announcement_until' => ['nullable', 'date'],
     ];
 
     public function __construct(

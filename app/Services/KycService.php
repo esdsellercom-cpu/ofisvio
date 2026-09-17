@@ -48,6 +48,7 @@ class KycService
         private readonly JitAccessService $jit,
         private readonly CompanyActivationService $activation,
         private readonly MalwareScanner $scanner,
+        private readonly NotificationService $notifications,
     ) {}
 
     // -----------------------------------------------------------------
@@ -83,7 +84,7 @@ class KycService
             throw new DomainException('Belge güvenlik taramasından geçirilemedi; lütfen birkaç dakika sonra tekrar deneyin.');
         }
 
-        return DB::transaction(function () use ($company, $uploader, $type, $file, $scan) {
+        $document = DB::transaction(function () use ($company, $uploader, $type, $file, $scan) {
             // Aynı tipte önceki belge varsa SUPERSEDED yapılır, SİLİNMEZ.
             // Denetim izi için eski belgenin kaydı kalmalıdır.
             KycDocument::where('company_id', $company->id)
@@ -136,6 +137,13 @@ class KycService
 
             return $document;
         });
+
+        // Bildirim merkezi (commit sonrası): uyum ekibine yeni belge.
+        if ($document->status === KycDocumentStatus::PENDING) {
+            $this->notifications->dispatch('kyc.submitted', ['company' => $company->legal_name, 'document' => $type->label()], null, 'kyc_document', $document->id);
+        }
+
+        return $document;
     }
 
     // -----------------------------------------------------------------

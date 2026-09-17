@@ -216,6 +216,9 @@ class BookingTest extends TestCase
         $this->actingAs($ops)->post("/panel/rezervasyonlar/lokasyon/kadikoy/{$b->id}/tamamla")->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame(BookingStatus::COMPLETED, $b->fresh()->status);
         $this->actingAs($ops)->get('/panel/rezervasyonlar?sekme=completed')->assertOk()->assertSee($b->reference);
+        // Takvim: hafta görünümünde oda satırında rezervasyon; müşteri erişemez.
+        $this->actingAs($ops)->get('/panel/rezervasyonlar/lokasyon/kadikoy/takvim?gun=2026-09-18')->assertOk()->assertSee('Toplantı 1')->assertSee('14:00–15:00')->assertSee('Yılmaz Ltd.');
+        $this->actingAs($ops)->get('/panel/rezervasyonlar/lokasyon/kadikoy/takvim?gorunum=day&gun=2026-09-19')->assertOk()->assertDontSee('14:00–15:00');
         $this->actingAs($ops)->get('/panel/bildirimler?sekme=gunluk')->assertOk()->assertSee('wamid.TEST1')->assertDontSee('+903326060999');
     }
 
