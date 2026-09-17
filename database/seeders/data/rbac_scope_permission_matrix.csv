@@ -111,6 +111,16 @@ booking,booking.approve,location_manager,location,no,no,
 booking,booking.manage,operations_admin,global,no,no,giris/tamamlandi/gelmedi/yeniden planlama/ic not
 booking,booking.manage,location_manager,location,no,no,
 booking,booking.manage,reception,location,no,no,masada giris/tamamlandi/gelmedi
+events,event.view,system_admin,global,no,no,etkinlikler & topluluk (faz 39d)
+events,event.view,operations_admin,global,no,no,
+events,event.view,super_admin,global,no,no,
+events,event.manage,system_admin,global,no,no,
+events,event.manage,operations_admin,global,no,no,
+franchise,franchise.view,system_admin,global,no,no,franchise basvurulari (faz 39e)
+franchise,franchise.view,operations_admin,global,no,no,
+franchise,franchise.view,super_admin,global,no,no,
+franchise,franchise.manage,system_admin,global,no,no,
+franchise,franchise.manage,operations_admin,global,no,no,
 services,service.view,system_admin,global,no,no,hizmet katalogu
 services,service.view,operations_admin,global,no,no,
 services,service.view,super_admin,global,no,no,

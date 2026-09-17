@@ -32,6 +32,7 @@ class ReportService
         private readonly AuthorizationService $authorization,
         private readonly InvoiceService $invoices,
         private readonly SubscriptionService $subscriptions,
+        private readonly FranchiseService $franchise,
     ) {}
 
     /** @return array<string, mixed> */
@@ -43,7 +44,7 @@ class ReportService
             'tahsilat' => $this->finance($user) ?? [],
             // KYC adedi yalnız kyc.view_status taşıyana (operations_admin analytics.view taşır ama KYC görmez).
             'uyelik' => ['companies' => $this->companiesByStatus(), 'kyc_pending' => $this->authorization->can($user, 'kyc.view_status') ? array_sum($this->kyc->pendingCounts($user)) : null, 'subscriptions' => $this->authorization->can($user, 'subscription.view') ? $this->subscriptions->dashboard() : null],
-            'talepler' => $this->leads(),
+            'talepler' => $this->leads() + ['franchise' => $this->authorization->can($user, 'franchise.view') ? $this->franchise->counts() : null],
             'bildirim' => ['health' => $this->notifications->channelHealth(30), 'counts' => $this->notifications->counts()],
             'icerik' => ['content' => $this->contentByStatus()],
             default => [],

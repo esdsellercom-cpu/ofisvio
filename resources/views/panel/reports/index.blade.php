@@ -7,7 +7,7 @@
         <div>
             <p class="eyebrow">Sistem · raporlar</p>
             <h1 class="h2">Raporlar &amp; analitik</h1>
-            <p>Canlı veriden toplamlar; dış analitik bağlı değil. Finans ve franchise sekmeleri ilgili modüllerle birlikte gelir.</p>
+            <p>Canlı veriden toplamlar; dış analitik bağlı değil. Finans ve franchise sayımları yalnız ilgili izinle görünür.</p>
         </div>
     </div>
 
@@ -146,6 +146,15 @@
                     @endforeach
                 </div>
             </div>
+
+            @if ($data['franchise'] !== null)
+                <div class="card">
+                    <div class="card__head"><h3>Franchise başvuruları</h3></div>
+                    <div class="card__body"><div class="stat-s">
+                        @foreach (\App\Models\FranchiseApplication::STATUSES as $k => $label)<div><b>{{ $data['franchise'][$k] }}</b><span>{{ $label }}</span></div>@endforeach
+                    </div></div>
+                </div>
+            @endif
 
         @elseif ($tab === 'bildirim')
             <div class="kpis">

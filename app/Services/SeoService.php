@@ -30,6 +30,7 @@ class SeoService
         private readonly ContentService $contents,
         private readonly GeoService $geo,
         private readonly ServiceService $services,
+        private readonly EventService $events,
     ) {}
 
     /**
@@ -330,6 +331,16 @@ class SeoService
             foreach ($services as $service) {
                 $entries[] = ['loc' => $base.$service->path(), 'lastmod' => $service->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.7'];
             }
+
+            // Etkinlikler (faz 39d): yalnız yayındaki yaklaşanlar; franchise sayfası sabit.
+            $events = $this->events->upcoming($website);
+            if ($events->isNotEmpty()) {
+                $entries[] = ['loc' => $base.'/etkinlikler', 'lastmod' => null, 'changefreq' => 'weekly', 'priority' => '0.6'];
+            }
+            foreach ($events as $event) {
+                $entries[] = ['loc' => $base.$event->path(), 'lastmod' => $event->updated_at?->toAtomString(), 'changefreq' => 'weekly', 'priority' => '0.6'];
+            }
+            $entries[] = ['loc' => $base.'/franchise', 'lastmod' => null, 'changefreq' => 'monthly', 'priority' => '0.5'];
         }
 
         $posts = $this->contents->livePosts($website, 1000);

@@ -27,6 +27,8 @@ use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContentDraftController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
+use App\Http\Controllers\Panel\EventController;
+use App\Http\Controllers\Panel\FranchiseController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\IntegrationController;
 use App\Http\Controllers\Panel\InvoiceController;
@@ -91,6 +93,25 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::post('/{subscription}/iptal', [SubscriptionController::class, 'cancel'])->where('subscription', '[0-9]+')->middleware('permission:subscription.manage')->name('cancel');
             Route::post('/{subscription}/yenile', [SubscriptionController::class, 'renew'])->where('subscription', '[0-9]+')->middleware('permission:subscription.manage')->name('renew');
         });
+        // Etkinlikler (faz 39d, §9): event.view görür; event.manage yazar. {event} slug ile bağlanır.
+        Route::prefix('etkinlikler')->name('events.')->group(function () {
+            Route::get('/', [EventController::class, 'index'])->middleware('permission:event.view|event.manage')->name('index');
+            Route::get('/yeni', [EventController::class, 'create'])->middleware('permission:event.manage')->name('create');
+            Route::post('/', [EventController::class, 'store'])->middleware('permission:event.manage')->name('store');
+            Route::get('/{event}', [EventController::class, 'show'])->middleware('permission:event.view|event.manage')->name('show');
+            Route::get('/{event}/duzenle', [EventController::class, 'edit'])->middleware('permission:event.manage')->name('edit');
+            Route::put('/{event}', [EventController::class, 'update'])->middleware('permission:event.manage')->name('update');
+            Route::delete('/{event}', [EventController::class, 'destroy'])->middleware('permission:event.manage')->name('destroy');
+            Route::post('/{event}/kayit/{registration}', [EventController::class, 'registration'])->middleware('permission:event.manage')->scopeBindings()->name('registration');
+        });
+
+        // Franchise (faz 39e, §14): franchise.view listeler; franchise.manage değerlendirir.
+        Route::prefix('franchise')->name('franchise.')->group(function () {
+            Route::get('/', [FranchiseController::class, 'index'])->middleware('permission:franchise.view|franchise.manage')->name('index');
+            Route::get('/{application}', [FranchiseController::class, 'show'])->middleware('permission:franchise.view|franchise.manage')->name('show');
+            Route::put('/{application}', [FranchiseController::class, 'update'])->middleware('permission:franchise.manage')->name('update');
+        });
+
         // Finans (faz 39c, §7–8): invoice.view görür; invoice.issue açar/yayınlar; invoice.cancel iptal; payment_allocation.manage tahsilat.
         Route::get('/tahsilat', [CollectionController::class, 'index'])->middleware('permission:invoice.view')->name('collections.index');
         Route::prefix('faturalar')->name('invoices.')->group(function () {

@@ -22,13 +22,14 @@ use InvalidArgumentException;
  */
 class PanelBadgeService
 {
-    public const KEYS = ['unread', 'bookings_pending', 'leads_new', 'notifications_failed', 'kyc_pending', 'subscriptions_expiring', 'invoices_overdue'];
+    public const KEYS = ['unread', 'bookings_pending', 'leads_new', 'notifications_failed', 'kyc_pending', 'subscriptions_expiring', 'invoices_overdue', 'franchise_new'];
 
     public function __construct(
         private readonly BookingService $bookings,
         private readonly KycQueueService $kyc,
         private readonly SubscriptionService $subscriptions,
         private readonly InvoiceService $invoices,
+        private readonly FranchiseService $franchise,
         private readonly TenantContext $context,
     ) {}
 
@@ -74,6 +75,7 @@ class PanelBadgeService
             'kyc_pending' => $this->kyc->queueQuery($user)->toBase(),
             'subscriptions_expiring' => $this->subscriptions->expiringQuery()->toBase(),
             'invoices_overdue' => $this->invoices->overdueQuery()->toBase(),
+            'franchise_new' => $this->franchise->newQuery()->toBase(),
             default => throw new InvalidArgumentException('Bilinmeyen rozet: '.$key),
         };
 

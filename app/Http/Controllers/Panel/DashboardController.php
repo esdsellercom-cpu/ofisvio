@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\BookingService;
 use App\Services\CompanyService;
+use App\Services\EventService;
+use App\Services\FranchiseService;
 use App\Services\GeoService;
 use App\Services\InvoiceService;
 use App\Services\KycQueueService;
@@ -41,6 +43,8 @@ class DashboardController extends Controller
         private readonly GeoService $geo,
         private readonly SubscriptionService $subscriptions,
         private readonly InvoiceService $invoices,
+        private readonly EventService $events,
+        private readonly FranchiseService $franchise,
     ) {}
 
     public function __invoke(Request $request): View
@@ -89,6 +93,8 @@ class DashboardController extends Controller
             'kyc_pending' => $user->can('kyc.view_status') ? array_sum($this->kycQueue->pendingCounts($user)) : null,
             'subscriptions' => $user->can('subscription.view') ? $this->subscriptions->dashboard() : null,
             'finance' => $user->can('invoice.view') ? $this->invoices->dashboard() : null,
+            'events' => $user->can('event.view') ? $this->events->dashboard() : null,
+            'franchise' => $user->can('franchise.view') ? $this->franchise->counts() : null,
             'overdue' => $user->can('invoice.view') ? collect($this->invoices->paginateAll(['tab' => 'overdue'], 6)->items()) : null,
             'expiring' => $user->can('subscription.view') ? collect($this->subscriptions->paginateAll(['tab' => 'expiring'], 6)->items()) : null,
             'locations' => $locations === null ? null : [

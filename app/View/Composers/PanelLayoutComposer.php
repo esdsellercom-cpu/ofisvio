@@ -81,6 +81,7 @@ class PanelLayoutComposer
                 'kyc_pending' => $isStaff && $activeOrganization !== null && $gate->allows('kyc.view_status'),
                 'subscriptions_expiring' => $isStaff && $gate->allows('subscription.view'),
                 'invoices_overdue' => $isStaff && $gate->allows('invoice.view'),
+                'franchise_new' => $gate->any(['franchise.view', 'franchise.manage']),
             ])));
         }
 

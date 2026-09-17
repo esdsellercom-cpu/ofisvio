@@ -76,7 +76,9 @@ class PanelMenu
                 $can('invoice.view') ? $this->item('Ödemeler & faturalandırma', route('panel.invoices.index'), $this->routeIs('panel.invoices.*')) : null,
             ]],
             ['Büyüme', [
+                $can('event.view', 'event.manage') ? $this->item('Etkinlikler & topluluk', route('panel.events.index'), $this->routeIs('panel.events.*')) : null,
                 $can('lead.view') ? $this->item('CRM & pazarlama', route('panel.leads.index'), $this->routeIs('panel.leads.*'), $badges['leads_new'] ?? 0, 'a') : null,
+                $can('franchise.view', 'franchise.manage') ? $this->item('Franchise yönetimi', route('panel.franchise.index'), $this->routeIs('panel.franchise.*'), $badges['franchise_new'] ?? 0, 'a') : null,
             ]],
             ['Dijital', [
                 $can(...$contentPerms) ? $this->item('Sayfalar', route('panel.content.index', ['kind' => 'page']), $kind('page')) : null,

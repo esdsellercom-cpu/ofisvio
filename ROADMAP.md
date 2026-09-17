@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **256/256** (Unit 10 · Feature 231 · Architecture 15) |
+| `php artisan test` | ✅ **263/263** (Unit 10 · Feature 238 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -412,6 +412,26 @@ Dashboard: personel için KPI şeridi + kartlar (bugünkü rezervasyonlar, onay 
 lokasyon performansı) gerçek servis toplamlarından, blok yalnız izinle; müşteri için şirket sayaçları.
 `PanelShellTest` (menü/rozet/KPI, 2FA kapısı, arama izinleri, tema). Ayrıca panelde `ofisvio.js`
 artık yükleniyor (sürükle-bırak sıralama panelde çalışmıyordu).
+
+### 39. Artifact menü paritesi — eksik modüller ✅ (17 Eylül 2026)
+Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sırası Genel bakış · Operasyon ·
+Üyelik · Finans · Büyüme · Dijital · Sistem · Hesap. Hiçbir öge ölü değil; ticari veri yalnız DB, seed yok.
+- **39a** Alanlar (`/panel/alanlar`, tüm odalar), Üye dizini (`/panel/uyeler`), Raporlar & analitik
+  (`ReportService`, sekmeler: gelir/tahsilat/doluluk/üyelik/talepler/bildirim/içerik), Entegrasyonlar & API
+  (sağlayıcı geçidi maskeli + kanal sağlığı + webhook uçları), Yerelleştirme (ayarlar › genel grup).
+- **39b** Üyelikler & paketler: `plans` + `subscriptions` (tenant, fiyat anlık görüntü), `SubscriptionService`
+  (aç/yenile/iptal/expireStale, MRR), RBAC `subscription.manage`, müşteri görünümü, `subscriptions:expire`.
+- **39c** Finans: `invoices` + `payments`, `InvoiceService` (taslak → yayın [numara ayardan] → gecikmiş →
+  ödendi; kısmi tahsilat; iptal JIT'li `invoice.cancel`), `/panel/faturalar`, `/panel/tahsilat`, müşteri
+  faturaları, Ayarlar › Finans, `invoices:mark-overdue`.
+- **39d** Etkinlikler & topluluk: `events` + `event_registrations`, panel CRUD/yayın/katılımcı durumu,
+  vitrin `/etkinlikler`, `/etkinlik/{slug}` + KVKK'lı kayıt (kontenjan, tekrar e-posta), sitemap, önbellek.
+- **39e** Franchise yönetimi: `franchise_applications`, vitrin `/franchise` formu, panel değerlendirme
+  (durum/sorumlu/not, audit). RBAC `event.*`, `franchise.*`.
+- Menü rozetleri (bitişi yaklaşan üyelik, gecikmiş fatura, yeni franchise) tek sorguda; dashboard KPI'ları
+  (günlük/aylık ciro, bekleyen/gecikmiş tahsilat, üyelik bitişi, yeni üyelik, yaklaşan etkinlik, franchise)
+  ve kartları (gecikmiş ödemeler, yaklaşan üyelik bitişleri) gerçek servis toplamları.
+- Testler: `SubscriptionTest`, `InvoiceTest`, `EventFranchiseTest`, `PanelShellTest` (+faz 39 sayfaları).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

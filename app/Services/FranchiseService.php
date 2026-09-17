@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\FranchiseApplication;
+use App\Models\User;
+use DomainException;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+
+/**
+ * Franchise yönetimi (faz 39e, artifact §14): vitrin başvurusu (KVKK rızası + IP) →
+ * panel değerlendirme (durum, atama, iç not; audit izli). Rozet/dashboard: yeni başvuru.
+ */
+class FranchiseService
+{
+    public function __construct(private readonly AuditService $audit) {}
+
+    /**
+     * @param  array{name: string, email: string, phone?: string|null, city: string, district?: string|null, budget?: string|null, experience?: string|null, message?: string|null}  $data
+     * @param  array{ip?: string|null}  $consent
+     */
+    public function apply(array $data, array $consent): FranchiseApplication
+    {
+        $application = new FranchiseApplication([
+            'name' => trim($data['name']),
+            'email' => mb_strtolower(trim($data['email'])),
+            'phone' => $this->blank($data['phone'] ?? null),
+            'city' => trim($data['city']),
+            'district' => $this->blank($data['district'] ?? null),
+            'budget' => $this->blank($data['budget'] ?? null),
+            'experience' => $this->blank($data['experience'] ?? null),
+            'message' => $this->blank($data['message'] ?? null),
+            'status' => 'new',
+            'consented_at' => Carbon::now(),
+            'consent_ip' => $consent['ip'] ?? null,
+        ]);
+        $application->save();
+
+        return $application;
+    }
+
+    /**
+     * @param  array{status?: string|null, q?: string|null}  $filters
+     * @return LengthAwarePaginator<int, FranchiseApplication>
+     */
+    public function paginate(array $filters, int $perPage = 30): LengthAwarePaginator
+    {
+        $q = trim((string) ($filters['q'] ?? ''));
+
+        return FranchiseApplication::query()->with('assignee')
+            ->when($filters['status'] ?? null, fn (Builder $b, $s) => $b->where('status', $s))
+            ->when($q !== '', fn (Builder $b) => $b->where(fn (Builder $w) => $w->where('name', 'like', "%{$q}%")->orWhere('email', 'like', "%{$q}%")->orWhere('city', 'like', "%{$q}%")))
+            ->orderByRaw("case when status = 'new' then 0 else 1 end")->orderByDesc('created_at')
+            ->paginate($perPage)->withQueryString();
+    }
+
+    /** @return array<string, int> */
+    public function counts(): array
+    {
+        $rows = FranchiseApplication::query()->selectRaw('status, count(*) as n')->groupBy('status')->pluck('n', 'status');
+        $out = [];
+
+        foreach (array_keys(FranchiseApplication::STATUSES) as $status) {
+            $out[$status] = (int) ($rows[$status] ?? 0);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Menü rozeti: yeni başvurular.
+     *
+     * @return Builder<FranchiseApplication>
+     */
+    public function newQuery(): Builder
+    {
+        return FranchiseApplication::query()->where('status', 'new');
+    }
+
+    public function update(User $actor, FranchiseApplication $application, string $status, ?int $assignedTo, ?string $internalNote): FranchiseApplication
+    {
+        if (! isset(FranchiseApplication::STATUSES[$status])) {
+            throw new DomainException('Geçersiz başvuru durumu.');
+        }
+
+        $before = $application->toArray();
+        $application->fill([
+            'status' => $status,
+            'assigned_to' => $assignedTo,
+            'internal_note' => $this->blank($internalNote),
+            'handled_at' => $status !== 'new' && $application->handled_at === null ? Carbon::now() : $application->handled_at,
+        ])->save();
+        $this->audit->record($actor, 'franchise.updated', 'franchise_application', $application->id, $before, $application->toArray());
+
+        return $application;
+    }
+
+    private function blank(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+}
