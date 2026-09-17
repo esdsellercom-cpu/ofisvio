@@ -36,7 +36,7 @@
         <div class="grid-auto" style="--min:300px;--gap:20px;align-items:start">
             <div class="panel">
                 <p class="eyebrow">1 · Uygulamaya ekleyin</p>
-                <p class="body-muted" style="margin:0 0 16px">Doğrulayıcı uygulamanızla kodu okutun ya da anahtarı elle girin.</p>
+                <p class="body-muted" style="margin:0 0 16px">Doğrulayıcı uygulamanızla kodu okutun ya da anahtarı elle girin. <strong>Bu yeni bir anahtardır:</strong> uygulamanızda daha önceki bir Ofisvio kaydı varsa onu silin; eski kayıt geçersizdir.</p>
                 <div style="background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:16px;display:inline-block">{!! $qrCode !!}</div>
                 <p class="small muted" style="margin:14px 0 4px">Anahtar</p>
                 <code class="mono" style="font-size:14px;letter-spacing:.08em;overflow-wrap:anywhere">{{ $secretKey }}</code>
@@ -48,7 +48,7 @@
                     @csrf
                     <label class="field">
                         <span class="label">Doğrulama kodu</span>
-                        <input class="control mono" type="text" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" required autofocus
+                        <input class="control mono" type="text" name="code" inputmode="numeric" pattern="[0-9 -]*" autocomplete="one-time-code" required autofocus
                                style="letter-spacing:.3em;font-size:20px" @error('code', 'confirmTwoFactorAuthentication') aria-invalid="true" @enderror>
                     </label>
                     @if ($errors->confirmTwoFactorAuthentication->any())

@@ -101,7 +101,8 @@ return [
     |
     */
 
-    'middleware' => ['web'],
+    // 2fa.normalize: '123 456' / '123-456' gibi girişleri 6 haneli koda çevirir (kod doğrulaması Fortify'da).
+    'middleware' => ['web', 'totp.normalize'],
 
     /*
     |--------------------------------------------------------------------------
@@ -179,6 +180,9 @@ return [
         Features::twoFactorAuthentication([
             'confirm' => true,
             'confirmPassword' => true,
+            // TOTP tolerans penceresi: ±2 periyot (60 sn). Telefon saati birkaç saniye kaymış kullanıcıyı
+            // reddetmemek için; kod tekrar kullanımı Fortify'ın zaman damgası önbelleğiyle zaten engellenir.
+            'window' => 2,
         ]),
     ],
 

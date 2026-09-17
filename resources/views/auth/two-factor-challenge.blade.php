@@ -25,7 +25,7 @@
 
         <label class="field">
             <span class="label">Doğrulama kodu</span>
-            <input class="control mono" type="text" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus
+            <input class="control mono" type="text" name="code" inputmode="numeric" pattern="[0-9 -]*" autocomplete="one-time-code" autofocus
                    style="letter-spacing:.3em;font-size:20px" @error('code') aria-invalid="true" @enderror>
         </label>
 

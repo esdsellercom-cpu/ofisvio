@@ -101,9 +101,15 @@ class AccountSecurityTest extends TestCase
             ->post('/user/confirmed-two-factor-authentication', ['code' => '000000'])
             ->assertSessionHasErrors(['code'], null, 'confirmTwoFactorAuthentication');
 
-        // Doğru kod: etkin, kurtarma kodları görünür.
+        // Yanlış kodun mesajı Türkçe ve yönlendiricidir (eski kayıt / telefon saati).
+        $this->assertStringContainsString('telefonun saatinin', (string) session('errors')->getBag('confirmTwoFactorAuthentication')->first('code'));
+        $this->actingAs($user)->passwordConfirmed()->get('/panel/hesap/guvenlik')->assertOk()->assertSee('daha önceki bir Ofisvio kaydı');
+
+        // Doğru kod: etkin, kurtarma kodları görünür. Uygulamaların gösterdiği "123 456" biçimi de kabul edilir
+        // (totp.normalize) ve telefon saati ±60 sn kaymış olsa da kod geçer (pencere 2).
+        $otp = $this->currentOtp($user);
         $this->actingAs($user)->passwordConfirmed()->from('/panel/hesap/guvenlik')
-            ->post('/user/confirmed-two-factor-authentication', ['code' => $this->currentOtp($user)])
+            ->post('/user/confirmed-two-factor-authentication', ['code' => substr($otp, 0, 3).' '.substr($otp, 3)])
             ->assertRedirect('/panel/hesap/guvenlik')
             ->assertSessionHas('status', 'two-factor-authentication-confirmed');
 
@@ -131,7 +137,9 @@ class AccountSecurityTest extends TestCase
         $this->assertGuest();
 
         Cache::flush(); // yeni zaman penceresini simüle et
-        $this->post('/two-factor-challenge', ['code' => $this->currentOtp($user)])->assertRedirect('/panel');
+        // Telefon saati 50 sn geride: bir önceki periyodun kodu pencere (2) içinde kabul edilir.
+        $previous = app(Google2FA::class)->oathTotp(decrypt($user->fresh()->two_factor_secret), app(Google2FA::class)->getTimestamp() - 2);
+        $this->post('/two-factor-challenge', ['code' => $previous])->assertRedirect('/panel');
         $this->assertAuthenticatedAs($user);
 
         // Kurtarma koduyla giriş: kod tek kullanımlık.
