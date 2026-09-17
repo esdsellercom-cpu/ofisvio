@@ -22,11 +22,12 @@ use InvalidArgumentException;
  */
 class PanelBadgeService
 {
-    public const KEYS = ['unread', 'bookings_pending', 'leads_new', 'notifications_failed', 'kyc_pending'];
+    public const KEYS = ['unread', 'bookings_pending', 'leads_new', 'notifications_failed', 'kyc_pending', 'subscriptions_expiring'];
 
     public function __construct(
         private readonly BookingService $bookings,
         private readonly KycQueueService $kyc,
+        private readonly SubscriptionService $subscriptions,
         private readonly TenantContext $context,
     ) {}
 
@@ -70,6 +71,7 @@ class PanelBadgeService
             'leads_new' => Lead::query()->where('status', 'new')->toBase(),
             'notifications_failed' => NotificationLog::query()->where('status', 'failed')->toBase(),
             'kyc_pending' => $this->kyc->queueQuery($user)->toBase(),
+            'subscriptions_expiring' => $this->subscriptions->expiringQuery()->toBase(),
             default => throw new InvalidArgumentException('Bilinmeyen rozet: '.$key),
         };
 

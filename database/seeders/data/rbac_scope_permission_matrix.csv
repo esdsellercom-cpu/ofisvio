@@ -47,6 +47,8 @@ subscription,subscription.view,finance_admin,global,no,no,
 subscription,subscription.view,system_admin,global,no,no,
 subscription,subscription.override,finance_admin,global,yes,no,manuel istisna/kampanya uygulama
 subscription,subscription.override,super_admin,global,yes,no,
+subscription,subscription.manage,finance_admin,global,no,no,paket tanimi + uyelik ac/yenile/iptal (faz 39b)
+subscription,subscription.manage,system_admin,global,no,no,
 payment,payment.view,owner,company,no,no,
 payment,payment.view,company_admin,company,no,no,
 payment,payment.view,accountant,company,no,no,

@@ -69,6 +69,7 @@ class PanelMenu
                 $hasOrganization ? $this->item('Şirketler', route('panel.companies.index'), $this->routeIs('panel.companies.*')) : null,
                 $hasOrganization ? $this->item('Üyeler & kullanıcılar', route('panel.members.index'), $this->routeIs('panel.members.*')) : null,
                 $hasOrganization && $can('kyc.view_status') ? $this->item('KYC kuyruğu', route('panel.kyc.queue'), $this->routeIs('panel.kyc.queue'), $badges['kyc_pending'] ?? 0, 'w') : null,
+                $can('subscription.view') ? $this->item('Üyelikler & paketler', route('panel.subscriptions.index'), $this->routeIs('panel.subscriptions.*', 'panel.plans.*'), $badges['subscriptions_expiring'] ?? 0, 'w') : null,
             ]],
             ['Büyüme', [
                 $can('lead.view') ? $this->item('CRM & pazarlama', route('panel.leads.index'), $this->routeIs('panel.leads.*'), $badges['leads_new'] ?? 0, 'a') : null,

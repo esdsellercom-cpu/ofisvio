@@ -79,6 +79,7 @@ class PanelLayoutComposer
                 'leads_new' => $gate->allows('lead.view'),
                 'notifications_failed' => $gate->any(['notification.view', 'notification.manage']),
                 'kyc_pending' => $isStaff && $activeOrganization !== null && $gate->allows('kyc.view_status'),
+                'subscriptions_expiring' => $isStaff && $gate->allows('subscription.view'),
             ])));
         }
 

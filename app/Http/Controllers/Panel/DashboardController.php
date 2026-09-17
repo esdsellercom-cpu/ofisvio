@@ -12,6 +12,7 @@ use App\Services\KycQueueService;
 use App\Services\KycService;
 use App\Services\LeadService;
 use App\Services\NotificationService;
+use App\Services\SubscriptionService;
 use App\Services\TenantContext;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
@@ -37,6 +38,7 @@ class DashboardController extends Controller
         private readonly LeadService $leads,
         private readonly NotificationService $notifications,
         private readonly GeoService $geo,
+        private readonly SubscriptionService $subscriptions,
     ) {}
 
     public function __invoke(Request $request): View
@@ -83,6 +85,8 @@ class DashboardController extends Controller
             'leads' => $user->can('lead.view') ? $this->leads->paginate(['status' => 'new'], 6) : null,
             'notifications' => $user->can('notification.view') ? $this->notifications->counts() : null,
             'kyc_pending' => $user->can('kyc.view_status') ? array_sum($this->kycQueue->pendingCounts($user)) : null,
+            'subscriptions' => $user->can('subscription.view') ? $this->subscriptions->dashboard() : null,
+            'expiring' => $user->can('subscription.view') ? collect($this->subscriptions->paginateAll(['tab' => 'expiring'], 6)->items()) : null,
             'locations' => $locations === null ? null : [
                 'total' => $locations->count(),
                 'published' => $locations->where('is_published', true)->where('is_active', true)->count(),

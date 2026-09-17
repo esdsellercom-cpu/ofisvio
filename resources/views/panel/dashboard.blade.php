@@ -53,6 +53,10 @@
                 @if ($ops['kyc_pending'] !== null)
                     <a href="{{ route('panel.kyc.queue') }}" class="kpi {{ $ops['kyc_pending'] > 0 ? 'watch' : '' }}"><span class="k">Bekleyen KYC</span><span class="v">{{ $ops['kyc_pending'] }}</span><span class="d">Tüm organizasyonlar</span></a>
                 @endif
+                @if ($ops['subscriptions'] !== null)
+                    <a href="{{ route('panel.subscriptions.index', ['sekme' => 'expiring']) }}" class="kpi {{ $ops['subscriptions']['expiring'] > 0 ? 'watch' : '' }}"><span class="k">Üyelik bitişi (30 gün)</span><span class="v">{{ $ops['subscriptions']['expiring'] }}</span><span class="d">{{ $ops['subscriptions']['active'] }} aktif üyelik</span></a>
+                    <a href="{{ route('panel.subscriptions.index') }}" class="kpi"><span class="k">Yeni üyelik (30g)</span><span class="v">{{ $ops['subscriptions']['new_30d'] }}</span><span class="d">MRR {{ number_format($ops['subscriptions']['mrr'], 0, ',', '.') }} ₺</span></a>
+                @endif
                 @if ($ops['notifications'] !== null)
                     <a href="{{ route('panel.notifications.index', ['sekme' => 'gunluk']) }}" class="kpi {{ $ops['notifications']['failed'] > 0 ? 'alert' : '' }}"><span class="k">Başarısız bildirim</span><span class="v">{{ $ops['notifications']['failed'] }}</span><span class="d">{{ $ops['notifications']['queued'] }} kuyrukta · {{ $ops['notifications']['sent_today'] }} bugün gönderildi</span></a>
                 @endif
@@ -148,6 +152,21 @@
                     @endif
                 </div>
             @endif
+        @endif
+
+        @if ($ops !== null && $ops['expiring'] !== null && $ops['expiring']->isNotEmpty())
+            <div class="card">
+                <div class="card__head"><h3>Yaklaşan üyelik bitişleri</h3><span class="sub">30 gün içinde</span><span class="r"><a href="{{ route('panel.subscriptions.index', ['sekme' => 'expiring']) }}" class="btn btn--quiet">Tümü</a></span></div>
+                <div class="rows">
+                    @foreach ($ops['expiring'] as $s)
+                        <a href="{{ route('panel.subscriptions.show', $s) }}" class="row">
+                            <span class="dotmark" style="background:var(--warn)" aria-hidden="true"></span>
+                            <div class="main-t"><b>{{ $s->company->legal_name }} · {{ $s->plan->name }}</b><span>Bitiş {{ $s->ends_on->format('d.m.Y') }} · {{ $s->auto_renew ? 'yenilenecek' : 'yenilenmeyecek' }}</span></div>
+                            <span class="rt"><span class="pill w flat">{{ $s->daysLeft() }} gün</span></span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
         @endif
 
         {{-- Şirketler (aktif organizasyon) --}}

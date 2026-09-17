@@ -130,6 +130,7 @@ class ArchitectureTest extends TestCase
             'AuditLogService.php',          // denetim kaydı: global audit.view, salt okunur, tüm organizasyonlar tanım gereği (bkz. sınıf başlığı)
             'BookingService.php',           // uygunluk/çakışma tüm şirketlere bakmak zorunda; masa/genel liste yalnız booking.view (lokasyon/global) rotasından (bkz. sınıf başlığı)
             'ReportService.php',            // raporlar: analytics.view (global), şirketler duruma göre yalnız ADET — satır/isim dönmez (bkz. sınıf başlığı)
+            'SubscriptionService.php',      // üyelikler: finans listesi/sayaçlar subscription.view (global) rotasından, süre dolumu zamanlayıcı; müşteri tarafı forCompany scope içinde (bkz. sınıf başlığı)
         ];
 
         $violations = [];

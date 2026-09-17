@@ -20,6 +20,7 @@ use App\Http\Controllers\Panel\BookingController;
 use App\Http\Controllers\Panel\BookingDeskController;
 use App\Http\Controllers\Panel\CacheController;
 use App\Http\Controllers\Panel\CompanyController;
+use App\Http\Controllers\Panel\CompanySubscriptionController;
 use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContentDraftController;
 use App\Http\Controllers\Panel\ContextController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\PerformanceController;
+use App\Http\Controllers\Panel\PlanController;
 use App\Http\Controllers\Panel\ReportController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SearchController;
@@ -46,6 +48,7 @@ use App\Http\Controllers\Panel\SiteBuilderController;
 use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
 use App\Http\Controllers\Panel\SpaceController;
+use App\Http\Controllers\Panel\SubscriptionController;
 use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
@@ -75,6 +78,24 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::get('/alanlar', [SpaceController::class, 'index'])->middleware('permission:geo.view|booking.view')->name('spaces.index');
         Route::get('/raporlar', [ReportController::class, 'index'])->middleware('permission:analytics.view')->name('reports.index');
         Route::get('/entegrasyonlar', [IntegrationController::class, 'index'])->middleware('permission:performance.view')->name('integrations.index');
+
+        // Üyelikler & paketler (faz 39b, §6): subscription.view (global) görür; subscription.manage (finans) yazar.
+        Route::prefix('uyelikler')->name('subscriptions.')->group(function () {
+            Route::get('/', [SubscriptionController::class, 'index'])->middleware('permission:subscription.view')->name('index');
+            Route::get('/yeni', [SubscriptionController::class, 'create'])->middleware('permission:subscription.manage')->name('create');
+            Route::post('/', [SubscriptionController::class, 'store'])->middleware('permission:subscription.manage')->name('store');
+            Route::get('/{subscription}', [SubscriptionController::class, 'show'])->where('subscription', '[0-9]+')->middleware('permission:subscription.view')->name('show');
+            Route::post('/{subscription}/iptal', [SubscriptionController::class, 'cancel'])->where('subscription', '[0-9]+')->middleware('permission:subscription.manage')->name('cancel');
+            Route::post('/{subscription}/yenile', [SubscriptionController::class, 'renew'])->where('subscription', '[0-9]+')->middleware('permission:subscription.manage')->name('renew');
+        });
+        Route::prefix('paketler')->name('plans.')->group(function () {
+            Route::get('/', [PlanController::class, 'index'])->middleware('permission:subscription.view')->name('index');
+            Route::get('/yeni', [PlanController::class, 'create'])->middleware('permission:subscription.manage')->name('create');
+            Route::post('/', [PlanController::class, 'store'])->middleware('permission:subscription.manage')->name('store');
+            Route::get('/{plan}/duzenle', [PlanController::class, 'edit'])->middleware('permission:subscription.manage')->name('edit');
+            Route::put('/{plan}', [PlanController::class, 'update'])->middleware('permission:subscription.manage')->name('update');
+            Route::delete('/{plan}', [PlanController::class, 'destroy'])->middleware('permission:subscription.manage')->name('destroy');
+        });
 
         // Talepler / CRM v1 — siteden gelen teklif ve ön rezervasyon talepleri (audit bulgusu: ekranı yoktu).
         Route::prefix('talepler')->name('leads.')->group(function () {
@@ -397,6 +418,10 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
 
             // Rezervasyonlar (booking v1) — şirket kapsamı; matris: owner/company_admin/employee
             // view+create, iptal owner/company_admin. {booking} scopeBindings: Company::bookings().
+            // Müşteri üyelik görünümü (faz 39b): subscription.view, şirket kapsamı.
+            Route::get('/sirketler/{company}/uyelik', [CompanySubscriptionController::class, 'index'])
+                ->middleware('permission:subscription.view,company')
+                ->name('companies.subscriptions.index');
             Route::get('/sirketler/{company}/rezervasyonlar', [BookingController::class, 'index'])
                 ->middleware('permission:booking.view,company')
                 ->name('companies.bookings.index');
