@@ -84,15 +84,21 @@ class SeoController extends Controller
         return redirect()->route('panel.seo.index')->with('status', $website->name.' SEO ayarları güncellendi.');
     }
 
-    public function requestJit(RequestJitAccessRequest $request, Website $website): RedirectResponse
+    /** $izin: settings (varsayılan) · integrations · entity — faz 44 gelişmiş ayar sekmeleri aynı akışı kullanır. */
+    public function requestJit(RequestJitAccessRequest $request, Website $website, string $izin = 'settings'): RedirectResponse
     {
         $validated = $request->validated();
+        [$permission, $resource, $label] = match ($izin) {
+            'integrations' => ['seo.integrations', self::RESOURCE, 'Doğrulama & bildirim ayarları'],
+            'entity' => ['geo.settings', GeoController::RESOURCE, 'Varlık ayarları'],
+            default => ['seo.settings', self::RESOURCE, 'SEO ayarları'],
+        };
 
         $grantId = $this->jit->grant(
             $request->user(),
-            'seo.settings',
+            $permission,
             [],
-            self::RESOURCE,
+            $resource,
             $website->id,
             $validated['reason'],
             null,
@@ -100,9 +106,10 @@ class SeoController extends Controller
         );
 
         if ($grantId === null) {
-            return back()->withErrors(['reason' => 'JIT erişimi açılamadı: rolünüz seo.settings taşımıyor.']);
+            return back()->withErrors(['reason' => 'JIT erişimi açılamadı: rolünüz '.$permission.' taşımıyor.']);
         }
 
-        return redirect()->route('panel.seo.index')->with('status', 'SEO ayarları için '.$validated['ttl_minutes'].' dakikalık erişim açıldı.');
+        return redirect()->to($izin === 'settings' && ! $request->has('sekme') ? route('panel.seo.index') : route('panel.seo.settings.show', [$website, (string) $request->input('sekme', 'tarama')]))
+            ->with('status', $label.' için '.$validated['ttl_minutes'].' dakikalık erişim açıldı.');
     }
 }

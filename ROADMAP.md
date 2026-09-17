@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **279/279** (Unit 12 · Feature 251 · Architecture 16) |
+| `php artisan test` | ✅ **285/285** (Unit 12 · Feature 257 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -499,6 +499,44 @@ oturum yönetimi, hesap durumu, giriş geçmişi, lokasyon bazlı erişim, güve
   `status`/`email_verified_at` yalnız `forceFill` — test), oturum (regenerate, secure/same-site, DB sürücüsü),
   brute-force (login 5/dk e-posta|ip, 2FA 5/dk, lockout kaydı), yetki atlatma (`Gate::before` yasak, route-middleware
   ArchitectureTest, JIT). Açık kalanlar: CAPTCHA (S-8), IP allowlist (S-12), KVKK saklama (S-10).
+
+### 44. SEO & GEO gelişmiş ayarlar ✅ (18 Eylül 2026)
+Yalın sistem (websites.seo_* sütunları, `/panel/seo`) değişmedi; gelişmiş ayarlar site başına
+`websites.seo_settings` JSON'da, tanımlar `App\Seo\SeoSettingsRegistry` (sekme, tip, varsayılan, kural,
+açıklama), okuma/yazma `SeoSettingsService` (sekme bazlı doğrulama, audit `seo.settings_updated`, site
+önbelleği sürüm atlar). Panel `/panel/seo/{website}/gelismis/{sekme}` (`SeoSettingsController`, 13 sekme);
+yazma rotası sekme moduna göre: **edit** `seo.edit` · **critical** `seo.settings`+JIT · **integration**
+`seo.integrations`+JIT (planlı listeden çıktı) · **entity** `geo.settings`+JIT (`geo_entity`). JIT isteği
+`/panel/seo/{website}/jit/{settings|integrations|entity}`. Form alanları registry tipinden türer
+(`panel/seo/partials/field`: bool/int/string/url/date/text/select/multi/lines/rows/json).
+- **Tarama & indeksleme:** sitemap aç/kapat (404), türler, hariç yollar (`/on-ek/*`), özel sitemap/robots,
+  robots ek satırları, `<meta name="robots">` yönergeleri (nofollow, noarchive, nosnippet, max-snippet,
+  max-image/video-preview), parametreli URL noindex, liste sayfaları noindex, **AI tarayıcıları** (bot listesi,
+  erişim aç/kapat → `Disallow: /`, kapalı yollar).
+- **Canonical & URL:** otomatik canonical, canonical alan adı, temizlenen parametreler, `SiteSeoPolicy`
+  (GLOBAL middleware — rota eşleşmeden önce; Host→Website çözümlemesi de burada, `ResolveWebsite` kaldırıldı):
+  panelden yönlendirmeler (301/302, ön ek), http→https ve www (yalnız alan adı tanımlı sitede; https
+  varsayılan kapalı), sondaki eğik çizgi, küçük harf; panel/kimlik yolları atlanır. Yanıt tarafı: X-Robots-Tag,
+  özel HTTP başlıkları (güvenlik başlıkları ezilemez).
+- **Meta / Schema.org:** başlık ve açıklama şablonu, keywords, OG ve Twitter/X varsayılanları; JSON-LD tür
+  bazında aç/kapat (Organization, WebSite, WebPage, Article, BreadcrumbList, FAQPage, Service, LocalBusiness,
+  Event — veri kaynağı olmayan tür üretilmez), site geneli ve yola bağlı özel JSON-LD.
+- **GEO / AI arama:** `/llms.txt` (otomatik: marka tanımı, özetler, hizmetler, lokasyonlar, öncelikli sayfalar,
+  kaynaklar, yazılar, SSS, kapalı yollar; ya da özel metin), Organization `description/knowsAbout/areaServed/
+  audience`, GEO SSS → ana sayfa FAQPage. **Entity / Knowledge Graph:** alternateName, logo, foundingDate,
+  @type, founder, Wikidata/Wikipedia/Knowledge Panel → sameAs, çalışma bölgeleri. **Yerel SEO:** LocalBusiness
+  türü, harita/GBP bağlantısı, servis verilen şehir/ilçeler. **Dil & ülke:** ülke kodu, hreflang alternatifleri +
+  x-default.
+- **İç bağlantı:** `InternalLinkService` — anahtar kelime → adres (metin düğümlerinde, kelime sınırı; <a>/başlık/
+  kod hariç; sayfa/hedef sınırı), görünür breadcrumb, ilgili yazılar anahtarı, tembel görsel. **Teknik:**
+  `SeoService::technicalReport` (çift/eksik başlık-açıklama, kırık iç bağlantı, yetim sayfa, yönlendirme
+  zinciri/döngü, alt metinsiz görsel, karışık içerik, canonical tutarlılığı) + `/site-haritasi` HTML site haritası.
+- **Doğrulama & bildirim:** Google/Bing/Yandex doğrulama meta'ları, ek meta satırları, GA4/GTM (CSP Google
+  kökenleriyle genişler), **IndexNow** (`ContentPublicationChanged` olayı → `NotifyIndexNowOnContentChange` →
+  `NotifyIndexNow` kuyruk işi → Gateway `indexnow` sağlayıcısı, `INDEXNOW_ENABLED`; `/{anahtar}.txt`). Google
+  Indexing API servis hesabı ister — dışarıda.
+- **Güvenlik:** SecurityHeaders özeti (salt okunur) + X-Robots-Tag. **Geliştirici:** head/body kodu, özel meta,
+  özel başlık, preload/dns-prefetch/preconnect. Testler `SeoAdvancedTest` (6).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

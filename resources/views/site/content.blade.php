@@ -15,6 +15,15 @@
             <p class="eyebrow">@if ($content->parent_slug)<a href="/{{ $content->parent_slug }}">{{ $content->parent?->title ?? $content->parent_slug }}</a>@else{{ $currentWebsite->name }}@endif</p>
         @endif
 
+        @if (! empty($breadcrumbs) && count($breadcrumbs) > 1)
+            {{-- Görünür breadcrumb (faz 44, links.breadcrumb_enabled); şema BreadcrumbList aynı listeden. --}}
+            <nav class="small muted" aria-label="Gezinti izi" style="margin:0 0 10px">
+                @foreach ($breadcrumbs as $crumb)
+                    @if ($loop->last)<span aria-current="page">{{ $crumb['name'] }}</span>@else<a href="{{ $crumb['item'] }}">{{ $crumb['name'] }}</a> ›@endif
+                @endforeach
+            </nav>
+        @endif
+
         <h1 class="h2">{{ $content->title }}</h1>
 
         @if ($content->excerpt)
@@ -33,7 +42,7 @@
         @endif
 
         {{-- renderedBody() markdown'ı süzülmüş HTML'e çevirir (ham HTML strip, güvensiz link yok). --}}
-        <div class="prose" style="margin-top:36px">{!! $content->renderedBody() !!}</div>
+        <div class="prose" style="margin-top:36px">{!! $bodyHtml ?? $content->renderedBody() !!}</div>
 
         @if ($isPost && ! empty($content->tags))
             <p class="row-actions" style="margin:28px 0 0;flex-wrap:wrap;gap:8px" aria-label="Etiketler">
@@ -56,7 +65,7 @@
     </article>
 
     {{-- İlgili yazılar (faz 23 iç bağlantı): önce aynı kategori, sonra en yeni. --}}
-    @if ($isPost && isset($related) && $related->isNotEmpty())
+    @if ($isPost && ($showRelated ?? true) && isset($related) && $related->isNotEmpty())
         <section class="wrap section" style="padding-top:0;max-width:760px" aria-labelledby="related-heading">
             <p class="eyebrow">Devamında</p>
             <h2 class="h3" id="related-heading">İlgili yazılar</h2>
@@ -69,4 +78,5 @@
                 @endforeach
             </ul>
         </section>
-    @endif@endsection
+    @endif
+@endsection

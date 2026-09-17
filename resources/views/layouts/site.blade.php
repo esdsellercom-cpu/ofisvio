@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="{{ asset('css/ofisvio.css') }}">
 </head>
 <body>
+    @include('site.partials.seo-body-start')
     <a class="skip-link" href="#main">İçeriğe geç</a>
 
     @include('site.partials.topbar')
@@ -32,5 +33,6 @@
 
     @include('site.partials.whatsapp')
     <script src="{{ asset('js/ofisvio.js') }}" defer></script>
+    @include('site.partials.seo-body-end')
 </body>
 </html>

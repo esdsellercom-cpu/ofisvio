@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ContentKind;
 use App\Enums\ContentStatus;
+use App\Events\ContentPublicationChanged;
 use App\Models\Content;
 use App\Models\ContentDraft;
 use App\Models\ContentRevision;
@@ -251,9 +252,14 @@ class ContentService
             throw new DomainException('Alt sayfaları olan sayfa silinemez; önce alt sayfaları taşıyın.');
         }
 
+        $wasLive = $content->status === ContentStatus::ARCHIVED && $content->published_at !== null;
         $content->draft?->delete();
         $content->delete();
         $this->cache->invalidate($content->website);
+
+        if ($wasLive) {
+            event(new ContentPublicationChanged($content, false));
+        }
     }
 
     /**
@@ -446,6 +452,7 @@ class ContentService
         }
 
         $goingLive = in_array($target, [ContentStatus::PUBLISHED, ContentStatus::SCHEDULED], true);
+        $wasLive = $current === ContentStatus::PUBLISHED;
 
         if ($goingLive && $content->requires_approval && $current !== ContentStatus::APPROVED) {
             throw new DomainException('Bu içerik onay gerektirir (yasal/vergi/KYC metni): önce onaylanmalı, sonra yayınlanabilir.');
@@ -459,7 +466,7 @@ class ContentService
             throw new DomainException('Zamanlama için gelecekte bir tarih gerekir.');
         }
 
-        return DB::transaction(function () use ($actor, $content, $target, $note, $scheduledFor) {
+        return DB::transaction(function () use ($actor, $content, $target, $note, $scheduledFor, $wasLive) {
             $content->status = $target;
 
             switch ($target) {
@@ -494,6 +501,11 @@ class ContentService
             $content->save();
             $this->cache->invalidate($content->website);
 
+            // Yayın olayı (faz 44): yayına girdi ya da yayından düştü — commit sonrası (IndexNow dinler).
+            if ($target === ContentStatus::PUBLISHED || $wasLive) {
+                DB::afterCommit(fn () => event(new ContentPublicationChanged($content, $target === ContentStatus::PUBLISHED)));
+            }
+
             return $content;
         });
     }
@@ -519,6 +531,7 @@ class ContentService
                 $content->scheduled_for = null;
                 $content->save();
                 $this->cache->invalidate($content->website);
+                DB::afterCommit(fn () => event(new ContentPublicationChanged($content, true)));
             });
         }
 

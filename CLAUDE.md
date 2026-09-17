@@ -40,6 +40,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 
 ## Görünüm katmanı
 
+- SEO: yalın ayar `websites.seo_*` (+ `/panel/seo`), gelişmiş ayar `websites.seo_settings` JSON — tanım `App\Seo\SeoSettingsRegistry` (yeni ayar = oraya satır; sekme modu izni belirler: edit/critical/integration/entity), okuma `SeoSettingsService::for/get`. Head verisi `SeoService::head` (composer basar), robots/sitemap/llms/HTML site haritası `Site\SeoController`. `SiteSeoPolicy` GLOBAL middleware: Host→Website çözümlemesi + vitrin yönlendirme/başlık politikası (panel/kimlik yolları atlanır; test istemcisi sondaki eğik çizgiyi kırpar — middleware doğrudan çağrılır). Dış istek (IndexNow) yalnız `Integrations\Gateway`.
 - Tasarım sistemi `public/css/ofisvio.css` (derlenmez, `<link>` ile). `resources/css/app.css` boş giriş noktası — public asset'i `@import` ETME (Vite build kırılır).
 - Ana sayfa bölümleri `SiteBuilderService` (taslak `site_sections` → yayın `site_revisions`); vitrin yalnız yayınlanmış anlık görüntüyü basar, `@include('site.sections.<tip>')`. Yeni bölüm tipi = `SectionLibrary` + `resources/views/site/sections/<tip>.blade.php`.
 - Panel sayfaları `layouts.panel`'i extend eder; `$activeOrganization`, `$isStaff`, `$canSwitchOrganization`, `$panelMenu`, `$uiTheme` `PanelLayoutComposer`'dan gelir (`panel.*` görünümlerine de bağlı). Panel kabuğu `public/css/panel.css` (token eşlemesi + `ap-` bileşenleri; koyu tema `html[data-theme]`), menü `App\View\Menu\PanelMenu` (yeni modül = oraya öge; rozet = `PanelBadgeService` tek sorgu).

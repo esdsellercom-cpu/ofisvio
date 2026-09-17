@@ -29,7 +29,7 @@ class Website extends Model
         'announcement_text', 'announcement_href', 'announcement_until',
     ];
 
-    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'nav_links' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'seo_settings' => 'array', 'nav_links' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
 
     /**
      * Marka/iletişim bilgisi (faz 29): yalnız site alanları (boşsa gösterilmez).

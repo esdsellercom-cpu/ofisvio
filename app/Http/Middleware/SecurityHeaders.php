@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\CurrentWebsite;
+use App\Services\SeoSettingsService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,20 +20,26 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SecurityHeaders
 {
+    /** GA4/GTM kökenleri (faz 44): yalnız vitrinde ve yalnız panelde kimlik tanımlıysa CSP'ye eklenir. */
+    private const ANALYTICS_ORIGINS = ['https://www.googletagmanager.com', 'https://www.google-analytics.com', 'https://*.google-analytics.com', 'https://*.analytics.google.com'];
+
+    public function __construct(private readonly CurrentWebsite $website, private readonly SeoSettingsService $seoSettings) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
         $panel = $request->is('panel', 'panel/*', 'login', 'two-factor-challenge', 'user/*', 'forgot-password', 'reset-password/*');
         $cfg = (array) config('ofisvio.security');
+        $analytics = ! $panel && $this->analyticsEnabled() ? ' '.implode(' ', self::ANALYTICS_ORIGINS) : '';
 
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'",
+            "script-src 'self' 'unsafe-inline'".$analytics,
             "style-src 'self' 'unsafe-inline' ".implode(' ', (array) ($cfg['style_src'] ?? [])),
             "font-src 'self' data: ".implode(' ', (array) ($cfg['font_src'] ?? [])),
             "img-src 'self' data: https:",
-            "connect-src 'self'",
-            "frame-src 'self' ".implode(' ', (array) ($cfg['frame_src'] ?? [])),
+            "connect-src 'self'".$analytics,
+            "frame-src 'self' ".implode(' ', (array) ($cfg['frame_src'] ?? [])).($analytics !== '' ? ' https://www.googletagmanager.com' : ''),
             'frame-ancestors '.($panel ? "'none'" : "'self'"),
             "form-action 'self'",
             "base-uri 'self'",
@@ -49,5 +57,12 @@ class SecurityHeaders
         }
 
         return $response;
+    }
+
+    private function analyticsEnabled(): bool
+    {
+        $site = $this->website->get();
+
+        return $site !== null && ($this->seoSettings->string($site, 'verify.ga4_id') !== '' || $this->seoSettings->string($site, 'verify.gtm_id') !== '');
     }
 }

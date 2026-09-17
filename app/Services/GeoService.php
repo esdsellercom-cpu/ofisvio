@@ -22,6 +22,8 @@ use Illuminate\Support\Str;
  */
 class GeoService
 {
+    public function __construct(private readonly SeoSettingsService $seoSettings) {}
+
     /** @return Collection<int, Location> */
     public function publishedLocations(): Collection
     {
@@ -145,8 +147,10 @@ class GeoService
     /** @return array<string, mixed> */
     public function organizationNode(Website $website): array
     {
+        $s = $this->seoSettings->for($website);
+        $brand = $website->brand();
         $node = [
-            '@type' => 'Organization',
+            '@type' => (string) $s['entity.org_type'],
             '@id' => $website->baseUrl().'/#organization',
             'name' => $website->name,
             'url' => $website->baseUrl(),
@@ -156,7 +160,70 @@ class GeoService
             $node['legalName'] = $website->legal_name;
         }
 
-        $sameAs = array_values(array_filter($website->same_as ?? []));
+        // Knowledge Graph alanları (faz 44): yalnız dolu olanlar — uydurma değer yok.
+        $alternate = array_values(array_filter(array_map('strval', (array) $s['entity.alternate_names'])));
+
+        if ($alternate !== []) {
+            $node['alternateName'] = count($alternate) === 1 ? $alternate[0] : $alternate;
+        }
+
+        $description = trim((string) ($s['entity.description'] !== '' ? $s['entity.description'] : $s['geo.brand_definition']));
+
+        if ($description !== '') {
+            $node['description'] = $description;
+        }
+
+        foreach (['entity.logo' => 'logo', 'entity.founding_date' => 'foundingDate', 'local.maps_url' => 'hasMap'] as $key => $property) {
+            if (trim((string) $s[$key]) !== '') {
+                $node[$property] = trim((string) $s[$key]);
+            }
+        }
+
+        if (trim((string) $s['entity.founder']) !== '') {
+            $node['founder'] = ['@type' => 'Person', 'name' => trim((string) $s['entity.founder'])];
+        }
+
+        if ($brand['phone'] !== '') {
+            $node['telephone'] = $brand['phone'];
+        }
+
+        if ($brand['email'] !== '') {
+            $node['email'] = $brand['email'];
+        }
+
+        if ($brand['address'] !== '') {
+            $node['address'] = ['@type' => 'PostalAddress', 'streetAddress' => $brand['address'], 'addressCountry' => (string) $s['lang.country']];
+        }
+
+        $knows = array_values(array_filter(array_map('strval', (array) $s['geo.expertise'])));
+
+        if ($knows !== []) {
+            $node['knowsAbout'] = $knows;
+        }
+
+        $areas = array_values(array_unique(array_filter(array_map('strval', array_merge((array) $s['geo.locations_served'], (array) $s['entity.areas_served'], (array) $s['local.service_cities'])))));
+
+        if ($areas !== []) {
+            $node['areaServed'] = array_map(fn (string $name) => ['@type' => 'Place', 'name' => $name], $areas);
+        }
+
+        if (trim((string) $s['geo.audience']) !== '') {
+            $node['audience'] = ['@type' => 'Audience', 'audienceType' => trim((string) $s['geo.audience'])];
+        }
+
+        $sameAs = array_values(array_filter(array_map('strval', $website->same_as ?? [])));
+
+        if (trim((string) $s['entity.wikidata_id']) !== '') {
+            $sameAs[] = 'https://www.wikidata.org/wiki/'.trim((string) $s['entity.wikidata_id']);
+        }
+
+        foreach (['entity.wikipedia_url', 'entity.knowledge_panel_url', 'local.gbp_url'] as $key) {
+            if (trim((string) $s[$key]) !== '') {
+                $sameAs[] = trim((string) $s[$key]);
+            }
+        }
+
+        $sameAs = array_values(array_unique($sameAs));
 
         if ($sameAs !== []) {
             $node['sameAs'] = $sameAs;
@@ -176,7 +243,7 @@ class GeoService
 
         $business = [
             '@type' => 'LocalBusiness',
-            'additionalType' => 'https://schema.org/CoworkingSpace',
+            'additionalType' => 'https://schema.org/'.$this->seoSettings->string($website, 'local.business_type'),
             '@id' => $url.'#localbusiness',
             'name' => $website->name.' '.$location->name,
             'url' => $url,
@@ -187,7 +254,7 @@ class GeoService
                 'addressLocality' => $location->district ?: $location->city,
                 'addressRegion' => $location->city,
                 'postalCode' => $location->postal_code,
-                'addressCountry' => 'TR',
+                'addressCountry' => $this->seoSettings->string($website, 'lang.country'),
             ], fn ($v) => $v !== null && $v !== ''),
         ];
 

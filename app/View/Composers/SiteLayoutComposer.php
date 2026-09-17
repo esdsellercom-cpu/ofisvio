@@ -6,9 +6,12 @@ use App\Models\Content;
 use App\Models\Location;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
+use App\Services\InternalLinkService;
 use App\Services\SeoService;
+use App\Services\SeoSettingsService;
 use App\Services\SiteBlockService;
 use App\Services\SiteBuilderService;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 /**
@@ -25,6 +28,9 @@ class SiteLayoutComposer
         private readonly SeoService $seo,
         private readonly SiteBlockService $blocks,
         private readonly SiteBuilderService $builder,
+        private readonly SeoSettingsService $seoSettings,
+        private readonly InternalLinkService $links,
+        private readonly Request $request,
     ) {}
 
     public function compose(View $view): void
@@ -54,8 +60,10 @@ class SiteLayoutComposer
                 $location !== null => $this->seo->locationHead($site, $location),
                 str_ends_with($view->name(), 'site.locations') => $this->seo->head($site, null, '/lokasyonlar', 'Lokasyonlar', 'Ofisvio şubeleri: şehir, bölge ve sunulan çözümlere göre.'),
                 str_ends_with($view->name(), 'site.posts') => $this->seo->head($site, null, '/blog', 'Yazılar'),
-                str_ends_with($view->name(), 'site.tag') => $this->seo->head($site, null, '/blog/etiket/'.($data['tagSlug'] ?? ''), '#'.($data['tagName'] ?? 'Etiket').' yazıları'),
-                str_ends_with($view->name(), 'site.category') => $this->seo->head($site, null, '/blog/kategori/'.($data['categorySlug'] ?? ''), ($data['categoryName'] ?? 'Kategori').' yazıları'),
+                str_ends_with($view->name(), 'site.sitemap') => $this->seo->head($site, null, '/site-haritasi', 'Site haritası', 'Yayındaki tüm sayfa, yazı, lokasyon ve hizmet bağlantıları.'),
+                // Etiket/kategori sayfaları 'listing': crawl.noindex_listings ayarı bunlara uygulanır (faz 44).
+                str_ends_with($view->name(), 'site.tag') => $this->seo->head($site, null, '/blog/etiket/'.($data['tagSlug'] ?? ''), '#'.($data['tagName'] ?? 'Etiket').' yazıları', null, 'listing'),
+                str_ends_with($view->name(), 'site.category') => $this->seo->head($site, null, '/blog/kategori/'.($data['categorySlug'] ?? ''), ($data['categoryName'] ?? 'Kategori').' yazıları', null, 'listing'),
                 $tenant => $this->seo->head($site),
                 default => $this->seo->head($site, null, '/', 'Şirketinizin adresi bugün hazır olsun', 'Sanal ofis, hazır ofis ve coworking. Tescil adresi, çağrı ve kargo karşılama, saatlik toplantı odası.'),
             };
@@ -88,7 +96,23 @@ class SiteLayoutComposer
             $seo['robots'] = 'noindex, nofollow';
         }
 
-        $view->with([
+        // Parametreli istek (?utm=…, ?sayfa=2): ayar kapalıysa noindex; canonical zaten parametresiz (faz 44).
+        if (is_array($seo) && $site !== null && $this->request->getQueryString() !== null && $this->request->getQueryString() !== '' && ! $this->seoSettings->bool($site, 'crawl.index_query_urls')) {
+            $seo['robots'] = str_starts_with((string) ($seo['robots'] ?? ''), 'noindex') ? $seo['robots'] : 'noindex, follow';
+        }
+
+        // İçerik sayfası (faz 44): otomatik iç bağlantı + tembel görsel, görünür breadcrumb, ilgili yazılar anahtarı.
+        $contentExtras = [];
+
+        if ($content !== null && $site !== null && str_ends_with($view->name(), 'site.content')) {
+            $contentExtras = [
+                'bodyHtml' => $this->links->apply($site, $content, $content->renderedBody()),
+                'breadcrumbs' => $this->seoSettings->bool($site, 'links.breadcrumb_enabled') ? $this->seo->breadcrumbItems($site, $content) : [],
+                'showRelated' => $this->seoSettings->bool($site, 'links.related_enabled'),
+            ];
+        }
+
+        $view->with($contentExtras + [
             'siteNavLinks' => $navLinks,
             'kvkkUrl' => $kvkk?->path() ?? '/',
             'brand' => $brand,

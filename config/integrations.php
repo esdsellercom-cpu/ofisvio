@@ -26,6 +26,14 @@ return [
             'secrets' => ['api_key' => env('IYZICO_API_KEY'), 'secret_key' => env('IYZICO_SECRET_KEY')],
             'webhook_secret' => env('IYZICO_WEBHOOK_SECRET'),
         ],
+        // IndexNow (faz 44): anahtar site ayarında (panel), secret yok; açma/kapama env.
+        'indexnow' => [
+            'label' => 'IndexNow (Bing/Yandex/Naver bildirimi)',
+            'enabled' => (bool) env('INDEXNOW_ENABLED', false),
+            'base_url' => env('INDEXNOW_BASE_URL', 'https://api.indexnow.org'),
+            'secrets' => [],
+            'webhook_secret' => null,
+        ],
         'search_console' => [
             'label' => 'Google Search Console',
             'enabled' => (bool) env('SEARCH_CONSOLE_ENABLED', false),

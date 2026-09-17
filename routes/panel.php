@@ -50,6 +50,7 @@ use App\Http\Controllers\Panel\ReportController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SearchController;
 use App\Http\Controllers\Panel\SeoController;
+use App\Http\Controllers\Panel\SeoSettingsController;
 use App\Http\Controllers\Panel\ServiceController;
 use App\Http\Controllers\Panel\SettingsController;
 use App\Http\Controllers\Panel\SiteBlockController;
@@ -355,8 +356,16 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/{website}/denetim', [SeoController::class, 'audit'])->middleware('permission:seo.audit')->name('audit');
             Route::put('/{website}/ayarlar', [SeoController::class, 'settings'])
                 ->middleware('permission:seo.settings,,seo_settings,website')->name('settings');
-            Route::post('/{website}/jit', [SeoController::class, 'requestJit'])
+            // {izin}: settings (seo.settings) · integrations (seo.integrations) · entity (geo.settings, geo_entity).
+            Route::post('/{website}/jit/{izin?}', [SeoController::class, 'requestJit'])->where('izin', 'settings|integrations|entity')
                 ->middleware(['permission:seo.view', 'throttle:jit-request'])->name('jit');
+
+            // Gelişmiş ayarlar (faz 44): sekmeli; yazma rotası sekme moduna göre ayrılır (controller modu doğrular).
+            Route::get('/{website}/gelismis/{sekme?}', [SeoSettingsController::class, 'show'])->middleware('permission:seo.view')->name('settings.show');
+            Route::put('/{website}/gelismis/duzenle/{sekme}', [SeoSettingsController::class, 'updateEdit'])->middleware('permission:seo.edit')->name('settings.edit');
+            Route::put('/{website}/gelismis/kritik/{sekme}', [SeoSettingsController::class, 'updateCritical'])->middleware('permission:seo.settings,,seo_settings,website')->name('settings.critical');
+            Route::put('/{website}/gelismis/entegrasyon/{sekme}', [SeoSettingsController::class, 'updateIntegration'])->middleware('permission:seo.integrations,,seo_settings,website')->name('settings.integration');
+            Route::put('/{website}/gelismis/varlik/{sekme}', [SeoSettingsController::class, 'updateEntity'])->middleware('permission:geo.settings,,geo_entity,website')->name('settings.entity');
         });
 
         // --- GEO / Entity (faz 16-17) — personel, tenant context'siz -----------
