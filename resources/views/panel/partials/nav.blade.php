@@ -5,6 +5,14 @@
 @php($active = fn (string ...$patterns) => collect($patterns)->contains(fn ($p) => request()->routeIs($p)) ? 'aria-current="page"' : '')
 @php($kindIs = fn (string $kind) => request()->routeIs('panel.content.index', 'panel.content.create', 'panel.content.show', 'panel.content.edit') && request()->query('kind') === $kind)
 
+@if ($twoFactorRequired ?? false)
+    {{-- 2FA kurulmadan personel hiçbir modüle giremez (staff.2fa); menüde yalnız kurulum adımı. --}}
+    <div class="panel-nav__group">
+        <span class="panel-nav__label">Kurulum</span>
+        <a href="{{ route('panel.account.security') }}" {!! $active('panel.account.security') !!}>İki adımlı doğrulamayı kur</a>
+        <a href="{{ route('panel.account') }}" {!! $active('panel.account') !!}>Hesabım</a>
+    </div>
+@else
 @isset($activeOrganization)
     <div class="panel-nav__group">
         <span class="panel-nav__label">Müşteri</span>
@@ -104,3 +112,4 @@
     <a href="{{ route('panel.account') }}" {!! $active('panel.account*') !!}>Hesabım</a>
     <a href="{{ route('panel.notifications.inbox') }}" {!! $active('panel.notifications.inbox') !!}>Bildirimler @if ($unreadNotifications > 0)<span class="badge badge--warn">{{ $unreadNotifications }}</span>@endif</a>
 </div>
+@endif

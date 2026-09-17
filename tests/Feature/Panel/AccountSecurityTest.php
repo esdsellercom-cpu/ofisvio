@@ -153,6 +153,10 @@ class AccountSecurityTest extends TestCase
     #[Test]
     public function personel_2fa_kurmadan_panele_giremez(): void
     {
+        // Menü: 2FA kurulmadan yalnız kurulum bağlantısı görünür (Şirketler/İçerik vb. yok).
+        $noTwoFactor = $this->staffWithoutTwoFactor('system_admin');
+        $this->actingAs($noTwoFactor)->get('/panel/hesap')->assertOk()->assertSee('İki adımlı doğrulamayı kur')->assertDontSee('Kullanıcılar</a>', false);
+
         $admin = $this->staffWithoutTwoFactor('system_admin');
         $this->organization('Acme');
 

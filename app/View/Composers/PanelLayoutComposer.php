@@ -60,6 +60,8 @@ class PanelLayoutComposer
             // Global personel genel listeden girer; sorgu yalnız lokasyon rolü olabilecekler için.
             'deskLocations' => $isStaff ? new Collection : $this->bookings->deskLocationsFor($user),
             'isStaff' => $isStaff,
+            // Personel (global ya da lokasyon) 2FA kurmadan menüde yalnız güvenlik sayfasını görür — "açık kapı" görüntüsü olmasın.
+            'twoFactorRequired' => ! $user->hasConfirmedTwoFactor() && $this->context->hasInternalRole($user),
             'unreadNotifications' => (int) $this->context->rememberForRequest("unread:{$user->id}", fn () => $user->unreadNotifications()->count()),
             'activeOrganization' => $active instanceof Organization ? $active : null,
             'canSwitchOrganization' => $isStaff || $this->switcher->enterableOrganizations($user)->count() > 1,
