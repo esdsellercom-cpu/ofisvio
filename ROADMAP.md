@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **309/309** (Unit 12 · Feature 281 · Architecture 16) |
+| `php artisan test` | ✅ **312/312** (Unit 12 · Feature 284 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -716,6 +716,37 @@ Aynı işlev iki yerde tekrar etmez: **düzenleme yalnız görsel editörde**. `
   önizleme → yayınla (`SiteBlockService::update`); biçim hatası kaydı durdurur. `PUT /bloklar/metinler` ve
   `PUT /bloklar/{blok}` faz 10 servis uç noktası olarak kalır (content.publish, form yok).
 - Migrasyon `2026_09_18_000028_block_library`. Menü: "Blok kütüphanesi". Testler `BlockLibraryTest` (3).
+
+### 51. 360° üye / müşteri yönetim merkezi — `/panel/uyeler` ✅ (18 Eylül 2026)
+Üye dizini (faz 39) korunur; üye = şirket üyeliği (`user_roles`), ticari kayıtlar ŞİRKET bazlıdır (fatura, tahsilat,
+üyelik, tahsis şirkete kesilir) — profil kişi bilgisini taşır. Yazan yollar mevcut servislerdir; `MemberCenterService`
+yalnız profil, sözleşme ve ek harcamayı yazar, kalanını birleştirir.
+- **+ Yeni üye** (`membership.manage,company`; personel için system_admin/operations_admin global grant eklendi):
+  ad, soyad, e-posta (davet + şifre bağlantısı), telefon, firma (seçim), ünvan, TC/vergi no (maskeli), adres, şehir,
+  ülke, üyelik tipi, üyelik başlangıcı, ilk sözleşme (tür/başlangıç/bitiş), durum, not, profil görseli (medya
+  karantina zinciri). `member_profiles` + otomatik üye no `UYE-000001`.
+- **Liste:** üye, firma, üyelik tipi, sözleşme durumu, borç, bakiye, son ödeme, sözleşme bitişi, son güncelleme,
+  durum; süzgeçler aktif/pasif/borçlu/bakiyesi olan/sözleşmesi yaklaşan (30 gün)/biten/yeni (30 gün); arama ad,
+  e-posta, firma, telefon, üye no. Şirket başına finans tek geçişte (`financeByCompany`, N+1 yok).
+- **360° profil** `/panel/uyeler/{üyelik}`: üst kartlar Borç · Ödenen · Bakiye · Aktif hizmet · Tahsis · Sözleşme
+  (gün) · Son ödeme; otomatik uyarılar (gecikmiş ödeme, açık borç, sözleşme ≤15 gün / süresi doldu, hizmet ≤15 gün,
+  iade bekleyen demirbaş); hızlı işlemler Tahsilat ekle · Ek harcama · Fatura oluştur · Sözleşme ekle · Hizmet ekle ·
+  Tahsis et · Demirbaş ekle · Belge oluştur · Düzenle (yetkiye göre). Sekmeler: **Özet** (önemli tarihler, kişi, son
+  hareketler/aktivite) · **Finans** (toplam borç, ödenen, kalan, bakiye, bekleyen, geciken, son/toplam tahsilat; açık
+  faturalar; hareket geçmişi: +tahsilat / −fatura / −faturasız ek harcama, belge bağlantısı, oluşturan) ·
+  **Sözleşmeler** (`contracts`: SOZ-YYYY-000001, tür, tarihler, durum draft/active/ended (+ türetilmiş expired), dosya
+  PDF/JPG/PNG özel diskte, not; Yeni/Düzenle/PDF (belge motoru `contract` türü, `documents.contract_id`)/İndir/
+  Sonlandır gerekçeli) · **Tahsisler** (masa/ofis/oda + demirbaşlar; tahsis et / demirbaş ekle / bitir) · **Hizmetler**
+  (üyelikler: plan, tarihler, ücret, durum, yenileme) · **Belgeler** (sözleşme, fatura, makbuz, gecikme belgesi tek
+  listede) · **Aktivite** (denetim izinden kim/ne/ne zaman: üye, sözleşme, hizmet, tahsis, demirbaş, ödeme, harcama,
+  belge).
+- **Ek harcama** (`extra_charges`, `invoice.issue,company`): tür (ek toplantı odası, baskı, kargo, telefon, ek hizmet,
+  hasar, demirbaş, diğer), açıklama, tutar, para birimi, tarih, not; faturalama: yeni fatura kes ve yayınla
+  (InvoiceService) / faturasız (bakiyeye doğrudan) / taslak faturaya bağla. Faturalanan harcama çift sayılmaz.
+- **Entegrasyon:** tahsilat, makbuz, gecikme belgesi, fatura, üyelik, tahsis, demirbaş ve tahsis bitirme mevcut
+  rotalara gider; `App\Support\PanelReturn` ile `return` (yalnız `/panel/` yolu) profile döner. Tahsilat modalı
+  `collections/partials/modal-payment` paylaşımlı.
+- Migrasyon `2026_09_18_000029_member_center`. Testler `MemberCenterTest` (3).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

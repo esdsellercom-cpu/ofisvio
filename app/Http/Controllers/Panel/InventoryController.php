@@ -15,6 +15,7 @@ use App\Services\GeoService;
 use App\Services\MembershipService;
 use App\Services\SpaceService;
 use App\Support\Money;
+use App\Support\PanelReturn;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -320,6 +321,6 @@ class InventoryController extends Controller
 
     private function done(Request $request, string $message, ?string $tab = null): RedirectResponse
     {
-        return redirect()->route('panel.spaces.index', array_filter(['sekme' => $tab ?? $request->input('_tab')]))->with('status', $message);
+        return PanelReturn::to($request, route('panel.spaces.index', array_filter(['sekme' => $tab ?? $request->input('_tab')])), $message);
     }
 }

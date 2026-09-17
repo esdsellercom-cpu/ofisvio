@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Services\BookingService;
 use App\Services\GeoService;
 use App\Services\SubscriptionService;
+use App\Support\PanelReturn;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -88,7 +89,7 @@ class SubscriptionController extends Controller
             return back()->withErrors(['plan_id' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.subscriptions.show', $sub)->with('status', 'Üyelik açıldı: '.$company->legal_name.' · '.$plan->name.'.');
+        return PanelReturn::to($request, route('panel.subscriptions.show', $sub), 'Üyelik açıldı: '.$company->legal_name.' · '.$plan->name.'.');
     }
 
     public function show(int $subscription): View

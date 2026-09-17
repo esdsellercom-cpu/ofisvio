@@ -182,6 +182,8 @@ company,company.close,owner,company,yes,no,state machine + borc/kyc/sozlesme kon
 company,company.close,super_admin,global,yes,no,
 company,membership.manage,owner,company,no,no,uye ekleme/cikarma/rol atama
 company,membership.manage,legal_representative,company,no,no,
+company,membership.manage,system_admin,global,no,no,360 uye merkezi: personel musteri sirketine uye ekler/duzenler
+company,membership.manage,operations_admin,global,no,no,360 uye merkezi
 organization,organization.view,owner,organization,no,no,
 organization,organization.manage,owner,organization,no,no,
 admin,user.manage,system_admin,global,no,no,

@@ -133,6 +133,7 @@ class ArchitectureTest extends TestCase
             'InvoiceService.php',           // faturalar/tahsilat: finans listesi, sayaçlar, numara sırası, gecikme zamanlayıcısı invoice.view (global); müşteri tarafı forCompany scope içinde (bkz. sınıf başlığı)
             'SpaceService.php',             // masa/ofis envanteri: doluluk ve tahsis listeleri space.view (global) rotasından, zamanlayıcı; müşteri tarafı forCompany scope içinde (bkz. sınıf başlığı)
             'SubscriptionService.php',      // üyelikler: finans listesi/sayaçlar subscription.view (global) rotasından, süre dolumu zamanlayıcı; müşteri tarafı forCompany scope içinde (bkz. sınıf başlığı)
+            'MemberCenterService.php',      // sözleşme numarası (SOZ-YYYY-000001) tüm organizasyonlar genelinde tekil olmalı: yalnız numara sayımı/tekillik, satır dönmez (bkz. createContract)
             'DocumentService.php',          // belgeler: makbuz/geciken ödeme belgesi finans personeli (invoice.view global) için tüm şirketler; müşteri tarafı bu servisi kullanmaz (bkz. sınıf başlığı)
         ];
 

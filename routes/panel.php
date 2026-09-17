@@ -40,7 +40,7 @@ use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\LocationMediaController;
 use App\Http\Controllers\Panel\LocationSpaceController;
 use App\Http\Controllers\Panel\MediaController;
-use App\Http\Controllers\Panel\MemberDirectoryController;
+use App\Http\Controllers\Panel\MemberCenterController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
@@ -464,8 +464,22 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             // Şirketler — liste servis tarafından süzülür; oluşturma organizasyon
             // yönetimi ister; görüntüleme şirket kapsamlı company.view ister.
             Route::get('/sirketler', [CompanyController::class, 'index'])->name('companies.index');
-            // Üye dizini (faz 39, §5): görünürlük şirket listesiyle aynı (CompanyService::visibleTo).
-            Route::get('/uyeler', [MemberDirectoryController::class, 'index'])->name('members.index');
+            // 360° üye merkezi (faz 51; dizin faz 39): görünürlük şirket listesiyle aynı (CompanyService::visibleTo).
+            // Yazma yetkileri şirket kapsamlı: profil membership.manage, sözleşme subscription.manage, ek harcama invoice.issue.
+            Route::get('/uyeler', [MemberCenterController::class, 'index'])->name('members.index');
+            Route::get('/uyeler/yeni', [MemberCenterController::class, 'create'])->name('members.create');
+            Route::post('/uyeler/{company}', [MemberCenterController::class, 'store'])->middleware('permission:membership.manage,company')->name('members.store');
+            Route::get('/uyeler/{member}', [MemberCenterController::class, 'show'])->where('member', '[0-9]+')->name('members.show');
+            Route::get('/uyeler/{member}/duzenle', [MemberCenterController::class, 'edit'])->where('member', '[0-9]+')->name('members.edit');
+            Route::get('/uyeler/{member}/sozlesme/{contract}/dosya', [MemberCenterController::class, 'contractFile'])->where(['member' => '[0-9]+', 'contract' => '[0-9]+'])->name('members.contract.file');
+            Route::prefix('/uyeler/{company}/{member}')->where(['member' => '[0-9]+', 'contract' => '[0-9]+'])->name('members.')->group(function () {
+                Route::put('/', [MemberCenterController::class, 'update'])->middleware('permission:membership.manage,company')->name('update');
+                Route::post('/harcama', [MemberCenterController::class, 'chargeStore'])->middleware('permission:invoice.issue,company')->name('charge.store');
+                Route::post('/sozlesme', [MemberCenterController::class, 'contractStore'])->middleware('permission:subscription.manage,company')->name('contract.store');
+                Route::put('/sozlesme/{contract}', [MemberCenterController::class, 'contractUpdate'])->middleware('permission:subscription.manage,company')->name('contract.update');
+                Route::post('/sozlesme/{contract}/sonlandir', [MemberCenterController::class, 'contractEnd'])->middleware('permission:subscription.manage,company')->name('contract.end');
+                Route::post('/sozlesme/{contract}/belge', [MemberCenterController::class, 'contractDocument'])->middleware('permission:subscription.manage,company')->name('contract.document');
+            });
             Route::get('/sirketler/yeni', [CompanyController::class, 'create'])
                 ->middleware('permission:organization.manage')
                 ->name('companies.create');

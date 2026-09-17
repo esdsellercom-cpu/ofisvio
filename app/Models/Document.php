@@ -12,11 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class Document extends Model
 {
-    public const KINDS = ['receipt' => 'Tahsilat makbuzu', 'overdue_notice' => 'Geciken ödeme belgesi'];
+    public const KINDS = ['receipt' => 'Tahsilat makbuzu', 'overdue_notice' => 'Geciken ödeme belgesi', 'contract' => 'Sözleşme belgesi'];
 
-    public const PREFIX = ['receipt' => 'MKB', 'overdue_notice' => 'GOB'];
+    public const PREFIX = ['receipt' => 'MKB', 'overdue_notice' => 'GOB', 'contract' => 'SZB'];
 
-    protected $fillable = ['kind', 'number', 'company_id', 'invoice_id', 'payment_id', 'data', 'status', 'created_by', 'cancelled_by', 'cancelled_at', 'cancel_reason'];
+    protected $fillable = ['kind', 'number', 'company_id', 'invoice_id', 'payment_id', 'contract_id', 'data', 'status', 'created_by', 'cancelled_by', 'cancelled_at', 'cancel_reason'];
 
     protected $casts = ['data' => 'array', 'cancelled_at' => 'datetime'];
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class UserRole extends Model
 {
@@ -27,6 +28,16 @@ class UserRole extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Üye profili (faz 51).
+     *
+     * @return HasOne<MemberProfile, $this>
+     */
+    public function profile(): HasOne
+    {
+        return $this->hasOne(MemberProfile::class);
     }
 
     public function isActive(): bool

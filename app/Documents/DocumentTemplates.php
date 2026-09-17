@@ -13,7 +13,7 @@ use InvalidArgumentException;
  */
 final class DocumentTemplates
 {
-    public const KINDS = ['receipt' => 'Tahsilat makbuzu', 'overdue_notice' => 'Geciken ödeme belgesi'];
+    public const KINDS = ['receipt' => 'Tahsilat makbuzu', 'overdue_notice' => 'Geciken ödeme belgesi', 'contract' => 'Sözleşme belgesi'];
 
     /** Düzenlenebilir alanlar: anahtar → [etiket, tip (text|textarea|url|bool|color|columns), açıklama]. */
     public const FIELDS = [
@@ -47,6 +47,8 @@ final class DocumentTemplates
         return match ($kind) {
             'receipt' => $common + ['amount' => 'Tahsil edilen tutar', 'amount_words' => 'Tutar (yazıyla)', 'payment_method' => 'Ödeme yöntemi', 'payment_date' => 'Ödeme tarihi', 'payment_reference' => 'Ödeme referansı', 'description' => 'Hizmet / açıklama', 'note' => 'Not', 'remaining_amount' => 'Kalan bakiye', 'paid_amount' => 'Toplam ödenen'],
             'overdue_notice' => $common + ['days_overdue' => 'Gecikme günü', 'amount' => 'Borç (fatura tutarı)', 'paid_amount' => 'Ödenen', 'remaining_amount' => 'Kalan tutar', 'note' => 'Not'],
+            // Sözleşme belgesi (faz 51): sözleşme kaydından (numara, tür, tarihler, üye).
+            'contract' => $common + ['contract_number' => 'Sözleşme numarası', 'contract_type' => 'Sözleşme türü', 'contract_start' => 'Başlangıç tarihi', 'contract_end' => 'Bitiş tarihi', 'member_name' => 'Üye adı', 'member_no' => 'Üye numarası', 'note' => 'Not'],
             default => throw new InvalidArgumentException("Tanımsız belge türü: {$kind}"),
         };
     }
@@ -60,6 +62,7 @@ final class DocumentTemplates
     {
         return match ($kind) {
             'receipt' => ['invoice_number' => 'Fatura', 'description' => 'Hizmet / açıklama', 'payment_method' => 'Ödeme yöntemi', 'payment_date' => 'Ödeme tarihi', 'amount' => 'Tutar', 'remaining_amount' => 'Kalan'],
+            'contract' => ['contract_number' => 'Sözleşme no', 'contract_type' => 'Tür', 'contract_start' => 'Başlangıç', 'contract_end' => 'Bitiş', 'member_name' => 'Üye', 'customer_name' => 'Müşteri'],
             default => ['invoice_number' => 'Fatura', 'invoice_description' => 'Açıklama', 'due_date' => 'Vade', 'days_overdue' => 'Gecikme (gün)', 'amount' => 'Borç', 'paid_amount' => 'Ödenen', 'remaining_amount' => 'Kalan'],
         };
     }
@@ -87,6 +90,13 @@ final class DocumentTemplates
                 'intro' => 'Sayın {{customer_name}}, {{invoice_number}} numaralı ve {{due_date}} vadeli faturanızın ödemesi {{days_overdue}} gündür gecikmiştir. Kalan tutarın en kısa sürede ödenmesini rica ederiz.',
                 'columns' => ['invoice_number', 'invoice_description', 'due_date', 'days_overdue', 'amount', 'paid_amount', 'remaining_amount'],
                 'body' => "Toplam borç: {{amount}}\nÖdenen: {{paid_amount}}\nKalan: {{remaining_amount}}",
+            ],
+            'contract' => $base + [
+                'heading' => 'SÖZLEŞME',
+                'subheading' => 'Sözleşme No: {{contract_number}} · Belge No: {{document_number}} · Tarih: {{date}}',
+                'intro' => 'İşbu sözleşme {{business_legal_name}} ile {{customer_name}} ({{member_name}}) arasında {{contract_start}} tarihinde başlamak üzere düzenlenmiştir.',
+                'columns' => ['contract_number', 'contract_type', 'contract_start', 'contract_end', 'member_name'],
+                'body' => "Sözleşme türü: {{contract_type}}\nBaşlangıç: {{contract_start}}\nBitiş: {{contract_end}}\n{{note}}",
             ],
             default => throw new InvalidArgumentException("Tanımsız belge türü: {$kind}"),
         };

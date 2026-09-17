@@ -9,6 +9,7 @@ use App\Services\DocumentService;
 use App\Services\InvoiceService;
 use App\Services\SubscriptionService;
 use App\Support\Money;
+use App\Support\PanelReturn;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -84,7 +85,7 @@ class CollectionController extends Controller
             return redirect()->route('panel.collections.documents.show', $document)->with('status', 'Tahsilat kaydedildi; makbuz '.$document->number.' oluşturuldu.');
         }
 
-        return redirect()->to(route('panel.collections.index').'#tahsilatlar')->with('status', Money::format($payment->amount, $invoice->currency).' tahsilat kaydedildi ('.$payment->methodLabel().'); fatura bakiyesi güncellendi.');
+        return PanelReturn::to($request, route('panel.collections.index').'#tahsilatlar', Money::format($payment->amount, $invoice->currency).' tahsilat kaydedildi ('.$payment->methodLabel().'); fatura bakiyesi güncellendi.');
     }
 
     public function cancelPayment(Request $request, int $payment): RedirectResponse
@@ -111,7 +112,7 @@ class CollectionController extends Controller
             return back()->withErrors(['payment' => $e->getMessage()]);
         }
 
-        return redirect()->route('panel.collections.documents.show', $document)->with('status', 'Makbuz '.$document->number.' hazır.');
+        return PanelReturn::to($request, route('panel.collections.documents.show', $document), 'Makbuz '.$document->number.' hazır.');
     }
 
     public function overdueNotice(Request $request, int $invoice): RedirectResponse
@@ -124,7 +125,7 @@ class CollectionController extends Controller
             return back()->withErrors(['invoice' => $e->getMessage()]);
         }
 
-        return redirect()->route('panel.collections.documents.show', $document)->with('status', 'Geciken ödeme belgesi '.$document->number.' oluşturuldu.');
+        return PanelReturn::to($request, route('panel.collections.documents.show', $document), 'Geciken ödeme belgesi '.$document->number.' oluşturuldu.');
     }
 
     // ---- Belgeler ------------------------------------------------------------------

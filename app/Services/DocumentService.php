@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Documents\DocumentTemplates;
+use App\Models\Contract;
 use App\Models\Document;
 use App\Models\DocumentTemplate;
 use App\Models\Invoice;
@@ -181,6 +182,25 @@ class DocumentService
         }
 
         return $this->create($actor, 'receipt', $payment->company_id, $payment->invoice_id, $payment->id, $this->receiptValues($payment, $actor));
+    }
+
+    /** Sözleşme belgesi (faz 51): sözleşme kaydından, belge motoruyla (şablon, PDF, yazdırma). */
+    public function createContract(User $actor, Contract $contract): Document
+    {
+        $company = $contract->company;
+        $member = $contract->membership;
+        $values = $this->businessValues() + [
+            'customer_name' => $company->legal_name, 'customer_tax_number' => (string) ($company->tax_number ?? ''), 'customer_email' => (string) ($this->members->primaryContact($company->id)->email ?? ''),
+            'invoice_number' => '', 'invoice_description' => '', 'invoice_total' => '', 'due_date' => '',
+            'contract_number' => $contract->number, 'contract_type' => $contract->typeLabel(), 'contract_start' => $contract->starts_on->format('d.m.Y'), 'contract_end' => $contract->ends_on?->format('d.m.Y') ?? 'Süresiz',
+            'member_name' => (string) ($member->user->name ?? ''), 'member_no' => (string) ($member->profile->member_no ?? ''), 'note' => (string) ($contract->note ?? ''),
+            'date' => Carbon::today()->format('d.m.Y'), 'currency' => '', 'issuer_name' => $actor->name,
+        ];
+
+        $document = $this->create($actor, 'contract', $contract->company_id, null, null, $values);
+        $document->forceFill(['contract_id' => $contract->id])->save();
+
+        return $document;
     }
 
     public function createOverdueNotice(User $actor, Invoice $invoice): Document

@@ -12,6 +12,7 @@ use App\Services\JitAccessService;
 use App\Services\SettingsService;
 use App\Services\SubscriptionService;
 use App\Support\Money;
+use App\Support\PanelReturn;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -97,7 +98,7 @@ class InvoiceController extends Controller
             return back()->withErrors(['subtotal' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.invoices.show', $invoice)->with('status', $invoice->status === 'issued' ? 'Fatura yayınlandı: '.$invoice->number : 'Taslak fatura oluşturuldu.');
+        return PanelReturn::to($request, route('panel.invoices.show', $invoice), $invoice->status === 'issued' ? 'Fatura yayınlandı: '.$invoice->number : 'Taslak fatura oluşturuldu.');
     }
 
     public function show(Request $request, int $invoice): View

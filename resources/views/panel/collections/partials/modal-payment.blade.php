@@ -6,6 +6,7 @@
         @csrf
         <input type="hidden" name="_method" value="POST">
         <input type="hidden" name="_modal" value="payment">
+        @isset($returnUrl)<input type="hidden" name="return" value="{{ $returnUrl }}">@endisset
         <div class="modal__head"><h2 data-modal-title data-default="Manuel tahsilat">Manuel tahsilat</h2><button type="button" class="btn btn--quiet" data-modal-close aria-label="Kapat">✕</button></div>
         <div class="modal__body stack" style="gap:12px">
             @if ($auto && $errors->any())<div class="notice notice--error" role="alert"><span class="notice__dot" aria-hidden="true"></span><div>{{ $errors->first() }}</div></div>@endif
