@@ -111,14 +111,16 @@ class PanelShellTest extends TestCase
         Room::create(['location_id' => $kadikoy->id, 'name' => 'Odak 1', 'kind' => 'focus', 'capacity' => 1, 'hourly_rate' => 15000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 8, 'is_active' => false]);
         $owner = $this->owner($acme, $this->company($acme, 'Acme A.Ş.'));
 
-        // Alanlar (geo.view|booking.view): lokasyon başlığı, tür, aktif/pasif; finans göremez.
-        $this->actingAs($ops)->get('/panel/alanlar')->assertOk()->assertSee('Kadıköy')->assertSee('Toplantı odası')->assertSee('Odaklanma odası')
+        // Alanlar: masa/ofis sekmesi (P0-2, boş envanter) + odalar sekmesi (tür, aktif/pasif); finans space.view ile görür.
+        $this->actingAs($ops)->get('/panel/alanlar')->assertOk()->assertSee('Henüz masa/ofis tanımlı değil');
+        $this->actingAs($ops)->get('/panel/alanlar?sekme=odalar')->assertOk()->assertSee('Kadıköy')->assertSee('Toplantı odası')->assertSee('Odaklanma odası')
             ->assertSee('<span class="k">Rezervasyona açık</span><span class="v">1</span>', false)->assertSee('Odaları yönet');
-        $this->actingAs($finance)->get('/panel/alanlar')->assertForbidden();
+        $this->actingAs($finance)->get('/panel/alanlar')->assertOk()->assertDontSee('Envanteri yönet');
+        $this->actingAs($owner)->withContext($acme)->get('/panel/alanlar')->assertForbidden();
 
         // Raporlar (analytics.view): sekmeler; KYC adedi yalnız kyc.view_status taşıyana.
         $this->actingAs($ops)->get('/panel/raporlar')->assertOk()->assertSee('Onaylı tutar (30g)')->assertSee('Lokasyona göre rezervasyon');
-        $this->actingAs($ops)->get('/panel/raporlar?sekme=doluluk')->assertOk()->assertSee('Alan türleri')->assertSee('<span class="k">Alan</span><span class="v">1</span>', false);
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=doluluk')->assertOk()->assertSee('Oda türleri')->assertSee('<span class="k">Oda</span><span class="v">1</span>', false);
         $this->actingAs($ops)->get('/panel/raporlar?sekme=uyelik')->assertOk()->assertSee('Şirketler duruma göre')->assertSee('Kayıt alındı')->assertDontSee('Bekleyen KYC belgesi');
         $this->actingAs($admin)->get('/panel/raporlar?sekme=uyelik')->assertOk()->assertSee('Bekleyen KYC belgesi');
         $this->actingAs($ops)->get('/panel/raporlar?sekme=talepler')->assertOk()->assertSee('Dönüşüm');

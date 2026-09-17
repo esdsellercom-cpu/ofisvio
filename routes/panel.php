@@ -22,6 +22,7 @@ use App\Http\Controllers\Panel\CacheController;
 use App\Http\Controllers\Panel\CollectionController;
 use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\CompanyInvoiceController;
+use App\Http\Controllers\Panel\CompanySpaceController;
 use App\Http\Controllers\Panel\CompanySubscriptionController;
 use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContentDraftController;
@@ -35,6 +36,7 @@ use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\LocationMediaController;
+use App\Http\Controllers\Panel\LocationSpaceController;
 use App\Http\Controllers\Panel\MediaController;
 use App\Http\Controllers\Panel\MemberDirectoryController;
 use App\Http\Controllers\Panel\MembershipController;
@@ -80,7 +82,11 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
         Route::get('/ara', SearchController::class)->name('search');
 
         // Faz 39 — artifact menü paritesi: alanlar (§3), raporlar (§16), entegrasyonlar (§18).
-        Route::get('/alanlar', [SpaceController::class, 'index'])->middleware('permission:geo.view|booking.view')->name('spaces.index');
+        // Masalar, ofisler & odalar (audit P0-2): envanter/doluluk space.view (ya da geo/booking görüntüleme); tahsis space.manage.
+        Route::get('/alanlar', [SpaceController::class, 'index'])->middleware('permission:space.view|geo.view|booking.view')->name('spaces.index');
+        Route::get('/alanlar/{space}', [SpaceController::class, 'show'])->where('space', '[0-9]+')->middleware('permission:space.view|space.manage')->name('spaces.show');
+        Route::post('/alanlar/{space}/tahsis', [SpaceController::class, 'assign'])->where('space', '[0-9]+')->middleware('permission:space.manage')->name('spaces.assign');
+        Route::post('/alanlar/{space}/tahsis/{assignment}/bitir', [SpaceController::class, 'end'])->where(['space' => '[0-9]+', 'assignment' => '[0-9]+'])->middleware('permission:space.manage')->name('spaces.end');
         Route::get('/raporlar', [ReportController::class, 'index'])->middleware('permission:analytics.view')->name('reports.index');
         Route::get('/entegrasyonlar', [IntegrationController::class, 'index'])->middleware('permission:performance.view')->name('integrations.index');
 
@@ -360,6 +366,11 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 Route::delete('/{link}', [LocationMediaController::class, 'destroy'])->name('destroy');
             });
             // Odalar (booking v1): lokasyon künyesinin parçası; {room} int, lokasyona süzülür (RoomController::roomOf).
+            // Masa & ofis envanteri (audit P0-2): lokasyon künyesinin parçası, geo.edit.
+            Route::get('/lokasyon/{location}/alanlar', [LocationSpaceController::class, 'index'])->middleware('permission:geo.edit')->name('spaces.index');
+            Route::post('/lokasyon/{location}/alanlar', [LocationSpaceController::class, 'store'])->middleware('permission:geo.edit')->name('spaces.store');
+            Route::put('/lokasyon/{location}/alanlar/{space}', [LocationSpaceController::class, 'update'])->where('space', '[0-9]+')->middleware('permission:geo.edit')->name('spaces.update');
+            Route::delete('/lokasyon/{location}/alanlar/{space}', [LocationSpaceController::class, 'destroy'])->where('space', '[0-9]+')->middleware('permission:geo.edit')->name('spaces.destroy');
             Route::get('/lokasyon/{location}/odalar', [RoomController::class, 'index'])->middleware('permission:geo.edit')->name('rooms.index');
             Route::post('/lokasyon/{location}/odalar', [RoomController::class, 'store'])->middleware('permission:geo.edit')->name('rooms.store');
             Route::put('/lokasyon/{location}/odalar/{room}', [RoomController::class, 'update'])->where('room', '[0-9]+')->middleware('permission:geo.edit')->name('rooms.update');
@@ -459,6 +470,10 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/sirketler/{company}/uyelik', [CompanySubscriptionController::class, 'index'])
                 ->middleware('permission:subscription.view,company')
                 ->name('companies.subscriptions.index');
+            // Müşteri alanları (audit P0-2): space.view, şirket kapsamı; salt okunur.
+            Route::get('/sirketler/{company}/alanlar', [CompanySpaceController::class, 'index'])
+                ->middleware('permission:space.view,company')
+                ->name('companies.spaces.index');
             // Müşteri faturaları (faz 39c): invoice.view, şirket kapsamı; taslak görünmez.
             Route::get('/sirketler/{company}/faturalar', [CompanyInvoiceController::class, 'index'])
                 ->middleware('permission:invoice.view,company')

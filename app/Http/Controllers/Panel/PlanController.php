@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Panel;
 
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
+use App\Models\Space;
 use App\Services\ServiceService;
 use App\Services\SubscriptionService;
 use App\Support\Money;
@@ -25,7 +26,7 @@ class PlanController extends Controller
 
     public function create(): View
     {
-        return view('panel.plans.form', ['plan' => null, 'periods' => Plan::PERIODS, 'services' => $this->services->all()]);
+        return view('panel.plans.form', ['plan' => null, 'periods' => Plan::PERIODS, 'services' => $this->services->all(), 'spaceKinds' => Space::KINDS]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -41,7 +42,7 @@ class PlanController extends Controller
 
     public function edit(Plan $plan): View
     {
-        return view('panel.plans.form', ['plan' => $plan, 'periods' => Plan::PERIODS, 'services' => $this->services->all()]);
+        return view('panel.plans.form', ['plan' => $plan, 'periods' => Plan::PERIODS, 'services' => $this->services->all(), 'spaceKinds' => Space::KINDS]);
     }
 
     public function update(Request $request, Plan $plan): RedirectResponse
@@ -76,6 +77,7 @@ class PlanController extends Controller
             'price' => ['required', Money::RULE],
             'period' => ['required', Rule::in(array_keys(Plan::PERIODS))],
             'service_id' => ['nullable', 'integer'],
+            'space_kind' => ['nullable', Rule::in(array_keys(Space::KINDS))],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
         ]) + ['is_active' => $request->boolean('is_active')];

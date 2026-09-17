@@ -6,6 +6,7 @@ use App\Models\Company;
 use App\Models\Location;
 use App\Models\Plan;
 use App\Models\Scopes\TenantScope;
+use App\Models\Space;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\Money;
@@ -313,6 +314,7 @@ class SubscriptionService
             'price' => max(0, Money::parse((string) $data['price'])),
             'period' => $period,
             'service_id' => ! empty($data['service_id']) ? (int) $data['service_id'] : null,
+            'space_kind' => ! empty($data['space_kind']) && isset(Space::KINDS[(string) $data['space_kind']]) ? (string) $data['space_kind'] : null,
             'is_active' => (bool) ($data['is_active'] ?? true),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
         ];

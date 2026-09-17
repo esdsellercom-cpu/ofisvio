@@ -16,6 +16,9 @@
             @can('membership.manage', $company)
                 <a href="{{ route('panel.companies.members.index', $company) }}" class="btn btn--ghost">Üyeler</a>
             @endcan
+            @can('space.view', $company)
+                <a href="{{ route('panel.companies.spaces.index', $company) }}" class="btn btn--ghost">Alanlar</a>
+            @endcan
             @can('invoice.view', $company)
                 <a href="{{ route('panel.companies.invoices.index', $company) }}" class="btn btn--ghost">Faturalar</a>
             @endcan

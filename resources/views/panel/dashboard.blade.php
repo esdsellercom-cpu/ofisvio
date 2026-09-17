@@ -47,6 +47,9 @@
                     <div class="kpi"><span class="k">Onaylı tutar (30g)</span><span class="v">{{ money($b['revenue_30d']) }}</span><span class="d">Ort. {{ $b['avg_hours_30d'] }} sa</span></div>
                     <div class="kpi {{ $b['cancel_rate_30d'] > 20 ? 'watch' : '' }}"><span class="k">İptal oranı (30g)</span><span class="v">%{{ $b['cancel_rate_30d'] }}</span><span class="d">{{ $b['no_show_30d'] }} gelmedi</span></div>
                 @endif
+                @if ($ops['spaces'] !== null && $ops['spaces']['total'] > 0)
+                    <a href="{{ route('panel.spaces.index') }}" class="kpi {{ $ops['spaces']['rate'] >= 90 ? 'ok' : ($ops['spaces']['rate'] < 50 ? 'watch' : '') }}"><span class="k">Doluluk (masa/ofis)</span><span class="v">%{{ $ops['spaces']['rate'] }}</span><span class="d">{{ $ops['spaces']['occupied'] }} / {{ $ops['spaces']['slots'] }} yer · {{ $ops['spaces']['ending_30d'] }} tahsis 30 günde bitiyor</span></a>
+                @endif
                 @if ($ops['leads'] !== null)
                     <a href="{{ route('panel.leads.index', ['status' => 'new']) }}" class="kpi {{ $ops['leads']->total() > 0 ? 'watch' : '' }}"><span class="k">Yeni talep</span><span class="v">{{ $ops['leads']->total() }}</span><span class="d">Teklif ve ön rezervasyon</span></a>
                 @endif
@@ -144,7 +147,10 @@
                         </div>
                     @endif
 
-                    @if ($ops['leads'] !== null)
+                    @if ($ops['spaces'] !== null && $ops['spaces']['total'] > 0)
+                    <a href="{{ route('panel.spaces.index') }}" class="kpi {{ $ops['spaces']['rate'] >= 90 ? 'ok' : ($ops['spaces']['rate'] < 50 ? 'watch' : '') }}"><span class="k">Doluluk (masa/ofis)</span><span class="v">%{{ $ops['spaces']['rate'] }}</span><span class="d">{{ $ops['spaces']['occupied'] }} / {{ $ops['spaces']['slots'] }} yer · {{ $ops['spaces']['ending_30d'] }} tahsis 30 günde bitiyor</span></a>
+                @endif
+                @if ($ops['leads'] !== null)
                         <div class="card">
                             <div class="card__head"><h3>Yeni talepler</h3><span class="sub">Siteden gelen teklif / ön rezervasyon</span><span class="r"><a href="{{ route('panel.leads.index') }}" class="btn btn--quiet">Tümü</a></span></div>
                             @if ($ops['leads']->isEmpty())

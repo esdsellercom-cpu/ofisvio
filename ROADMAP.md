@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **263/263** (Unit 10 · Feature 238 · Architecture 15) |
+| `php artisan test` | ✅ **267/267** (Unit 12 · Feature 240 · Architecture 15) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -432,6 +432,19 @@ Artifact'ın 19 başlığının tamamı gerçek modül olarak panelde; menü sı
   (günlük/aylık ciro, bekleyen/gecikmiş tahsilat, üyelik bitişi, yeni üyelik, yaklaşan etkinlik, franchise)
   ve kartları (gecikmiş ödemeler, yaklaşan üyelik bitişleri) gerçek servis toplamları.
 - Testler: `SubscriptionTest`, `InvoiceTest`, `EventFranchiseTest`, `PanelShellTest` (+faz 39 sayfaları).
+
+### 40. Audit P0 (17 Eylül 2026) — bkz. `AUDIT-2026-09-17.md` ✅
+1. **Güvenlik başlıkları + çerez sertleştirme:** `SecurityHeaders` middleware (CSP, X-Frame-Options,
+   nosniff, Referrer-Policy, Permissions-Policy, HTTPS'te HSTS); doctor üretimde secure/httponly/same_site
+   çerezi şart koşar. `SecurityHeadersTest`.
+2. **Masa & ofis envanteri:** `spaces` (desk_fixed/desk_flex/office, kat/bölge/kapasite/aylık ücret) +
+   `space_assignments` (şirket, üye, üyelik, dönem; tenant company_id). `SpaceService`: CRUD (geo.edit),
+   tahsis/sonlandırma (space.manage; satır kilidi, kapasite, bloklu şirket, yabancı üye reddi), doluluk,
+   `spaces:end-expired`. Ekranlar: `/panel/alanlar` (masa/ofis + oda sekmeleri, lokasyon doluluğu),
+   `/panel/alanlar/{space}` (tahsis), `/panel/geo/lokasyon/{location}/alanlar`, müşteri
+   `/panel/sirketler/{company}/alanlar`; paket → alan türü (`plans.space_kind`); dashboard/rapor doluluk. `SpaceTest`.
+3. **Para birimi:** tüm tutarlar kuruş (`Money`, `money()`), `MoneyTest`.
+4. **Fatura numarası:** `invoice_sequences` atomik sayaç.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

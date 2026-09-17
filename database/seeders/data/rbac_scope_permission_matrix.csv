@@ -111,6 +111,18 @@ booking,booking.approve,location_manager,location,no,no,
 booking,booking.manage,operations_admin,global,no,no,giris/tamamlandi/gelmedi/yeniden planlama/ic not
 booking,booking.manage,location_manager,location,no,no,
 booking,booking.manage,reception,location,no,no,masada giris/tamamlandi/gelmedi
+spaces,space.view,system_admin,global,no,no,masa & ofis envanteri + tahsis (audit P0-2)
+spaces,space.view,operations_admin,global,no,no,
+spaces,space.view,super_admin,global,no,no,
+spaces,space.view,finance_admin,global,no,no,
+spaces,space.view,location_manager,location,no,no,
+spaces,space.view,reception,location,no,no,
+spaces,space.view,owner,company,no,no,
+spaces,space.view,company_admin,company,no,no,
+spaces,space.view,employee,company,no,no,
+spaces,space.manage,system_admin,global,no,no,tahsis et/sonlandir
+spaces,space.manage,operations_admin,global,no,no,
+spaces,space.manage,location_manager,location,no,no,
 events,event.view,system_admin,global,no,no,etkinlikler & topluluk (faz 39d)
 events,event.view,operations_admin,global,no,no,
 events,event.view,super_admin,global,no,no,

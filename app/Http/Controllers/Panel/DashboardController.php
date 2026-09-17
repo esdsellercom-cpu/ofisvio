@@ -15,6 +15,7 @@ use App\Services\KycQueueService;
 use App\Services\KycService;
 use App\Services\LeadService;
 use App\Services\NotificationService;
+use App\Services\SpaceService;
 use App\Services\SubscriptionService;
 use App\Services\TenantContext;
 use Illuminate\Contracts\View\View;
@@ -45,6 +46,7 @@ class DashboardController extends Controller
         private readonly InvoiceService $invoices,
         private readonly EventService $events,
         private readonly FranchiseService $franchise,
+        private readonly SpaceService $spaces,
     ) {}
 
     public function __invoke(Request $request): View
@@ -94,6 +96,7 @@ class DashboardController extends Controller
             'subscriptions' => $user->can('subscription.view') ? $this->subscriptions->dashboard() : null,
             'finance' => $user->can('invoice.view') ? $this->invoices->dashboard() : null,
             'events' => $user->can('event.view') ? $this->events->dashboard() : null,
+            'spaces' => $user->can('space.view') ? $this->spaces->occupancy() : null,
             'franchise' => $user->can('franchise.view') ? $this->franchise->counts() : null,
             'overdue' => $user->can('invoice.view') ? collect($this->invoices->paginateAll(['tab' => 'overdue'], 6)->items()) : null,
             'expiring' => $user->can('subscription.view') ? collect($this->subscriptions->paginateAll(['tab' => 'expiring'], 6)->items()) : null,

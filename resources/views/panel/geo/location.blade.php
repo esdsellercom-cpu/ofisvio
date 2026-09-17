@@ -10,6 +10,7 @@
         </div>
         <div class="panel-head__actions">
             <a href="{{ route('panel.geo.media.index', $location) }}" class="btn btn--ghost">Görseller</a>
+            <a href="{{ route('panel.geo.spaces.index', $location) }}" class="btn btn--ghost">Masalar &amp; ofisler</a>
             <a href="{{ route('panel.geo.rooms.index', $location) }}" class="btn btn--ghost">Odalar</a>
         </div>
     </div>

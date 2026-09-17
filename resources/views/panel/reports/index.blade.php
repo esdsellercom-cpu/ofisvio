@@ -81,11 +81,21 @@
             <div class="kpis">
                 <div class="kpi"><span class="k">Bugünkü doluluk</span><span class="v">%{{ $b['occupancy_today'] }}</span><span class="d"><span class="meter"><i style="width:{{ min(100, $b['occupancy_today']) }}%"></i></span></span></div>
                 <div class="kpi"><span class="k">Bugün</span><span class="v">{{ $b['today'] }}</span><span class="d">Onaylı rezervasyon</span></div>
-                <div class="kpi"><span class="k">Alan</span><span class="v">{{ $r['active'] }}</span><span class="d">{{ $r['total'] }} tanımlı</span></div>
+                <div class="kpi"><span class="k">Oda</span><span class="v">{{ $r['active'] }}</span><span class="d">{{ $r['total'] }} tanımlı · saatlik</span></div>
                 <div class="kpi"><span class="k">Onay bekleyen</span><span class="v">{{ $b['pending'] }}</span><span class="d">Odayı tutan talepler</span></div>
             </div>
+            @if ($data['spaces'] !== null)
+                <div class="card">
+                    <div class="card__head"><h3>Masa &amp; ofis doluluğu</h3><span class="sub">Aktif envanter, tahsisli yer / toplam yer · %{{ $data['spaces']['rate'] }}</span></div>
+                    <div class="tw"><table class="t"><thead><tr><th>Tür</th><th class="num">Alan</th><th class="num">Yer</th><th class="num">Tahsisli</th><th>Doluluk</th></tr></thead><tbody>
+                        @foreach ($data['spaces']['by_kind'] as $row)
+                            <tr><td><b>{{ $row['label'] }}</b></td><td class="num">{{ $row['total'] }}</td><td class="num">{{ $row['slots'] }}</td><td class="num">{{ $row['occupied'] }}</td><td><span class="meter" style="display:inline-block;width:120px;vertical-align:middle"><i style="width:{{ $row['slots'] > 0 ? round($row['occupied'] / $row['slots'] * 100) : 0 }}%"></i></span></td></tr>
+                        @endforeach
+                    </tbody></table></div>
+                </div>
+            @endif
             <div class="card">
-                <div class="card__head"><h3>Alan türleri</h3><span class="sub">Adet ve kapasite</span></div>
+                <div class="card__head"><h3>Oda türleri</h3><span class="sub">Saatlik odalar — adet ve kapasite</span></div>
                 <div class="tw"><table class="t"><thead><tr><th>Tür</th><th class="num">Alan</th><th class="num">Kapasite</th></tr></thead><tbody>
                     @foreach ($r['by_kind'] as $row)
                         <tr><td><b>{{ $row['label'] }}</b></td><td class="num">{{ $row['count'] }}</td><td class="num">{{ $row['capacity'] }}</td></tr>

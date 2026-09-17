@@ -32,6 +32,12 @@
                         @foreach ($services as $s)<option value="{{ $s->id }}" @selected((int) old('service_id', $plan?->service_id) === $s->id)>{{ $s->name }}</option>@endforeach
                     </select>
                 </label>
+                <label class="field"><span class="label">Alan türü (paket bir masa/ofis içeriyorsa)</span>
+                    <select class="control" name="space_kind">
+                        <option value="">— içermiyor (sanal ofis, hizmet) —</option>
+                        @foreach ($spaceKinds as $k => $label)<option value="{{ $k }}" @selected(old('space_kind', $plan?->space_kind) === $k)>{{ $label }}</option>@endforeach
+                    </select>
+                </label>
                 <label class="field"><span class="label">Dahil olanlar (satır başına bir madde)</span><textarea class="control" name="features" maxlength="3000" style="min-height:120px">{{ old('features', $plan?->features) }}</textarea></label>
                 <label class="checkbox-row"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $plan?->is_active ?? true))><span>Aktif (yeni üyelik açılabilir)</span></label>
                 <div><button type="submit" class="btn btn--brand">Kaydet</button> <a href="{{ route('panel.plans.index') }}" class="btn btn--ghost">Vazgeç</a></div>

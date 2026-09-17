@@ -11,7 +11,7 @@ class Plan extends Model
 {
     public const PERIODS = ['monthly' => 'Aylık', 'yearly' => 'Yıllık'];
 
-    protected $fillable = ['name', 'slug', 'summary', 'features', 'price', 'period', 'service_id', 'is_active', 'sort_order', 'updated_by'];
+    protected $fillable = ['name', 'slug', 'summary', 'features', 'price', 'period', 'service_id', 'space_kind', 'is_active', 'sort_order', 'updated_by'];
 
     protected $casts = ['price' => 'integer', 'is_active' => 'boolean', 'sort_order' => 'integer'];
 

@@ -27,7 +27,7 @@
                         @foreach ($plans as $plan)
                             <tr>
                                 <td><b>{{ $plan->name }}</b>@if ($plan->summary)<br><span class="mini">{{ $plan->summary }}</span>@endif</td>
-                                <td>{{ $plan->service?->name ?? '—' }}</td>
+                                <td>{{ $plan->service?->name ?? '—' }}@if ($plan->space_kind)<br><span class="tag">{{ \App\Models\Space::KINDS[$plan->space_kind] ?? $plan->space_kind }}</span>@endif</td>
                                 <td class="num">{{ money($plan->price) }}</td>
                                 <td>{{ $plan->periodLabel() }}</td>
                                 <td class="num">{{ $plan->subscriptions_count }}</td>

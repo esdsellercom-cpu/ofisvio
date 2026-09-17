@@ -33,13 +33,14 @@ class ReportService
         private readonly InvoiceService $invoices,
         private readonly SubscriptionService $subscriptions,
         private readonly FranchiseService $franchise,
+        private readonly SpaceService $spaces,
     ) {}
 
     /** @return array<string, mixed> */
     public function tab(User $user, string $tab): array
     {
         return match ($tab) {
-            'gelir', 'doluluk' => ['bookings' => $this->bookings->dashboard(), 'tabs' => $this->bookings->tabCounts(), 'rooms' => $this->rooms(), 'finance' => $this->finance($user)],
+            'gelir', 'doluluk' => ['bookings' => $this->bookings->dashboard(), 'tabs' => $this->bookings->tabCounts(), 'rooms' => $this->rooms(), 'finance' => $this->finance($user), 'spaces' => $this->authorization->can($user, 'space.view') ? $this->spaces->occupancy() : null],
             // Finans toplamları yalnız invoice.view taşıyana (analytics.view operasyonda da var).
             'tahsilat' => $this->finance($user) ?? [],
             // KYC adedi yalnız kyc.view_status taşıyana (operations_admin analytics.view taşır ama KYC görmez).
