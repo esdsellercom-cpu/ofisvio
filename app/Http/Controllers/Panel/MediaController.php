@@ -60,26 +60,61 @@ class MediaController extends Controller
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
             'alt' => ['nullable', 'string', 'max:190'],
+            'title' => ['nullable', 'string', 'max:160'],
+            'caption' => ['nullable', 'string', 'max:300'],
+            'seo_name' => ['nullable', 'string', 'max:120', 'regex:/^[a-z0-9-]+$/'], // SEO uyumlu dosya adı (faz 48)
+            'return' => ['nullable', 'string', 'max:500'],
         ]);
 
         try {
-            $media = $this->media->upload($request->user(), $website, $validated['file'], $validated['alt'] ?? null);
+            $media = $this->media->upload($request->user(), $website, $validated['file'], ['alt' => $validated['alt'] ?? null, 'title' => $validated['title'] ?? null, 'caption' => $validated['caption'] ?? null, 'seo_name' => $validated['seo_name'] ?? null]);
         } catch (DomainException $e) {
             return back()->withErrors(['file' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.content.media.index', ['website' => $website->id])->with('status', $media->original_name.' yüklendi.');
+        return $this->back($request, $website, $media->original_name.' yüklendi.');
     }
 
     public function update(Request $request, Media $media): RedirectResponse
     {
         $website = $this->website($request);
-        $validated = $request->validate(['alt' => ['nullable', 'string', 'max:190']]);
+        $validated = $request->validate(['alt' => ['nullable', 'string', 'max:190'], 'title' => ['nullable', 'string', 'max:160'], 'caption' => ['nullable', 'string', 'max:300'], 'return' => ['nullable', 'string', 'max:500']]);
 
-        $this->media->updateAlt($this->mediaOf($website, $media), $validated['alt'] ?? null);
+        $this->media->applyMeta($this->mediaOf($website, $media), array_intersect_key($validated, ['alt' => 1, 'title' => 1, 'caption' => 1]), $request->user());
         $this->cache->invalidate($website);
 
-        return redirect()->route('panel.content.media.index', ['website' => $website->id])->with('status', 'Alt metin güncellendi.');
+        return $this->back($request, $website, 'Görsel bilgileri güncellendi.');
+    }
+
+    /**
+     * Kırpma (faz 48): tarayıcıda canvas ile kırpılan görsel base64 (data URL) olarak gelir; aynı karantina/tarama
+     * zincirinden geçip YENİ medya olarak kaydedilir (orijinal korunur; kullanımdaki görsel bozulmaz).
+     */
+    public function crop(Request $request, Media $media): RedirectResponse
+    {
+        $website = $this->website($request);
+        $source = $this->mediaOf($website, $media);
+        $validated = $request->validate(['image' => ['required', 'string', 'max:8000000', 'regex:#^data:image/(jpeg|png|webp);base64,#'], 'return' => ['nullable', 'string', 'max:500']]);
+
+        try {
+            $created = $this->media->uploadDataUrl($request->user(), $website, (string) $validated['image'], ['alt' => $source->alt, 'title' => $source->title, 'caption' => $source->caption, 'seo_name' => pathinfo($source->original_name, PATHINFO_FILENAME).'-kirpilmis']);
+        } catch (DomainException $e) {
+            return back()->withErrors(['file' => $e->getMessage()]);
+        }
+
+        return $this->back($request, $website, 'Kırpılmış kopya kaydedildi: '.$created->original_name);
+    }
+
+    /** ?return= / return alanı: editöre geri (yalnız panel içi yol); yoksa medya listesi. */
+    private function back(Request $request, Website $website, string $message): RedirectResponse
+    {
+        $return = (string) $request->input('return', '');
+
+        if (str_starts_with($return, '/panel/')) {
+            return redirect()->to($return)->with('status', $message);
+        }
+
+        return redirect()->route('panel.content.media.index', ['website' => $website->id])->with('status', $message);
     }
 
     public function destroy(Request $request, Media $media): RedirectResponse

@@ -15,12 +15,16 @@ class ContentDraft extends Model
     protected $fillable = [
         'content_id', 'title', 'slug', 'excerpt', 'body', 'category', 'tags',
         'meta_title', 'meta_description', 'noindex', 'author_id',
+        'focus_keyword', 'related_keywords', 'canonical_url', 'robots', 'og_title', 'og_description', 'og_media_id', 'geo', 'schema_types', 'schema_custom',
     ];
 
     protected $casts = [
         'status' => ContentStatus::class,
         'noindex' => 'boolean',
         'tags' => 'array',
+        'related_keywords' => 'array',
+        'geo' => 'array',
+        'schema_types' => 'array',
         'scheduled_for' => 'datetime',
     ];
 
@@ -49,6 +53,16 @@ class ContentDraft extends Model
             'meta_title' => $this->meta_title,
             'meta_description' => $this->meta_description,
             'noindex' => $this->noindex,
+            'focus_keyword' => $this->focus_keyword,
+            'related_keywords' => $this->related_keywords,
+            'canonical_url' => $this->canonical_url,
+            'robots' => $this->robots,
+            'og_title' => $this->og_title,
+            'og_description' => $this->og_description,
+            'og_media_id' => $this->og_media_id,
+            'geo' => $this->geo,
+            'schema_types' => $this->schema_types,
+            'schema_custom' => $this->schema_custom,
         ];
     }
 }

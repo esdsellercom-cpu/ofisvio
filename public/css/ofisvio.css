@@ -460,3 +460,24 @@ html[data-theme="deniz"] {
 .builder-frame { width: 100%; border: 1px solid var(--line); border-radius: var(--r-md); background: #fff; height: 720px; display: block; margin: 0 auto; transition: width .2s; }
 .builder-frame--tablet { width: 820px; max-width: 100%; }
 .builder-frame--mobile { width: 400px; max-width: 100%; }
+
+/* ---- İçerik gövdesi uzantıları (faz 48): görsel hizalama, gömme, CTA, bloklar ---- */
+.prose figure.content-img { margin: 1.4em 0; }
+.prose figure.content-img img { width: 100%; height: auto; border-radius: var(--r-lg); display: block; }
+.prose figure.content-img figcaption { font-size: 13px; color: var(--ink-faint); margin-top: 6px; text-align: center; }
+.prose figure.img-left { float: left; margin: .3em 1.4em 1em 0; width: 45%; }
+.prose figure.img-right { float: right; margin: .3em 0 1em 1.4em; width: 45%; }
+.prose figure.img-center { margin-left: auto; margin-right: auto; }
+.prose figure.img-full { width: 100% !important; }
+.prose .embed { position: relative; margin: 1.4em 0; border-radius: var(--r-lg); overflow: hidden; background: #000; }
+.prose .embed iframe, .prose .embed video { width: 100%; aspect-ratio: 16 / 9; border: 0; display: block; }
+.prose .content-cta { margin: .4em 0; }
+.prose .content-block { clear: both; }
+.prose .content-block h2, .prose .content-block strong { color: var(--ink); }
+.prose table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.prose th, .prose td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+.prose th { background: var(--surface-warm, #f6f4ef); }
+.prose hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+.prose blockquote { border-left: 3px solid var(--brand); margin: 1.4em 0; padding: .2em 0 .2em 1.2em; color: var(--ink); font-style: italic; }
+.prose pre { background: #1c1f1d; color: #eef; padding: 14px 16px; border-radius: var(--r-lg); overflow: auto; font-size: 14px; }
+@media (max-width: 640px) { .prose figure.img-left, .prose figure.img-right { float: none; width: 100%; margin: 1.4em 0; } }

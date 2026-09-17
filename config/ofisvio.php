@@ -96,7 +96,8 @@ return [
         'hsts' => (bool) env('SECURITY_HSTS', true),
         'style_src' => ['https://fonts.googleapis.com'],
         'font_src' => ['https://fonts.gstatic.com'],
-        'frame_src' => ['https://www.openstreetmap.org'],
+        // İçerik gömmeleri (faz 48 kısa kodları): YouTube (nocookie), Vimeo, Google Haritalar.
+        'frame_src' => ['https://www.openstreetmap.org', 'https://www.youtube-nocookie.com', 'https://www.youtube.com', 'https://player.vimeo.com', 'https://www.google.com'],
     ],
 
     'brand' => [

@@ -110,17 +110,21 @@ class SeoService
         $description = Str::limit($description, self::DESCRIPTION_MAX, '');
 
         $index = $website->robots_index && ($content === null || ! $content->noindex) && ! ($pageType === 'listing' && $s['crawl.noindex_listings']);
+        // Sayfa düzeyi robots (faz 48): "noindex, …" seçildiyse indeks kapanır; nofollow ayrıca yönergeye eklenir.
+        $contentRobots = $content !== null ? (string) ($content->robots ?? '') : '';
+        $index = $index && ! str_starts_with($contentRobots, 'noindex');
         $canonicalPath = $content?->path() ?? $path;
         $pageImage = $content?->cover_url ?: ($website->hero_media_id !== null ? $website->hero?->url() : null);
-        $ogImage = $pageImage ?: ($s['meta.og_image'] !== '' ? $s['meta.og_image'] : null);
-        $ogTitle = $content === null && $s['meta.og_title'] !== '' ? $s['meta.og_title'] : $title;
-        $ogDescription = $content === null && $s['meta.og_description'] !== '' ? $s['meta.og_description'] : $description;
+        $ogImage = $content !== null && $content->og_media_id !== null && $content->ogImage !== null ? $content->ogImage->url() : ($pageImage ?: ($s['meta.og_image'] !== '' ? $s['meta.og_image'] : null));
+        $ogTitle = $content !== null && trim((string) $content->og_title) !== '' ? trim((string) $content->og_title) : ($content === null && $s['meta.og_title'] !== '' ? $s['meta.og_title'] : $title);
+        $ogDescription = $content !== null && trim((string) $content->og_description) !== '' ? trim((string) $content->og_description) : ($content === null && $s['meta.og_description'] !== '' ? $s['meta.og_description'] : $description);
+        $contentCanonical = $content !== null ? trim((string) ($content->canonical_url ?? '')) : '';
 
         return [
             'title' => $title,
             'description' => $description,
-            'canonical' => $s['url.canonical_auto'] ? $this->canonicalBase($website).$canonicalPath : null,
-            'robots' => $this->robotsDirective($s, $index),
+            'canonical' => $contentCanonical !== '' ? (str_starts_with($contentCanonical, '/') ? $this->canonicalBase($website).$contentCanonical : $contentCanonical) : ($s['url.canonical_auto'] ? $this->canonicalBase($website).$canonicalPath : null),
+            'robots' => $this->robotsDirective($s, $index, str_ends_with($contentRobots, 'nofollow')),
             'locale' => $website->seo_locale ?: 'tr_TR',
             'og_type' => $content?->kind === ContentKind::POST ? 'article' : 'website',
             'og_image' => $ogImage,
@@ -156,12 +160,12 @@ class SeoService
     }
 
     /** @param  array<string, mixed>  $s */
-    private function robotsDirective(array $s, bool $index): string
+    private function robotsDirective(array $s, bool $index, bool $nofollow = false): string
     {
         if (! $index) {
             $parts = ['noindex', 'nofollow'];
         } else {
-            $parts = ['index', $s['crawl.nofollow_default'] ? 'nofollow' : 'follow'];
+            $parts = ['index', $s['crawl.nofollow_default'] || $nofollow ? 'nofollow' : 'follow'];
         }
 
         if ($s['crawl.noarchive']) {
@@ -316,12 +320,41 @@ class SeoService
             $node['author'] = ['@type' => 'Person', 'name' => $content->author->name];
         }
 
-        // @graph: sayfa + BreadcrumbList (faz 15) + varsa FAQPage (faz 17).
+        // @graph: sayfa + BreadcrumbList (faz 15) + varsa FAQPage (faz 17) + sayfa düzeyi seçimler (faz 48).
         $graph = [$node, $this->breadcrumb($website, $content)];
-        $faq = $this->faqNode($website, $content);
+        $faq = $this->faqNode($website, $content) ?? $this->geoFaqNode($website, $content);
 
         if ($faq !== null) {
             $graph[] = $faq;
+        }
+
+        $selected = (array) ($content->schema_types ?? []);
+
+        if (in_array('Service', $selected, true)) {
+            $graph[] = ['@type' => 'Service', '@id' => $website->baseUrl().$content->path().'#service', 'name' => $content->title, 'description' => (string) ($content->excerpt ?? ''), 'provider' => ['@id' => $website->baseUrl().'/#organization'], 'url' => $website->baseUrl().$content->path()];
+        }
+
+        if (in_array('LocalBusiness', $selected, true)) {
+            $graph[] = ['@type' => 'LocalBusiness', '@id' => $website->baseUrl().'/#localbusiness'] + array_diff_key($organization, ['@type' => 1, '@id' => 1]);
+        }
+
+        if (in_array('Organization', $selected, true)) {
+            $graph[] = $organization;
+        }
+
+        if ($selected !== []) {
+            // Seçilmeyen sayfa türleri düşer (WebPage/Article, BreadcrumbList, FAQPage); Organization publisher olarak kalır.
+            $graph = array_values(array_filter($graph, fn (array $n) => ! in_array($n['@type'], ['WebPage', 'Article', 'BreadcrumbList', 'FAQPage'], true) || in_array($n['@type'], $selected, true)));
+        }
+
+        $custom = json_decode((string) ($content->schema_custom ?? ''), true);
+
+        if (is_array($custom)) {
+            foreach (array_is_list($custom) ? $custom : [$custom] as $customNode) {
+                if (is_array($customNode)) {
+                    $graph[] = $customNode;
+                }
+            }
         }
 
         return ['@context' => 'https://schema.org', '@graph' => $graph];
@@ -491,6 +524,22 @@ class SeoService
                 'name' => $p['q'],
                 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $p['a']],
             ], $pairs),
+        ];
+    }
+
+    /** GEO sekmesindeki SSS önerileri (faz 48): gövdede FAQ yoksa, yöneticinin kaydettiği çiftler (≥ 2) şemaya girer. */
+    private function geoFaqNode(Website $website, Content $content): ?array
+    {
+        $pairs = array_values(array_filter((array) (($content->geo ?? [])['faq'] ?? []), fn ($p) => is_array($p) && trim((string) ($p['q'] ?? '')) !== '' && trim((string) ($p['a'] ?? '')) !== ''));
+
+        if (count($pairs) < 2) {
+            return null;
+        }
+
+        return [
+            '@type' => 'FAQPage',
+            '@id' => $website->baseUrl().$content->path().'#faq',
+            'mainEntity' => array_map(fn (array $p) => ['@type' => 'Question', 'name' => $p['q'], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $p['a']]], $pairs),
         ];
     }
 
@@ -1168,6 +1217,79 @@ class SeoService
         }
 
         return $report;
+    }
+
+    /**
+     * Tek içerik için bağlantı denetimi (faz 48 editör): gövdedeki kırık iç bağlantılar, giden iç bağlantı sayısı,
+     * bu sayfaya gelen bağlantı sayısı (0 = yetim; yeni içerikte hesaplanmaz).
+     *
+     * @return array{broken: array<int, string>, outbound: int, inbound: int|null}
+     */
+    public function linkAudit(Website $website, string $body, ?Content $self = null): array
+    {
+        $base = $website->baseUrl();
+        $canonicalBase = $this->canonicalBase($website);
+        $live = $this->contents->livePages($website)->merge($this->contents->livePosts($website, 1000));
+        $known = array_fill_keys(self::STATIC_PATHS, true);
+
+        foreach ($live as $content) {
+            $known[$content->path()] = true;
+        }
+
+        if ($website->is_default) {
+            foreach ($this->geo->publishedLocations() as $location) {
+                $known[$location->path()] = true;
+            }
+            foreach ($this->services->active($website) as $service) {
+                $known[$service->path()] = true;
+            }
+        }
+
+        foreach (array_keys($this->contents->categories($website)) as $slug) {
+            $known['/blog/kategori/'.$slug] = true;
+        }
+        foreach (array_keys($this->contents->tags($website)) as $slug) {
+            $known['/blog/etiket/'.$slug] = true;
+        }
+
+        $broken = [];
+        $outbound = 0;
+        preg_match_all('/\]\(([^)\s]+)\)/', $body, $matches);
+
+        foreach ($matches[1] as $href) {
+            $path = self::relativePath($href, $base, $canonicalBase);
+
+            if ($path === null) {
+                continue;
+            }
+
+            $outbound++;
+
+            if (! isset($known[$path]) && ! $this->prefixKnown($path, $known)) {
+                $broken[] = $href;
+            }
+        }
+
+        $inbound = null;
+
+        if ($self !== null) {
+            $inbound = 0;
+            $target = $self->path();
+
+            foreach ($live as $content) {
+                if ($content->id !== $self->id && preg_match('/\]\((?:'.preg_quote($base, '/').')?'.preg_quote($target, '/').'[)#?]/', (string) $content->body) === 1) {
+                    $inbound++;
+                }
+            }
+
+            foreach ($this->contents->navigation($website) as $nav) {
+                if ($nav->id === $self->id) {
+                    $inbound++;
+                }
+            }
+        }
+
+        return ['broken' => array_values(array_unique($broken)), 'outbound' => $outbound, 'inbound' => $inbound];
     }
 
     /**

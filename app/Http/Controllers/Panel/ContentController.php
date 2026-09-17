@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Panel;
 
+use App\Content\StudioPresenter;
 use App\Enums\ContentKind;
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
@@ -20,6 +21,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 
 /**
@@ -46,6 +48,7 @@ class ContentController extends Controller
         private readonly ContentCache $cache,
         private readonly MediaService $media,
         private readonly AuthorizationService $authorization,
+        private readonly StudioPresenter $studio,
     ) {}
 
     /** ?website=<id> ile seçilen site; yoksa varsayılan (Ofisvio vitrini). */
@@ -159,14 +162,15 @@ class ContentController extends Controller
     public function create(Request $request): View
     {
         $website = $this->selectedWebsite($request);
+        $kind = ContentKind::tryFrom((string) $request->query('kind', 'post')) ?? ContentKind::POST;
 
         return view('panel.content.form', [
             'content' => null,
             'website' => $website,
-            'kind' => ContentKind::tryFrom((string) $request->query('kind', 'post')) ?? ContentKind::POST,
+            'kind' => $kind,
             'parents' => $this->contents->parentCandidates($website),
             'mediaOptions' => $this->media->all($website),
-        ]);
+        ] + $this->studio->build($website, null, $kind, null, $request->old()));
     }
 
     public function store(StoreContentRequest $request): RedirectResponse
@@ -178,7 +182,56 @@ class ContentController extends Controller
             return back()->withErrors(['title' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.content.show', $content)->with('status', 'Taslak oluşturuldu.');
+        return $this->afterSave($request, $content, 'Taslak oluşturuldu.');
+    }
+
+    /** Kaydet → sonra: taslak kaydet (detay), önizle (önizleme sayfası) ya da yayınla (content.publish rotası). */
+    private function afterSave(Request $request, Content $content, string $message): RedirectResponse
+    {
+        return match ((string) $request->input('then', 'save')) {
+            'preview' => redirect()->route('panel.content.preview', $content)->with('status', $message.' Önizleme aşağıda.'),
+            default => redirect()->route('panel.content.show', $content)->with('status', $message),
+        };
+    }
+
+    /** Kaydet ve yayınla (content.edit + content.publish rotası): kaydeder, ardından PUBLISHED'a geçirir. */
+    public function savePublish(StoreContentRequest $request, Content $content): RedirectResponse
+    {
+        try {
+            $this->contents->update($request->user(), $content, $request->validated());
+            $this->contents->publishNow($request->user(), $content);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('panel.content.show', $content)->with('status', 'Kaydedildi ve yayınlandı.');
+    }
+
+    /** Yeni içerik: oluştur ve yayınla (content.create + content.publish). */
+    public function storePublish(StoreContentRequest $request): RedirectResponse
+    {
+        try {
+            $website = $this->contents->websiteById((int) $request->validated('website_id'));
+            $content = $this->contents->create($request->user(), $website, $request->validated());
+            $this->contents->publishNow($request->user(), $content);
+        } catch (DomainException $e) {
+            return back()->withErrors(['status' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('panel.content.show', $content)->with('status', 'Oluşturuldu ve yayınlandı.');
+    }
+
+    /** Önizleme sayfası (faz 48): gerçek vitrin görünümü imzalı çerçevede; masaüstü/tablet/mobil. */
+    public function preview(Request $request, Content $content): View
+    {
+        $draft = $request->boolean('draft') && $content->draft !== null;
+
+        return view('panel.content.preview', [
+            'content' => $content,
+            'draft' => $draft,
+            'editUrl' => $draft ? route('panel.content.draft.edit', $content) : ($content->status === ContentStatus::DRAFT ? route('panel.content.edit', $content) : route('panel.content.show', $content)),
+            'frameUrl' => URL::temporarySignedRoute('site.preview.content', now()->addMinutes(30), ['content' => $content->id, 'draft' => $draft ? 1 : 0]),
+        ]);
     }
 
     public function show(Request $request, Content $content): View
@@ -200,14 +253,14 @@ class ContentController extends Controller
         ]);
     }
 
-    public function edit(Content $content): View|RedirectResponse
+    public function edit(Request $request, Content $content): View|RedirectResponse
     {
         if ($content->status !== ContentStatus::DRAFT) {
             return redirect()->route('panel.content.show', $content)
                 ->withErrors(['status' => 'Yalnızca taslak düzenlenir; önce taslağa alın.']);
         }
 
-        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind, 'parents' => $this->contents->parentCandidates($content->website, $content), 'mediaOptions' => $this->media->all($content->website)]);
+        return view('panel.content.form', ['content' => $content, 'website' => $content->website, 'kind' => $content->kind, 'parents' => $this->contents->parentCandidates($content->website, $content), 'mediaOptions' => $this->media->all($content->website)] + $this->studio->build($content->website, $content, $content->kind, null, $request->old()));
     }
 
     public function update(StoreContentRequest $request, Content $content): RedirectResponse
@@ -218,7 +271,7 @@ class ContentController extends Controller
             return back()->withErrors(['title' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.content.show', $content)->with('status', 'Kaydedildi (yeni revizyon).');
+        return $this->afterSave($request, $content, 'Kaydedildi (yeni revizyon).');
     }
 
     /** Silme (soft delete, content.archive): yalnız taslak/arşiv. */

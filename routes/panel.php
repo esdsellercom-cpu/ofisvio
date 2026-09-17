@@ -290,6 +290,8 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/', [ContentController::class, 'index'])->middleware($canSee)->name('index');
             Route::get('/yeni', [ContentController::class, 'create'])->middleware('permission:content.create')->name('create');
             Route::post('/', [ContentController::class, 'store'])->middleware('permission:content.create')->name('store');
+            // CMS stüdyo (faz 48): oluştur/kaydet ve yayınla (iki izin birden), önizleme sayfası.
+            Route::post('/yayinla', [ContentController::class, 'storePublish'])->middleware(['permission:content.create', 'permission:content.publish'])->name('store.publish');
             // Takvim (faz 24): /{content}'ten ÖNCE — aksi halde 'takvim' model anahtarı sanılır.
             Route::get('/takvim', [ContentController::class, 'calendar'])->middleware($canSee)->name('calendar');
             Route::get('/menu', [ContentController::class, 'menu'])->middleware('permission:content.edit')->name('menu');
@@ -300,6 +302,7 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/medya', [MediaController::class, 'index'])->middleware('permission:content.edit|content.publish')->name('media.index');
             Route::post('/medya', [MediaController::class, 'store'])->middleware('permission:content.edit')->name('media.store');
             Route::put('/medya/{media}', [MediaController::class, 'update'])->middleware('permission:content.edit')->name('media.update');
+            Route::post('/medya/{media}/kirp', [MediaController::class, 'crop'])->middleware('permission:content.edit')->name('media.crop');
             Route::delete('/medya/{media}', [MediaController::class, 'destroy'])->middleware('permission:content.publish')->name('media.destroy');
 
             // Sayfa kurucu (faz 35): taslak content.edit, yayın/geri alma content.publish. {section} int, siteye süzülür.
@@ -323,6 +326,8 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/{content}', [ContentController::class, 'show'])->middleware($canSee)->name('show');
             Route::get('/{content}/duzenle', [ContentController::class, 'edit'])->middleware('permission:content.edit')->name('edit');
             Route::put('/{content}', [ContentController::class, 'update'])->middleware('permission:content.edit')->name('update');
+            Route::put('/{content}/kaydet-ve-yayinla', [ContentController::class, 'savePublish'])->middleware(['permission:content.edit', 'permission:content.publish'])->name('update.publish');
+            Route::get('/{content}/onizleme', [ContentController::class, 'preview'])->middleware($canSee)->name('preview');
             Route::delete('/{content}', [ContentController::class, 'destroy'])->middleware('permission:content.archive')->name('destroy');
 
             Route::post('/{content}/incelemeye-gonder', [ContentController::class, 'submit'])->middleware('permission:content.edit')->name('submit');

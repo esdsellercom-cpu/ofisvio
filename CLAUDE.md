@@ -46,6 +46,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 - Ana sayfa bölümleri `SiteBuilderService` (taslak `site_sections` → yayın `site_revisions`); vitrin yalnız yayınlanmış anlık görüntüyü basar, `@include('site.sections.<tip>')`. Yeni bölüm tipi = `SectionLibrary` + `resources/views/site/sections/<tip>.blade.php`.
 - Panel sayfaları `layouts.panel`'i extend eder; `$activeOrganization`, `$isStaff`, `$canSwitchOrganization`, `$panelMenu`, `$uiTheme` `PanelLayoutComposer`'dan gelir (`panel.*` görünümlerine de bağlı). Panel kabuğu `public/css/panel.css` (token eşlemesi + `ap-` bileşenleri; koyu tema `html[data-theme]`), menü `App\View\Menu\PanelMenu` (yeni modül = oraya öge; rozet = `PanelBadgeService` tek sorgu).
 - Türkçe metinler `lang/tr/*` ve `lang/tr.json`; rol etiketleri `lang/tr/roles.php`.
+- **CMS stüdyo (faz 48):** içerik gövdesi Markdown'dır, HTML `App\Content\BodyRenderer` üretir (bloklar `:::tür`, kısa kodlar, görsel öznitelikleri; ham HTML süzülür) — yeni blok = `BodyRenderer::BLOCKS` + `site/blocks/<tür>.blade.php`. Editör verisi `App\Content\StudioPresenter::build` (SEO analizi `SeoAnalyzer`, GEO önerileri `GeoSuggester` deterministik, kaydedilmez), JS `public/js/cms.js` (`@push('scripts')`). Önizleme imzalı `site.preview.content` iframe'i (`?draft=1` taslağı bellekte bindirir). Yayınla = `store.publish`/`update.publish` rotaları → `ContentService::publishNow`. Medya kırpma/yükleme editörden ayrı formlarla, `return` yalnız `/panel/` yolu.
 
 ## Windows notları
 

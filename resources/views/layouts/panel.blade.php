@@ -19,6 +19,7 @@
     <link rel="stylesheet" href="{{ asset_v('css/panel.css') }}">
     <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
     <script src="{{ asset_v('js/panel.js') }}" defer></script>
+    @stack('scripts')
 </head>
 <body class="panel-body">
     <a class="skip-link" href="#main">İçeriğe geç</a>

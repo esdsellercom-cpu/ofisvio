@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Content\GeoSuggester;
+use App\Content\SeoAnalyzer;
 use App\Enums\ContentKind;
 use App\Enums\ContentStatus;
 use App\Events\ContentPublicationChanged;
@@ -33,6 +35,9 @@ use Illuminate\Support\Str;
  */
 class ContentService
 {
+    /** Sayfa/yazı başına seçilebilen şema türleri (faz 48). */
+    public const SCHEMA_TYPES = ['WebPage', 'Article', 'FAQPage', 'BreadcrumbList', 'Organization', 'LocalBusiness', 'Service'];
+
     private const WORDS_PER_MINUTE = 200;
 
     public function __construct(private readonly ContentCache $cache) {}
@@ -155,6 +160,19 @@ class ContentService
         });
 
         $this->cache->invalidate($website);
+    }
+
+    /** Önizleme (faz 48): durumdan bağımsız tek içerik (silinmişler hariç). */
+    public function findForPreview(int $id, bool $withDraft = false): ?Content
+    {
+        $content = Content::query()->with(['website', 'author', 'parent', 'cover', 'draft'])->find($id);
+
+        // Çalışma taslağı önizlemesi: taslak alanları bellekte içeriğin üzerine bindirilir, hiçbir şey yazılmaz.
+        if ($withDraft && $content?->draft !== null) {
+            $content->fill($content->draft->payload());
+        }
+
+        return $content;
     }
 
     /** @return Collection<int, Content> */
@@ -294,12 +312,68 @@ class ContentService
                 'noindex' => (bool) ($data['noindex'] ?? false),
                 'author_id' => $author->id,
             ]);
+            $content->fill($this->studioFields($website, $data));
+            $content->seo_score = SeoAnalyzer::analyze($this->analyzerInput($content))['score'];
+            $content->save();
 
             $this->snapshot($content, $author);
             $this->cache->invalidate($website);
 
             return $content;
         });
+    }
+
+    /**
+     * CMS stüdyo alanları (faz 48): SEO/GEO/şema girdisi normalize edilir. Form vermediyse (eski müşteri formu)
+     * boş dizi döner — mevcut alanlara dokunulmaz.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function studioFields(Website $website, array $data): array
+    {
+        if (! array_key_exists('focus_keyword', $data) && ! array_key_exists('geo', $data) && ! array_key_exists('schema_types', $data)) {
+            return [];
+        }
+
+        $robots = trim((string) ($data['robots'] ?? ''));
+        $schemaCustom = trim((string) ($data['schema_custom'] ?? ''));
+
+        if ($schemaCustom !== '' && ! is_array(json_decode($schemaCustom, true))) {
+            throw new DomainException('Özel JSON-LD geçerli bir JSON nesnesi/dizisi olmalı.');
+        }
+
+        $og = $this->coverFor($website, $data['og_media_id'] ?? null);
+
+        return [
+            'focus_keyword' => $this->blankToNull($data['focus_keyword'] ?? null),
+            'related_keywords' => self::normalizeTags($data['related_keywords'] ?? null),
+            'canonical_url' => $this->blankToNull($data['canonical_url'] ?? null),
+            'robots' => in_array($robots, ['index, follow', 'noindex, follow', 'index, nofollow', 'noindex, nofollow'], true) ? $robots : null,
+            'og_title' => $this->blankToNull($data['og_title'] ?? null),
+            'og_description' => $this->blankToNull($data['og_description'] ?? null),
+            'og_media_id' => $og?->id,
+            'geo' => GeoSuggester::normalize(is_array($data['geo'] ?? null) ? $data['geo'] : []),
+            'schema_types' => array_values(array_intersect(self::SCHEMA_TYPES, array_map('strval', (array) ($data['schema_types'] ?? [])))),
+            'schema_custom' => $schemaCustom === '' ? null : $schemaCustom,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function analyzerInput(Content|ContentDraft $c): array
+    {
+        return [
+            'title' => $c->title, 'slug' => $c->slug, 'excerpt' => $c->excerpt, 'body' => $c->body, 'meta_title' => $c->meta_title, 'meta_description' => $c->meta_description,
+            'focus_keyword' => $c->focus_keyword, 'canonical_url' => $c->canonical_url, 'schema_types' => $c->schema_types, 'og_title' => $c->og_title,
+            'cover' => $c instanceof Content ? $c->cover_media_id : null,
+        ];
+    }
+
+    private function blankToNull(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     /**
@@ -332,11 +406,12 @@ class ContentService
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
                 'noindex' => (bool) ($data['noindex'] ?? false),
-            ]);
+            ] + $this->studioFields($content->website, $data));
 
             $cover = $this->coverFor($content->website, $data['cover_media_id'] ?? null);
             $content->cover_media_id = $cover?->id;
             $content->cover_url = $cover?->url();
+            $content->seo_score = SeoAnalyzer::analyze($this->analyzerInput($content))['score'];
 
             if ($content->kind === ContentKind::PAGE) {
                 $parent = $this->resolveParent($content->website, $content, $data['parent_id'] ?? null);
@@ -427,6 +502,23 @@ class ContentService
     public function liveChildren(Content $parent): Collection
     {
         return $this->livePages($parent->website)->filter(fn (Content $p) => $p->parent_id === $parent->id)->values();
+    }
+
+    /**
+     * Editörden "Yayınla" (faz 48; yetki route'ta content.publish): taslak akışı atlamaz, İNCELEMEDE adımından geçip
+     * yayınlanır — her adım audit'e düşer; onay gerektiren içerik `transition` kuralıyla reddedilir.
+     *
+     * @throws DomainException
+     */
+    public function publishNow(User $actor, Content $content): Content
+    {
+        $content->refresh(); // yeni oluşturulan kayıtta durum DB varsayılanından (DRAFT) gelir
+
+        if ($content->status === ContentStatus::DRAFT) {
+            $content = $this->transition($actor, $content, ContentStatus::IN_REVIEW);
+        }
+
+        return $this->transition($actor, $content, ContentStatus::PUBLISHED);
     }
 
     /**
@@ -833,7 +925,7 @@ class ContentService
             'meta_description' => $content->meta_description,
             'noindex' => $content->noindex,
             'author_id' => $author->id,
-        ]);
+        ] + $content->only(Content::STUDIO_FIELDS));
     }
 
     /**
@@ -861,7 +953,7 @@ class ContentService
             'meta_description' => $data['meta_description'] ?? null,
             'noindex' => (bool) ($data['noindex'] ?? false),
             'author_id' => $editor->id,
-        ]);
+        ] + $this->studioFields($content->website, $data));
         $draft->save();
 
         return $draft;
@@ -938,6 +1030,7 @@ class ContentService
             $payload['slug'] = $this->uniqueSlug($content->website, $content->kind, $payload['slug'], $payload['title'], $content->id);
             $content->fill($payload);
             $content->reading_minutes = $this->readingMinutes($content->body);
+            $content->seo_score = SeoAnalyzer::analyze($this->analyzerInput($content))['score'];
             $content->save();
 
             $this->snapshot($content, $actor);

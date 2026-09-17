@@ -57,7 +57,7 @@ class MediaService
     /**
      * Karantina zinciri. $meta: alt/title/caption.
      *
-     * @param  array{alt?: string|null, title?: string|null, caption?: string|null}  $meta
+     * @param  array{alt?: string|null, title?: string|null, caption?: string|null, seo_name?: string|null}  $meta
      */
     public function upload(User $uploader, Website $website, UploadedFile $file, array|string|null $meta = null): Media
     {
@@ -136,7 +136,8 @@ class MediaService
                 'uploaded_by' => $uploader->id,
                 'disk' => 'public',
                 'path' => $target,
-                'original_name' => mb_substr($file->getClientOriginalName(), 0, 190),
+                // SEO uyumlu dosya adı (faz 48): verilmişse istemci adı yerine slug + gerçek uzantı.
+                'original_name' => ! empty($meta['seo_name']) ? Str::slug((string) $meta['seo_name']).'.'.$extension : mb_substr($file->getClientOriginalName(), 0, 190),
                 'mime_type' => $mime,
                 'size_bytes' => $size,
                 'width' => (int) $dimensions[0],
@@ -155,6 +156,40 @@ class MediaService
         } finally {
             // Karantina her sonuçta temizlenir; onaylı kopya artık public'te.
             Storage::disk('private')->delete($quarantine);
+        }
+    }
+
+    /**
+     * Kırpma/istemci üretimi görsel (faz 48): data URL geçici dosyaya yazılır ve aynı karantina zincirinden geçer.
+     *
+     * @param  array{alt?: string|null, title?: string|null, caption?: string|null, seo_name?: string|null}  $meta
+     */
+    public function uploadDataUrl(User $uploader, Website $website, string $dataUrl, array $meta = []): Media
+    {
+        if (preg_match('#^data:image/(jpeg|png|webp);base64,(.+)$#s', $dataUrl, $m) !== 1) {
+            throw new DomainException('Geçersiz görsel verisi.');
+        }
+
+        $bytes = base64_decode($m[2], true);
+
+        if ($bytes === false || $bytes === '' || strlen($bytes) > self::MAX_BYTES) {
+            throw new DomainException('Görsel verisi çözülemedi ya da çok büyük.');
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'ofisvio-crop-');
+
+        if ($tmp === false) {
+            throw new DomainException('Geçici dosya oluşturulamadı.');
+        }
+
+        file_put_contents($tmp, $bytes);
+
+        try {
+            $name = (Str::slug((string) ($meta['seo_name'] ?? 'kirpilmis')) ?: 'kirpilmis').'.'.($m[1] === 'jpeg' ? 'jpg' : $m[1]);
+
+            return $this->upload($uploader, $website, new UploadedFile($tmp, $name, 'image/'.$m[1], null, true), $meta);
+        } finally {
+            @unlink($tmp);
         }
     }
 

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 /**
  * Vitrin — yayındaki yazı ve sayfalar (CMS Core). Yalnızca PUBLISHED ve
@@ -18,6 +19,16 @@ class ContentController extends Controller
         private readonly ContentService $contents,
         private readonly CurrentWebsite $website,
     ) {}
+
+    /** İmzalı önizleme (faz 48): durumdan bağımsız, sitenin kendi şablonuyla; composer noindex basar. */
+    public function preview(Request $request, int $content): View
+    {
+        $record = $this->contents->findForPreview($content, $request->boolean('draft'));
+
+        abort_if($record === null, 404);
+
+        return view('site.content', ['content' => $record, 'isPost' => $record->kind === ContentKind::POST, 'children' => collect(), 'related' => collect(), 'preview' => true]);
+    }
 
     public function posts(): View
     {

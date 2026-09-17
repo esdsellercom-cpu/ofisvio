@@ -92,7 +92,7 @@ class SiteLayoutComposer
             }
         }
 
-        if (str_ends_with($view->name(), 'layouts.site') && ($data['preview'] ?? false) && is_array($seo)) {
+        if ((str_ends_with($view->name(), 'layouts.site') || str_ends_with($view->name(), 'layouts.tenant')) && ($data['preview'] ?? false) && is_array($seo)) {
             $seo['robots'] = 'noindex, nofollow';
         }
 

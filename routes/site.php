@@ -42,6 +42,8 @@ Route::redirect('/giris', '/login', 301);
 // müşteri talebini tahmin edilemez uuid ile görür.
 // Sayfa kurucu önizlemesi: imzalı + süreli URL (panelden üretilir); önbellek yok, noindex (SiteLayoutComposer).
 Route::get('/onizleme/{website}', [HomeController::class, 'preview'])->where('website', '[0-9]+')->middleware('signed')->name('site.preview');
+// İçerik önizleme (faz 48): panelden üretilen imzalı+süreli adres; yayında olmayan içerik gerçek şablonda, noindex, önbelleksiz.
+Route::get('/onizleme/icerik/{content}', [ContentController::class, 'preview'])->where('content', '[0-9]+')->middleware('signed')->name('site.preview.content');
 
 Route::get('/rezervasyon', [BookingController::class, 'index'])->name('site.booking.index');
 Route::post('/rezervasyon', [BookingController::class, 'store'])->middleware('throttle:booking-public')->name('site.booking.store');

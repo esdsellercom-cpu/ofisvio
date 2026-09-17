@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **294/294** (Unit 12 · Feature 266 · Architecture 16) |
+| `php artisan test` | ✅ **301/301** (Unit 12 · Feature 273 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -615,6 +615,46 @@ genişletildi (`InvoiceService::recordPayment` aynı yol; `InvoiceController::pa
   "Sunucuda önizle" kaydetmeden yeniden çizer.
 - `super_admin` matriste `invoice.issue` + `payment_allocation.manage` aldı. Bağımlılık: `dompdf/dompdf ^3.1`
   (uzak kaynak kapalı, chroot public/). Testler `CollectionCenterTest` (3).
+
+### 48. CMS stüdyo — sayfa oluşturma/düzenleme profesyonel seviye ✅ (18 Eylül 2026)
+`/panel/icerik?kind=page` listesi **aynen korunur** (süzgeç, sütunlar, Aç); yalnız **Görsel** (kapak küçük resmi),
+**SEO** (kayıtta hesaplanan skor rozeti) ve **GEO** (özet + soru/SSS dolu → hazır) sütunları ile satır başına
+Düzenle/Taslak eklendi. Sayfa/yazı formu (`panel/content/form`, personel + müşteri paneli aynı görünüm) sekmeli
+stüdyoya dönüştü: **İçerik · Görseller · İç bağlantı · SEO · GEO/AI · Şema · Yayın**; alt çubuk **Taslak kaydet ·
+Önizle · Yayınla** (kaydedilmemiş değişiklik uyarısı `beforeunload`). Depolama Markdown kalır (ham HTML süzülür).
+- **Editör** (`public/js/cms.js`, bağımlılıksız): araç çubuğu H1–H6, kalın/italik, listeler, alıntı, bağlantı,
+  iç bağlantı (yazarken `[[` ile canlı öneri — yayındaki sayfalardan), görsel, YouTube/video, tablo, buton/CTA,
+  kod, ayırıcı, embed, **içerik blokları** (`:::hero|cta|features|faq|stats|gallery|contact|box|testimonials` …
+  `:::`; `App\Content\BodyRenderer` + `site/blocks/<tür>.blade.php`, tüm alanlar kaçırılır). Kısa kodlar
+  `[youtube:ID]`, `[video:url]`, `[embed:url]` (yalnız YouTube/Vimeo/Google Haritalar; CSP `frame_src`),
+  `[button:Metin](/adres)`; görsel öznitelikleri `![alt](url "alt yazı"){left|right|center|full width=50%}` →
+  figure + hizalama + caption. CRLF normalize edilir.
+- **Görseller:** medya kütüphanesi editör içinde (içeriğe ekle → hizalama/genişlik sorulur, alt zorunlu istenir;
+  kapak yap; bilgi düzenle alt/başlık/açıklama; **kırp** — canvas seçim, oran, çıktı genişliği → base64 → sunucuda
+  `MediaService::uploadDataUrl` aynı karantina zinciri, **yeni** medya, orijinal korunur), yükleme alt/başlık/
+  açıklama/SEO dosya adı (`seo_name` → slug.uzantı) ile editöre geri döner (`return` yalnız `/panel/` yolu).
+  Medya işlemleri ayrı gizli formlarla normal POST'tur (JS→HTTP çağrısı yok).
+- **İç bağlantı:** öneri listesi (yayındaki sayfalar) + ilgili sayfalar (`linkSuggestions`) tek tıkla bağlanır;
+  `SeoService::linkAudit` kırık iç bağlantı / giden sayı / gelen sayı (0 = yetim; menü bağlantısı sayılır).
+- **SEO sekmesi:** SEO başlığı, meta açıklama (sayaçlar), odak + ilgili anahtar kelimeler, canonical, robots
+  (index/noindex × follow/nofollow), OG başlık/açıklama/görsel, SERP önizlemesi; **canlı analiz**
+  (`App\Content\SeoAnalyzer`, JS aynası): başlık/açıklama uzunluğu, gövdede H1, başlık hiyerarşisi, iç bağlantı,
+  görsel/alt, odak kelime (başlık/açıklama/slug/giriş/yoğunluk), uzunluk, canonical, şema, OG; ağırlıklı skor
+  `contents.seo_score` kayıtta. `SeoService::head` sayfa düzeyi robots/canonical/OG'yi uygular.
+- **GEO/AI sekmesi:** özet, ana konu, varlıklar, kullanıcı soruları, SSS (Soru | Cevap), kısa cevaplar, ilgili
+  konular, AI arama özeti, şema önerisi (`contents.geo` JSON). Öneriler **içerikten deterministik** üretilir
+  (`App\Content\GeoSuggester`: özet/başlıklar/lokasyon-hizmet adları/diğer sayfalar), "boş alanları doldur" /
+  "tümünü değiştir" ile forma gelir, kaydedilmeden yazılmaz; SSS JSON-LD FAQPage'e girer.
+- **Şema sekmesi:** `schema_types[]` (WebPage, Article, FAQPage, BreadcrumbList, Organization, LocalBusiness,
+  Service) — seçim yoksa varsayılan; seçilirse yalnız seçilenler (+ Organization yayıncı); `schema_custom` JSON
+  `@graph`'a eklenir (doğrulanır); üretilen JSON-LD önizlemesi.
+- **Önizleme:** `panel.content.preview` sayfası, imzalı `site.preview.content` (`/onizleme/icerik/{id}`, 30 dk,
+  yayınlanmamış içerik görünür, noindex) iframe'de **masaüstü/tablet/mobil**; çalışma taslağı `?draft=1` ile
+  bellekte bindirilir (yayındaki metin değişmez). **Yayınla** `content.create|edit` + `content.publish` iki izinli
+  rotalar (`store.publish`, `update.publish`) → `ContentService::publishNow` (DRAFT → IN_REVIEW → PUBLISHED, her adım
+  audit; onay gerektiren içerik reddedilir).
+- Taslak (`content_drafts`) aynı stüdyo alanlarını taşır ve yayınlanınca birleşir. Yeni sütunlar
+  `2026_09_18_000026_cms_studio_fields`. Testler `CmsStudioTest` (7).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

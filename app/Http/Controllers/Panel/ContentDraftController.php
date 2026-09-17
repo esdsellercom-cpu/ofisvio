@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Panel;
 
+use App\Content\StudioPresenter;
 use App\Enums\ContentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreContentRequest;
 use App\Models\Content;
 use App\Services\ContentService;
+use App\Services\MediaService;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -31,7 +33,7 @@ use Illuminate\Support\Carbon;
  */
 class ContentDraftController extends Controller
 {
-    public function __construct(private readonly ContentService $contents) {}
+    public function __construct(private readonly ContentService $contents, private readonly StudioPresenter $studio, private readonly MediaService $media) {}
 
     public function open(Request $request, Content $content): RedirectResponse
     {
@@ -44,7 +46,7 @@ class ContentDraftController extends Controller
         return redirect()->route('panel.content.draft.edit', $content)->with('status', 'Çalışma taslağı açıldı; yayındaki metin değişmedi.');
     }
 
-    public function edit(Content $content): View|RedirectResponse
+    public function edit(Request $request, Content $content): View|RedirectResponse
     {
         $draft = $content->draft;
 
@@ -56,7 +58,7 @@ class ContentDraftController extends Controller
             return redirect()->route('panel.content.show', $content)->withErrors(['status' => 'Taslak incelemede; düzenlemek için önce geri gönderilmeli.']);
         }
 
-        return view('panel.content.form', ['content' => $content, 'draft' => $draft, 'website' => $content->website, 'kind' => $content->kind]);
+        return view('panel.content.form', ['content' => $content, 'draft' => $draft, 'website' => $content->website, 'kind' => $content->kind, 'mediaOptions' => $this->media->all($content->website)] + $this->studio->build($content->website, $content, $content->kind, $draft, $request->old()));
     }
 
     public function update(StoreContentRequest $request, Content $content): RedirectResponse
@@ -71,6 +73,10 @@ class ContentDraftController extends Controller
             $this->contents->updateDraft($request->user(), $draft, $request->validated());
         } catch (DomainException $e) {
             return back()->withErrors(['title' => $e->getMessage()])->withInput();
+        }
+
+        if ((string) $request->input('then', 'save') === 'preview') {
+            return redirect()->route('panel.content.preview', ['content' => $content, 'draft' => 1])->with('status', 'Çalışma taslağı kaydedildi. Önizleme aşağıda.');
         }
 
         return redirect()->route('panel.content.show', $content)->with('status', 'Çalışma taslağı kaydedildi.');

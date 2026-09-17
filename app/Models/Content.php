@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Content\BodyRenderer;
 use App\Enums\ContentKind;
 use App\Enums\ContentStatus;
 use Illuminate\Database\Eloquent\Builder;
@@ -10,7 +11,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 class Content extends Model
 {
@@ -19,7 +19,11 @@ class Content extends Model
     protected $fillable = [
         'website_id', 'parent_id', 'parent_slug', 'cover_media_id', 'cover_url', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
         'requires_approval', 'meta_title', 'meta_description', 'noindex', 'author_id',
+        'focus_keyword', 'related_keywords', 'canonical_url', 'robots', 'og_title', 'og_description', 'og_media_id', 'geo', 'schema_types', 'schema_custom', 'seo_score',
     ];
+
+    /** CMS stüdyo alanları (faz 48): içerik ↔ çalışma taslağı arasında birebir taşınır. */
+    public const STUDIO_FIELDS = ['focus_keyword', 'related_keywords', 'canonical_url', 'robots', 'og_title', 'og_description', 'og_media_id', 'geo', 'schema_types', 'schema_custom'];
 
     protected $casts = [
         'kind' => ContentKind::class,
@@ -28,6 +32,10 @@ class Content extends Model
         'noindex' => 'boolean',
         'show_in_nav' => 'boolean',
         'tags' => 'array',
+        'related_keywords' => 'array',
+        'geo' => 'array',
+        'schema_types' => 'array',
+        'seo_score' => 'integer',
         'reading_minutes' => 'integer',
         'scheduled_for' => 'datetime',
         'published_at' => 'datetime',
@@ -76,11 +84,23 @@ class Content extends Model
      */
     public function renderedBody(): string
     {
-        return (string) Str::markdown((string) $this->body, [
-            'html_input' => 'strip',
-            'allow_unsafe_links' => false,
-            'max_nesting_level' => 20,
-        ]);
+        // Faz 48: bloklar (:::hero …), kısa kodlar ([youtube:…], [button:…]) ve görsel öznitelikleri BodyRenderer'da;
+        // markdown yine html_input=strip ile çevrilir — ham HTML hiçbir yoldan girmez.
+        return app(BodyRenderer::class)->render((string) $this->body);
+    }
+
+    /** @return BelongsTo<Media, $this> */
+    public function ogImage(): BelongsTo
+    {
+        return $this->belongsTo(Media::class, 'og_media_id');
+    }
+
+    /** GEO alanı dolu mu (özet + en az bir soru/SSS)? */
+    public function geoReady(): bool
+    {
+        $geo = (array) ($this->geo ?? []);
+
+        return trim((string) ($geo['summary'] ?? '')) !== '' && (count((array) ($geo['faq'] ?? [])) > 0 || count((array) ($geo['questions'] ?? [])) > 0);
     }
 
     /** Sitedeki göreli yol: /blog/{slug} ya da /{slug}. */
