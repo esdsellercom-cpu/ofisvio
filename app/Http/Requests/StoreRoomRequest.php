@@ -21,6 +21,7 @@ class StoreRoomRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'min:2', 'max:80'],
+            'code' => ['nullable', 'string', 'max:40'],
             'kind' => ['required', Rule::in(array_keys(Room::KINDS))],
             'capacity' => ['required', 'integer', 'min:1', 'max:500'],
             'hourly_rate' => ['required', Money::RULE], // büyük birim; serviste kuruşa çevrilir
@@ -48,6 +49,7 @@ class StoreRoomRequest extends FormRequest
 
         return [
             'name' => trim((string) $v['name']),
+            'code' => trim((string) ($v['code'] ?? '')) ?: null,
             'kind' => (string) $v['kind'],
             'capacity' => (int) $v['capacity'],
             'hourly_rate' => Money::parse((string) $v['hourly_rate']),

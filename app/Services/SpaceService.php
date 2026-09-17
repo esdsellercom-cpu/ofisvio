@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\DB;
  */
 class SpaceService
 {
-    public function __construct(private readonly AuditService $audit) {}
+    public function __construct(private readonly AuditService $audit, private readonly AssetService $assets) {}
 
     // ---- Envanter -----------------------------------------------------------------
 
@@ -46,8 +46,60 @@ class SpaceService
      */
     public function all(?array $locationIds = null): Collection
     {
-        return $this->baseQuery()->with('location')->when($locationIds !== null, fn (Builder $q) => $q->whereIn('location_id', $locationIds))
+        return $this->baseQuery()->with(['location', 'activeAssignments.assets', 'cover'])->withCount('assets')->when($locationIds !== null, fn (Builder $q) => $q->whereIn('location_id', $locationIds))
             ->orderBy('location_id')->orderBy('kind')->orderBy('sort_order')->orderBy('name')->get();
+    }
+
+    /**
+     * Tahsis listesi (faz 46 — Tahsisler sekmesi): aktif tahsisler, şirket/üye/demirbaş sayısıyla.
+     *
+     * @param  array<int, int>|null  $locationIds
+     * @return Collection<int, SpaceAssignment>
+     */
+    public function activeAssignments(?array $locationIds = null): Collection
+    {
+        return SpaceAssignment::withoutTenantScope()->where('status', 'active')
+            ->with(['space.location', 'user', 'subscription.plan', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->withCount('assets')
+            ->when($locationIds !== null, fn (Builder $q) => $q->whereHas('space', fn (Builder $s) => $s->whereIn('location_id', $locationIds)))
+            ->orderBy('ends_on')->orderBy('id')->get();
+    }
+
+    /**
+     * Tahsis düzenleme (faz 46): bitiş, üye, not, demirbaş kümesi (eklenen bağlanır, çıkarılan serbest kalır).
+     *
+     * @param  array{ends_on?: string|null, user_id?: int|string|null, note?: string|null, asset_ids?: array<int, int|string>|null}  $data
+     */
+    public function updateAssignment(User $actor, SpaceAssignment $assignment, array $data): SpaceAssignment
+    {
+        if (! $assignment->isActive()) {
+            throw new DomainException('Yalnız aktif tahsis düzenlenir.');
+        }
+
+        $ends = ! empty($data['ends_on']) ? Carbon::parse((string) $data['ends_on'])->startOfDay() : null;
+
+        if ($ends !== null && $ends->lt($assignment->starts_on)) {
+            throw new DomainException('Bitiş başlangıçtan önce olamaz.');
+        }
+
+        return DB::transaction(function () use ($actor, $assignment, $data, $ends) {
+            $before = $assignment->only(['ends_on', 'user_id', 'note']);
+            $assignment->fill([
+                'ends_on' => $ends?->toDateString(),
+                'user_id' => ! empty($data['user_id']) ? (int) $data['user_id'] : null,
+                'note' => $this->blank($data['note'] ?? null),
+            ])->save();
+
+            if (array_key_exists('asset_ids', $data)) {
+                $wanted = array_values(array_unique(array_map('intval', (array) ($data['asset_ids'] ?? []))));
+                $current = $assignment->assets()->pluck('id')->map(fn ($id) => (int) $id)->all();
+                $this->assets->release($actor, $assignment, array_values(array_diff($current, $wanted)));
+                $this->assets->attach($actor, $assignment, $assignment->space, array_values(array_diff($wanted, $current)));
+            }
+
+            $this->audit->record($actor, 'space.assignment_updated', 'space_assignment', $assignment->id, $before, $assignment->only(['ends_on', 'user_id', 'note']));
+
+            return $assignment;
+        });
     }
 
     public function find(int $id): ?Space
@@ -99,7 +151,7 @@ class SpaceService
     // ---- Tahsis -------------------------------------------------------------------
 
     /**
-     * @param  array{starts_on: string, ends_on?: string|null, subscription_id?: int|string|null, user_id?: int|string|null, note?: string|null}  $data
+     * @param  array{starts_on: string, ends_on?: string|null, subscription_id?: int|string|null, user_id?: int|string|null, note?: string|null, asset_ids?: array<int, int|string>|null}  $data
      */
     public function assign(User $actor, Space $space, Company $company, array $data): SpaceAssignment
     {
@@ -151,6 +203,8 @@ class SpaceService
             ]);
             $assignment->save();
             $this->audit->record($actor, 'space.assigned', 'space_assignment', $assignment->id, [], $assignment->toArray());
+            // Demirbaşlar (faz 46): aynı lokasyondaki müsait demirbaşlar tahsisle birlikte verilir.
+            $this->assets->attach($actor, $assignment, $space, array_map('intval', (array) ($data['asset_ids'] ?? [])));
 
             return $assignment;
         });
@@ -164,6 +218,7 @@ class SpaceService
 
         $before = $assignment->toArray();
         $assignment->fill(['status' => 'ended', 'ended_by' => $actor->id, 'ended_at' => Carbon::now(), 'ends_on' => $assignment->ends_on?->lt(Carbon::today()) ? $assignment->ends_on : Carbon::today()->toDateString()])->save();
+        $this->assets->release($actor, $assignment);
         $this->audit->record($actor, 'space.assignment_ended', 'space_assignment', $assignment->id, $before, $assignment->toArray());
 
         return $assignment;
@@ -177,6 +232,7 @@ class SpaceService
         foreach (SpaceAssignment::withoutTenantScope()->where('status', 'active')->whereNotNull('ends_on')->whereDate('ends_on', '<', Carbon::today()->toDateString())->get() as $assignment) {
             $before = $assignment->toArray();
             $assignment->fill(['status' => 'ended', 'ended_at' => Carbon::now()])->save();
+            $this->assets->release(null, $assignment);
             $this->audit->record(null, 'space.assignment_ended', 'space_assignment', $assignment->id, $before, $assignment->toArray());
             $n++;
         }
@@ -186,7 +242,7 @@ class SpaceService
 
     public function findAssignment(int $id): ?SpaceAssignment
     {
-        return SpaceAssignment::withoutTenantScope()->with(['space.location', 'user', 'subscription.plan', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->find($id);
+        return SpaceAssignment::withoutTenantScope()->with(['space.location', 'user', 'subscription.plan', 'assets', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->find($id);
     }
 
     /**
@@ -284,6 +340,7 @@ class SpaceService
         return [
             'kind' => $kind,
             'name' => trim((string) $data['name']),
+            'code' => $this->blank($data['code'] ?? null),
             'floor' => $this->blank($data['floor'] ?? null),
             'zone' => $this->blank($data['zone'] ?? null),
             'capacity' => max(1, (int) ($data['capacity'] ?? 1)),
@@ -304,6 +361,10 @@ class SpaceService
 
         if ($exists) {
             throw new DomainException('Bu lokasyonda aynı adlı alan var.');
+        }
+
+        if ($space->code !== null && Space::query()->where('code', $space->code)->when($space->exists, fn (Builder $q) => $q->where('id', '!=', $space->id))->exists()) {
+            throw new DomainException('Bu envanter kodu zaten kullanılıyor: '.$space->code);
         }
     }
 

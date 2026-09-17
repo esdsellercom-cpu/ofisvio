@@ -18,7 +18,7 @@ class Room extends Model
     public const KINDS = ['meeting' => 'Toplantı odası', 'event' => 'Etkinlik alanı', 'focus' => 'Odaklanma odası'];
 
     protected $fillable = [
-        'location_id', 'name', 'kind', 'capacity', 'hourly_rate', 'open_from', 'open_until',
+        'location_id', 'name', 'code', 'kind', 'capacity', 'hourly_rate', 'open_from', 'open_until',
         'slot_minutes', 'max_hours', 'is_active', 'sort_order', 'description',
         'amenities', 'cover_media_id', 'maintenance_until', 'maintenance_note',
     ];

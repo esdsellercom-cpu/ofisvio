@@ -109,12 +109,13 @@ class BookingService
     }
 
     /**
-     * @param  array{name: string, kind: string, capacity: int, hourly_rate: int, open_from: string, open_until: string, slot_minutes: int, max_hours: int, is_active?: bool, sort_order?: int, description?: string|null, amenities?: array<int, string>|null, cover_media_id?: int|null, maintenance_until?: string|null, maintenance_note?: string|null}  $data
+     * @param  array{name: string, code?: string|null, kind: string, capacity: int, hourly_rate: int, open_from: string, open_until: string, slot_minutes: int, max_hours: int, is_active?: bool, sort_order?: int, description?: string|null, amenities?: array<int, string>|null, cover_media_id?: int|null, maintenance_until?: string|null, maintenance_note?: string|null}  $data
      */
     public function createRoom(?User $actor, Location $location, array $data): Room
     {
         $this->assertRoomRules($data);
         $this->assertCoverInGallery($location, ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null);
+        $this->assertUniqueRoomCode($data['code'] ?? null, null);
 
         $room = new Room(array_merge($data, ['location_id' => $location->id]));
         $room->save();
@@ -129,6 +130,7 @@ class BookingService
     {
         $this->assertRoomRules(array_merge($room->toArray(), $data));
         $this->assertCoverInGallery($room->location, ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null);
+        $this->assertUniqueRoomCode($data['code'] ?? $room->code, $room->id);
         $before = $room->toArray();
         $room->fill($data)->save();
         $this->bumpSiteCaches();
@@ -170,6 +172,13 @@ class BookingService
 
         if (! empty($data['maintenance_until']) && Carbon::parse((string) $data['maintenance_until'])->lt(Carbon::today())) {
             throw new DomainException('Bakım bitiş tarihi bugünden önce olamaz; bakımı kaldırmak için alanı boşaltın.');
+        }
+    }
+
+    private function assertUniqueRoomCode(?string $code, ?int $ignoreId): void
+    {
+        if ($code !== null && $code !== '' && Room::query()->where('code', $code)->when($ignoreId !== null, fn (Builder $q) => $q->whereKeyNot($ignoreId))->exists()) {
+            throw new DomainException('Bu envanter kodu zaten kullanılıyor: '.$code);
         }
     }
 

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **289/289** (Unit 12 · Feature 261 · Architecture 16) |
+| `php artisan test` | ✅ **291/291** (Unit 12 · Feature 263 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -562,6 +562,30 @@ Kapsam denetimi (lokasyon · masa/ofis · toplantı odası · rezervasyon) ve ka
   (`open_from/until`, lokasyon `opening_hours`), durum makinesi (create/approve/reject/cancel/reschedule/check-in/
   complete/no-show/expire), bildirim olayları, denetim izi, iptal bildirim süresi, onay süresi dolumu.
   Testler `OperationsHardeningTest` (4).
+
+### 46. Envanter ekranı yeniden tasarımı — tek ekrandan masa/ofis/oda + tahsis + demirbaş ✅ (18 Eylül 2026)
+`/panel/alanlar` (`SpaceController::index` okuma, `InventoryController` yazma): "lokasyona git → envanter ekle → geri dön"
+adımı kalktı. Üstte **+ Envanter ekle · + Hızlı tahsis · + Demirbaş ekle** (native `<dialog>` modalları, `panel.js`
+`initModals`: `data-modal-open` + `data-fill` JSON ile düzenleme, `data-when` koşullu alan, `data-filter-by` bağımlı
+seçenek süzme, doğrulama hatasında modal yeniden açılır). Sekmeler **Tüm envanter · Masalar · Ofisler · Odalar ·
+Demirbaşlar · Tahsisler**; durum süzgeci Müsait/Tahsisli/Bakımda/Pasif; lokasyon + arama (ad, kod, üye, şirket).
+- **Kartlar:** ad, kod, tür, lokasyon, kat, alan, kapasite, durum, tahsisli üye + şirket, tahsis aralığı, aylık ücret,
+  demirbaş sayısı, olanaklar, son güncelleme; eylemler Detay · Tahsis et · Düzenle · ••• (tahsisi değiştir/sonlandır,
+  bu alana demirbaş ekle). Odalar aynı ızgarada (Takvim · Düzenle).
+- **Envanter ekle/düzenle:** tek form; tip = masa türleri (`Space::KINDS` + `workspace` Sabit çalışma alanı, `other`
+  Diğer) → `space.manage` rotası, oda türleri → `geo.edit` rotası (JS tür seçimine göre action; sunucu ayrımı route
+  izniyle). Alanlar: ad, kod (tekil, `spaces.code`/`rooms.code`), lokasyon, kat, alan/bölüm, kapasite, ücret, durum
+  (Aktif/Bakımda+tarih/Pasif), açıklama, olanaklar, görsel (lokasyon galerisi). Aktif tahsisi olan alan başka
+  lokasyona taşınamaz.
+- **Demirbaş (`assets`, `AssetService`):** ad, kod (tekil), kategori, seri no, lokasyon, yerleşik alan, durum
+  (müsait/bakımda/hurda; "tahsisli" yalnız tahsisle), not. Tahsisle birlikte verilir (`asset_ids`, aynı lokasyonun
+  müsait demirbaşı; `attach` satır kilidiyle), tahsis bitince/değişince serbest kalır; tahsisli demirbaş silinemez.
+- **Tahsis:** hızlı tahsis (alan → şirket → üye/üyelik → başlangıç/bitiş → demirbaşlar → not);
+  `SpaceService::updateAssignment` (bitiş, üye, not, demirbaş kümesi senkron); sonlandır → demirbaşlar serbest.
+  Tahsisler sekmesi: kime/nereye/ne zamana kadar, 30 gün içinde bitenler işaretli.
+- **Yetki/kapsam:** yazma `space.manage,anylocation` (lokasyon yöneticisi yalnız kendi lokasyonu; yabancı lokasyon
+  404), oda yazımı `geo.edit`; `super_admin` matriste `space.manage` aldı. `asset_v()` sürümlü asset adresi (CSS/JS
+  önbelleği). Testler `InventoryScreenTest` (2); lokasyon künyesindeki eski alan/oda formları duruyor.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

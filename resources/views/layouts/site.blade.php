@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
 
     {{-- Varlık derlemesi yok: site `php artisan serve` ile doğrudan çalışır. --}}
-    <link rel="stylesheet" href="{{ asset('css/ofisvio.css') }}">
+    <link rel="stylesheet" href="{{ asset_v('css/ofisvio.css') }}">
 </head>
 <body>
     @include('site.partials.seo-body-start')
@@ -32,7 +32,7 @@
     @include('site.partials.footer')
 
     @include('site.partials.whatsapp')
-    <script src="{{ asset('js/ofisvio.js') }}" defer></script>
+    <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
     @include('site.partials.seo-body-end')
 </body>
 </html>

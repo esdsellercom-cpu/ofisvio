@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** Alan tahsisi (audit P0-2): company_id tenant sınırı. Durum yalnız SpaceService yazar. */
 class SpaceAssignment extends Model
@@ -39,6 +40,16 @@ class SpaceAssignment extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Tahsisle verilen demirbaşlar.
+     *
+     * @return HasMany<Asset, $this>
+     */
+    public function assets(): HasMany
+    {
+        return $this->hasMany(Asset::class, 'space_assignment_id');
     }
 
     public function isActive(): bool

@@ -156,6 +156,21 @@ class SubscriptionService
         return Subscription::withoutTenantScope()->where('company_id', $companyId)->with('plan')->orderByDesc('ends_on')->get();
     }
 
+    /**
+     * Tahsis formu (faz 46): verilen şirketlerin aktif üyelikleri tek sorguda.
+     *
+     * @param  array<int, int>  $companyIds
+     * @return Collection<int, Subscription>
+     */
+    public function activeForCompanies(array $companyIds): Collection
+    {
+        if ($companyIds === []) {
+            return new Collection;
+        }
+
+        return Subscription::withoutTenantScope()->whereIn('company_id', $companyIds)->where('status', 'active')->with('plan')->orderBy('company_id')->orderByDesc('ends_on')->get();
+    }
+
     public function findAny(int $id): ?Subscription
     {
         return Subscription::withoutTenantScope()->with(['plan', 'location', 'creator', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])->find($id);

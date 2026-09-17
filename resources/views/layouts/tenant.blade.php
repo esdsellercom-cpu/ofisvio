@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
     {{-- Tema v1: müşteri siteleri Ofisvio tasarım sistemini paylaşır; tema seçimi faz 10 devamı. --}}
-    <link rel="stylesheet" href="{{ asset('css/ofisvio.css') }}">
+    <link rel="stylesheet" href="{{ asset_v('css/ofisvio.css') }}">
 </head>
 <body>
     @include('site.partials.seo-body-start')

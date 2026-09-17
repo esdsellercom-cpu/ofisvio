@@ -34,6 +34,17 @@ class LocationMediaService
     }
 
     /**
+     * Envanter formu (faz 46): birden çok lokasyonun galerisi tek sorguda (kapak seçimi, JS lokasyona göre süzer).
+     *
+     * @param  array<int, int>|null  $locationIds  null = hepsi
+     * @return Collection<int, LocationMedia>
+     */
+    public function linksFor(?array $locationIds): Collection
+    {
+        return LocationMedia::query()->with('media')->when($locationIds !== null, fn ($q) => $q->whereIn('location_id', $locationIds))->orderBy('location_id')->orderBy('category')->orderBy('sort_order')->get();
+    }
+
+    /**
      * Vitrin: kategori → görseller (yalnız onaylı medya). Kapak ayrı (locations.cover_media_id).
      *
      * @return array<string, Collection<int, LocationMedia>>

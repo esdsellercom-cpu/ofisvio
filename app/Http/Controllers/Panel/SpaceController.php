@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Panel;
 
 use App\Http\Controllers\Controller;
+use App\Models\Asset;
 use App\Models\Room;
 use App\Models\Space;
+use App\Services\AssetService;
 use App\Services\AuthorizationService;
 use App\Services\BookingService;
+use App\Services\GeoService;
+use App\Services\LocationMediaService;
 use App\Services\MembershipService;
 use App\Services\SpaceService;
 use App\Services\SubscriptionService;
@@ -22,36 +26,99 @@ use Illuminate\Http\Request;
  */
 class SpaceController extends Controller
 {
+    public const TABS = ['tum', 'masalar', 'ofisler', 'odalar', 'demirbas', 'tahsisler'];
+
+    public const TAB_LABELS = ['tum' => 'Tüm envanter', 'masalar' => 'Masalar', 'ofisler' => 'Ofisler', 'odalar' => 'Odalar', 'demirbas' => 'Demirbaşlar', 'tahsisler' => 'Tahsisler'];
+
+    /** Durum süzgeci → kart durumu. */
+    public const STATUS_MAP = ['musait' => 'available', 'tahsisli' => 'assigned', 'bakimda' => 'maintenance', 'pasif' => 'inactive'];
+
     public function __construct(
         private readonly SpaceService $spaces,
         private readonly BookingService $bookings,
         private readonly SubscriptionService $subscriptions,
         private readonly MembershipService $members,
         private readonly AuthorizationService $authorization,
+        private readonly AssetService $assets,
+        private readonly GeoService $geo,
+        private readonly LocationMediaService $media,
     ) {}
 
+    /**
+     * Envanter ekranı (faz 46): sekmeler tum | masalar | ofisler | odalar | demirbas | tahsisler;
+     * durum süzgeci musait | tahsisli | bakimda | pasif; lokasyon ve arama. Modaller için seçenek listeleri
+     * (lokasyon, şirket, üye, üyelik, galeri, müsait demirbaş) aynı yanıtta gelir — JS lokasyon/şirkete göre süzer.
+     */
     public function index(Request $request): View
     {
-        $tab = $request->query('sekme') === 'odalar' ? 'odalar' : 'alanlar';
+        $tab = in_array($request->query('sekme'), self::TABS, true) ? (string) $request->query('sekme') : 'tum';
+        $status = in_array($request->query('durum'), array_keys(self::STATUS_MAP), true) ? (string) $request->query('durum') : null;
+        $locationId = (int) $request->query('lokasyon', 0) ?: null;
+        $q = mb_strtolower(trim((string) $request->query('q', '')));
         // Lokasyon kapsamlı personel (audit: location-based access): yalnız kendi lokasyonları; global → null (hepsi).
         $scope = $this->visibleLocationIds($request);
-        $rooms = $tab === 'odalar' ? $this->bookings->allRooms()->when($scope !== null, fn ($c) => $c->whereIn('location_id', $scope)) : collect();
+        $canManage = $this->authorization->canAnywhere($request->user(), 'space.manage');
+        $canRooms = $this->authorization->can($request->user(), 'geo.edit');
+        $wanted = $status !== null ? self::STATUS_MAP[$status] : null;
+
+        $all = $this->spaces->all($scope);
+        $allRooms = $this->bookings->allRooms()->when($scope !== null, fn ($c) => $c->whereIn('location_id', $scope))->values();
+
+        $spaces = $all
+            ->when($tab === 'masalar', fn ($c) => $c->whereIn('kind', Space::DESK_KINDS))
+            ->when($tab === 'ofisler', fn ($c) => $c->whereIn('kind', ['office', 'other']))
+            ->when($locationId !== null, fn ($c) => $c->where('location_id', $locationId))
+            ->when($wanted !== null, fn ($c) => $c->filter(fn (Space $s) => $s->inventoryStatus() === $wanted))
+            ->when($q !== '', fn ($c) => $c->filter(fn (Space $s) => str_contains(mb_strtolower($s->name.' '.$s->code.' '.$s->location->name.' '.$s->activeAssignments->map(fn ($a) => ($a->user !== null ? $a->user->name : '').' '.($a->company !== null ? $a->company->legal_name : ''))->implode(' ')), $q)))
+            ->values();
+        $rooms = in_array($tab, ['tum', 'odalar'], true)
+            ? $allRooms
+                ->when($locationId !== null, fn ($c) => $c->where('location_id', $locationId))
+                ->when($wanted !== null, fn ($c) => $c->filter(fn (Room $r) => ['active' => 'available', 'maintenance' => 'maintenance', 'inactive' => 'inactive'][$r->operationalStatus()] === $wanted))
+                ->when($q !== '', fn ($c) => $c->filter(fn (Room $r) => str_contains(mb_strtolower($r->name.' '.$r->code.' '.$r->location->name), $q)))
+                ->values()
+            : collect();
+        $assets = $tab === 'demirbas' ? $this->assets->all($scope, ['location_id' => $locationId, 'q' => $q, 'status' => $status !== null ? ['musait' => 'available', 'tahsisli' => 'assigned', 'bakimda' => 'maintenance', 'pasif' => 'retired'][$status] : null]) : collect();
+        $assignments = $tab === 'tahsisler' ? $this->spaces->activeAssignments($scope)->when($locationId !== null, fn ($c) => $c->filter(fn ($a) => (int) $a->space->location_id === $locationId))->values() : collect();
+
+        $locations = $this->geo->allLocations()->when($scope !== null, fn ($c) => $c->whereIn('id', $scope))->values();
+        $companies = $canManage ? $this->bookings->companiesForDesk() : collect();
 
         return view('panel.spaces.index', [
             'tab' => $tab,
+            'status' => $status,
+            'locationId' => $locationId,
+            'q' => $q,
+            'tabs' => self::TAB_LABELS,
             'occupancy' => $this->spaces->occupancy(null, $scope),
-            'byLocation' => $tab === 'alanlar' ? $this->spaces->byLocation($scope) : [],
-            'spaces' => $tab === 'alanlar' ? $this->spaces->all($scope)->groupBy('location_id') : collect(),
-            'scoped' => $scope !== null,
-            'roomsByLocation' => $rooms->groupBy(fn (Room $r) => $r->location->name),
-            'kinds' => Room::KINDS,
-            'spaceKinds' => Space::KINDS,
-            'roomCounts' => [
-                'total' => $rooms->count(),
-                'active' => $rooms->where('is_active', true)->count(),
-                'capacity' => (int) $rooms->where('is_active', true)->sum('capacity'),
-                'locations' => $rooms->pluck('location_id')->unique()->count(),
+            'spaces' => in_array($tab, ['tum', 'masalar', 'ofisler'], true) ? $spaces : collect(),
+            'rooms' => $rooms,
+            'assets' => $assets,
+            'assignments' => $assignments,
+            'counts' => [
+                'tum' => $all->count() + $allRooms->count(),
+                'masalar' => $all->whereIn('kind', Space::DESK_KINDS)->count(),
+                'ofisler' => $all->whereIn('kind', ['office', 'other'])->count(),
+                'odalar' => $allRooms->count(),
+                'demirbas' => $this->assets->all($scope)->count(),
+                'tahsisler' => $all->sum(fn (Space $s) => $s->activeAssignments->count()),
             ],
+            'scoped' => $scope !== null,
+            'canManage' => $canManage,
+            'canRooms' => $canRooms,
+            'locations' => $locations,
+            'companies' => $companies,
+            'members' => $canManage ? $this->members->membersOfCompanies($companies)->filter(fn ($m) => $m->isActive() && $m->user !== null)->values() : collect(),
+            'subscriptions' => $canManage ? $this->subscriptions->activeForCompanies($companies->pluck('id')->map(fn ($id) => (int) $id)->all()) : collect(),
+            'gallery' => $canManage || $canRooms ? $this->media->linksFor($scope)->filter(fn ($l) => $l->media !== null)->values() : collect(),
+            'assignableAssets' => $canManage ? $this->assets->assignable($scope) : collect(),
+            'allSpaces' => $all,
+            'assignableSpaces' => $all->filter(fn (Space $s) => $s->inventoryStatus() === 'available')->values(),
+            'spaceKinds' => Space::KINDS,
+            'roomKinds' => Room::KINDS,
+            'assetCategories' => Asset::CATEGORIES,
+            'assetStatuses' => Asset::STATUSES,
+            'openModal' => old('_modal', $request->query('modal')),
         ]);
     }
 

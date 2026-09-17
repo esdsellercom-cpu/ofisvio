@@ -318,3 +318,38 @@ html.panel .card__head .tabbar { flex: 1 1 auto; min-width: 0; margin: -12px 0; 
   .ap-search { max-width: none; }
 }
 @media print { .ap-side, .ap-top { display: none; } .ap { display: block; } .ap-view { overflow: visible; } }
+
+/* ---- Envanter ekranı (faz 46): kartlar, modal, menü ---------------------------- */
+.inv-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.inv-toolbar .spacer { flex: 1 1 auto; }
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.inv-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 14px 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.inv-card__head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.inv-card__title { font-family: var(--f-d); font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+.inv-card__title .code { font-family: var(--f-m); font-weight: 500; font-size: 11px; color: var(--ink-3); margin-left: 6px; }
+.inv-card__sub { font-size: 12px; color: var(--ink-2); }
+.inv-card__cover { width: 100%; aspect-ratio: 16/7; object-fit: cover; border-radius: var(--r-s); border: 1px solid var(--line); }
+.inv-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; margin: 0; font-size: 12.5px; }
+.inv-card dt { color: var(--ink-3); }
+.inv-card dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.inv-card__foot { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: auto; padding-top: 6px; border-top: 1px dashed var(--line); }
+.inv-card.is-assigned { border-left: 3px solid var(--accent); }
+.inv-card.is-maintenance { border-left: 3px solid var(--warn); }
+.inv-card.is-inactive { opacity: .72; border-left: 3px solid var(--line-strong); }
+.inv-card.is-available { border-left: 3px solid var(--good); }
+.menu { position: relative; }
+.menu > summary { list-style: none; cursor: pointer; }
+.menu > summary::-webkit-details-marker { display: none; }
+.menu__list { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-s); box-shadow: var(--shadow); min-width: 190px; padding: 4px; display: flex; flex-direction: column; }
+.menu__list button, .menu__list a { text-align: left; background: none; border: 0; padding: 7px 10px; font-size: 12.5px; color: var(--ink); border-radius: 4px; cursor: pointer; text-decoration: none; font-family: inherit; }
+.menu__list button:hover, .menu__list a:hover { background: var(--surface-3); }
+.menu__list .danger { color: var(--crit); }
+dialog.modal { border: 1px solid var(--line); border-radius: var(--r); padding: 0; width: min(720px, calc(100vw - 32px)); background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+dialog.modal::backdrop { background: rgba(10, 14, 12, .45); }
+dialog.modal .modal__head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+dialog.modal .modal__head h2 { margin: 0; font-size: 16px; font-family: var(--f-d); }
+dialog.modal .modal__body { padding: 16px 18px; max-height: 70vh; overflow: auto; }
+dialog.modal .modal__foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); background: var(--surface-2); border-radius: 0 0 var(--r) var(--r); }
+dialog.modal .field { gap: 4px; }
+dialog.modal .field .label { font-size: 11.5px; }
+[data-when][hidden] { display: none !important; }

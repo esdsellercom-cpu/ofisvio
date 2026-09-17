@@ -123,6 +123,7 @@ spaces,space.view,employee,company,no,no,
 spaces,space.manage,system_admin,global,no,no,tahsis et/sonlandir
 spaces,space.manage,operations_admin,global,no,no,
 spaces,space.manage,location_manager,location,no,no,
+spaces,space.manage,super_admin,global,no,no,envanter ekrani (faz 46)
 events,event.view,system_admin,global,no,no,etkinlikler & topluluk (faz 39d)
 events,event.view,operations_admin,global,no,no,
 events,event.view,super_admin,global,no,no,

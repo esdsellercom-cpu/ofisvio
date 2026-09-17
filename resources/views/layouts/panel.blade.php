@@ -15,10 +15,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-    <link rel="stylesheet" href="{{ asset('css/ofisvio.css') }}">
-    <link rel="stylesheet" href="{{ asset('css/panel.css') }}">
-    <script src="{{ asset('js/ofisvio.js') }}" defer></script>
-    <script src="{{ asset('js/panel.js') }}" defer></script>
+    <link rel="stylesheet" href="{{ asset_v('css/ofisvio.css') }}">
+    <link rel="stylesheet" href="{{ asset_v('css/panel.css') }}">
+    <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
+    <script src="{{ asset_v('js/panel.js') }}" defer></script>
 </head>
 <body class="panel-body">
     <a class="skip-link" href="#main">İçeriğe geç</a>

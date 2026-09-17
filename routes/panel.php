@@ -32,6 +32,7 @@ use App\Http\Controllers\Panel\EventController;
 use App\Http\Controllers\Panel\FranchiseController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\IntegrationController;
+use App\Http\Controllers\Panel\InventoryController;
 use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LandingController;
@@ -99,6 +100,19 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
         Route::get('/alanlar/{space}', [SpaceController::class, 'show'])->where('space', '[0-9]+')->middleware('permission:space.view|space.manage,anylocation')->name('spaces.show');
         Route::post('/alanlar/{space}/tahsis', [SpaceController::class, 'assign'])->where('space', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('spaces.assign');
         Route::post('/alanlar/{space}/tahsis/{assignment}/bitir', [SpaceController::class, 'end'])->where(['space' => '[0-9]+', 'assignment' => '[0-9]+'])->middleware('permission:space.manage,anylocation')->name('spaces.end');
+        // Envanter ekranı yazma işlemleri (faz 46): tek ekrandan envanter/tahsis/demirbaş. Oda yazımı geo.edit (global).
+        Route::prefix('alanlar')->name('spaces.')->group(function () {
+            Route::post('/envanter/alan', [InventoryController::class, 'storeSpace'])->middleware('permission:space.manage,anylocation')->name('inventory.space.store');
+            Route::put('/envanter/alan/{space}', [InventoryController::class, 'updateSpace'])->where('space', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('inventory.space.update');
+            Route::post('/envanter/oda', [InventoryController::class, 'storeRoom'])->middleware('permission:geo.edit')->name('inventory.room.store');
+            Route::put('/envanter/oda/{room}', [InventoryController::class, 'updateRoom'])->where('room', '[0-9]+')->middleware('permission:geo.edit')->name('inventory.room.update');
+            Route::post('/tahsis', [InventoryController::class, 'quickAssign'])->middleware('permission:space.manage,anylocation')->name('inventory.assign');
+            Route::put('/tahsis/{assignment}', [InventoryController::class, 'updateAssignment'])->where('assignment', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('inventory.assignment.update');
+            Route::post('/tahsis/{assignment}/bitir', [InventoryController::class, 'endAssignment'])->where('assignment', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('inventory.assignment.end');
+            Route::post('/demirbas', [InventoryController::class, 'storeAsset'])->middleware('permission:space.manage,anylocation')->name('inventory.asset.store');
+            Route::put('/demirbas/{asset}', [InventoryController::class, 'updateAsset'])->where('asset', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('inventory.asset.update');
+            Route::delete('/demirbas/{asset}', [InventoryController::class, 'destroyAsset'])->where('asset', '[0-9]+')->middleware('permission:space.manage,anylocation')->name('inventory.asset.destroy');
+        });
         Route::get('/raporlar', [ReportController::class, 'index'])->middleware('permission:analytics.view')->name('reports.index');
         Route::get('/entegrasyonlar', [IntegrationController::class, 'index'])->middleware('permission:performance.view')->name('integrations.index');
 

@@ -72,6 +72,7 @@ class LocationSpaceController extends Controller
         $v = $request->validate([
             'kind' => ['required', Rule::in(array_keys(Space::KINDS))],
             'name' => ['required', 'string', 'max:60'],
+            'code' => ['nullable', 'string', 'max:40'],
             'floor' => ['nullable', 'string', 'max:30'],
             'zone' => ['nullable', 'string', 'max:60'],
             'capacity' => ['nullable', 'integer', 'min:1', 'max:500'],

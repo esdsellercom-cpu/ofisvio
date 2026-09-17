@@ -120,11 +120,11 @@ class PanelShellTest extends TestCase
         Room::create(['location_id' => $kadikoy->id, 'name' => 'Odak 1', 'kind' => 'focus', 'capacity' => 1, 'hourly_rate' => 15000, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 8, 'is_active' => false]);
         $owner = $this->owner($acme, $this->company($acme, 'Acme A.Ş.'));
 
-        // Alanlar: masa/ofis sekmesi (P0-2, boş envanter) + odalar sekmesi (tür, aktif/pasif); finans space.view ile görür.
-        $this->actingAs($ops)->get('/panel/alanlar')->assertOk()->assertSee('Henüz masa/ofis tanımlı değil');
+        // Alanlar (faz 46 tek ekran): masa/ofis yok → oda kartları listelenir; odalar sekmesi (tür, aktif/pasif); finans space.view ile görür, yazamaz.
+        $this->actingAs($ops)->get('/panel/alanlar?sekme=masalar')->assertOk()->assertSee('Bu süzgeçte envanter yok')->assertSee('+ Envanter ekle');
         $this->actingAs($ops)->get('/panel/alanlar?sekme=odalar')->assertOk()->assertSee('Kadıköy')->assertSee('Toplantı odası')->assertSee('Odaklanma odası')
-            ->assertSee('<span class="k">Rezervasyona açık</span><span class="v">1</span>', false)->assertSee('Odaları yönet');
-        $this->actingAs($finance)->get('/panel/alanlar')->assertOk()->assertDontSee('Envanteri yönet');
+            ->assertSee('Rezervasyona açık')->assertSee('Pasif')->assertSee('Odayı düzenle');
+        $this->actingAs($finance)->get('/panel/alanlar')->assertOk()->assertDontSee('Envanter ekle')->assertDontSee('modal-assign');
         $this->actingAs($owner)->withContext($acme)->get('/panel/alanlar')->assertForbidden();
 
         // Raporlar (analytics.view): sekmeler; KYC adedi yalnız kyc.view_status taşıyana.
