@@ -13,6 +13,7 @@ use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -156,7 +157,7 @@ class InvoiceService
             $today = Carbon::today();
             $year = $today->format('Y');
             $prefix = $this->settings->string('finance.invoice_prefix');
-            $seq = Invoice::withoutTenantScope()->lockForUpdate()->where('number', 'like', "{$prefix}-{$year}-%")->count() + 1;
+            $seq = $this->nextSequence((int) $year);
 
             $invoice->fill([
                 'number' => sprintf('%s-%s-%06d', $prefix, $year, $seq),
@@ -169,6 +170,31 @@ class InvoiceService
 
             return $invoice;
         });
+    }
+
+    /**
+     * Yıl başına atomik sayaç (audit H-2): invoice_sequences satırı kilitlenir, artırılır.
+     * İlk fatura için satır yoksa eklenir; eşzamanlı ilk ekleme birincil anahtarla çakışırsa
+     * yeniden okunur. İptal edilen fatura numarasını korur; sıra geri alınmaz (denetim izi).
+     */
+    private function nextSequence(int $year): int
+    {
+        $row = DB::table('invoice_sequences')->where('year', $year)->lockForUpdate()->first();
+
+        if ($row === null) {
+            try {
+                DB::table('invoice_sequences')->insert(['year' => $year, 'last' => 0, 'created_at' => Carbon::now(), 'updated_at' => Carbon::now()]);
+            } catch (QueryException) {
+                // Başka bir işlem aynı anda ekledi; kilitli okuma tekrar.
+            }
+
+            $row = DB::table('invoice_sequences')->where('year', $year)->lockForUpdate()->first();
+        }
+
+        $next = (int) $row->last + 1;
+        DB::table('invoice_sequences')->where('year', $year)->update(['last' => $next, 'updated_at' => Carbon::now()]);
+
+        return $next;
     }
 
     public function cancel(User $actor, Invoice $invoice, string $reason): Invoice

@@ -9,6 +9,7 @@ use App\Services\SettingsService;
 use App\Services\SubscriptionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -107,6 +108,14 @@ class InvoiceTest extends TestCase
         $this->assertSame('cancelled', $draft->fresh()->status);
         $this->actingAs($finance)->from("/panel/faturalar/{$inv->id}")->post("/panel/faturalar/{$inv->id}/iptal", ['reason' => 'x'])->assertSessionHasErrors('reason');
         $this->actingAs($this->staff('system_admin'))->get('/panel/denetim?tur=jit')->assertOk()->assertSee('invoice.cancel');
+
+        // Numara sırası (audit H-2): iptal edilen numara korunur, sıra geri gitmez; yeni yıl sıfırdan başlar.
+        $this->actingAs($finance)->post('/panel/faturalar', ['company_id' => $acmeCo->id, 'description' => 'Kasım', 'subtotal' => '10', 'tax_rate' => 0, 'issue' => 1])->assertRedirect();
+        $this->assertSame('OF-2026-000002', Invoice::withoutTenantScope()->where('description', 'Kasım')->firstOrFail()->number);
+        $this->assertSame(2, (int) DB::table('invoice_sequences')->where('year', 2026)->value('last'));
+        Carbon::setTestNow('2027-01-05 09:00:00');
+        $this->actingAs($finance)->post('/panel/faturalar', ['company_id' => $acmeCo->id, 'description' => 'Ocak', 'subtotal' => '10', 'tax_rate' => 0, 'issue' => 1])->assertRedirect();
+        $this->assertSame('OF-2027-000001', Invoice::withoutTenantScope()->where('description', 'Ocak')->firstOrFail()->number);
     }
 
     #[Test]
