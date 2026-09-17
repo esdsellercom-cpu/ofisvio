@@ -42,7 +42,7 @@
                     <input type="hidden" name="kind" value="booking">
                     <input type="hidden" name="solution" value="Toplantı Odası">
                     <input type="hidden" name="requested_date" data-booking-date value="{{ $bookingDays[0]['date'] }}">
-                    <input type="hidden" name="requested_slot" data-booking-slot value="{{ $bookingSlots[1] }}">
+                    <input type="hidden" name="requested_slot" data-booking-slot value="{{ $bookingSlots[1] ?? $bookingSlots[0] ?? '' }}">
                     <div class="hp" aria-hidden="true"><label>Web sitesi<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
 
                     <label class="field" style="margin-top:4px">
@@ -69,9 +69,12 @@
                     <div style="margin-top:18px">
                         <div class="label" style="margin-bottom:9px">Saat</div>
                         <div class="grid-auto" style="--min:86px;--gap:8px">
-                            @foreach ($bookingSlots as $i => $slot)
-                                <button type="button" class="chip chip--square mono" style="font-size:14px;padding:11px 8px" data-booking-slot-btn="{{ $slot }}" aria-pressed="{{ $i === 1 ? 'true' : 'false' }}">{{ $slot }}</button>
-                            @endforeach
+                            {{-- Saatler rezervasyona açık odalardan türetilir (BookingService::publicSlots); oda yoksa saat sorulmaz. --}}
+                            @forelse ($bookingSlots as $i => $slot)
+                                <button type="button" class="chip chip--square mono" style="font-size:14px;padding:11px 8px" data-booking-slot-btn="{{ $slot }}" aria-pressed="{{ $i === (isset($bookingSlots[1]) ? 1 : 0) ? 'true' : 'false' }}">{{ $slot }}</button>
+                            @empty
+                                <span class="small muted">Saat, teyit sırasında birlikte belirlenir.</span>
+                            @endforelse
                         </div>
                     </div>
 

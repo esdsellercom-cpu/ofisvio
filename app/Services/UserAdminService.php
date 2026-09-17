@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Location;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserRole;
@@ -71,18 +72,35 @@ class UserAdminService
     }
 
     /**
+     * Matriste yalnız lokasyon kapsamlı izin taşıyan internal roller (resepsiyon,
+     * lokasyon yöneticisi): global atama hiçbir izne eşleşmez, lokasyon ZORUNLU.
+     *
+     * @return array<int, string>
+     */
+    public function locationScopedRoles(): array
+    {
+        return Role::query()->where('type', 'internal')
+            ->whereHas('permissions', fn ($q) => $q->where('role_permissions.scope', 'location'))
+            ->whereDoesntHave('permissions', fn ($q) => $q->where('role_permissions.scope', 'global'))
+            ->orderBy('name')
+            ->pluck('name')
+            ->all();
+    }
+
+    /**
      * Personel daveti: kullanıcı yoksa oluşturulur (bilinmeyen şifre) ve sıfırlama
      * bağlantısı gider; varsa yalnızca rol atanır.
      *
-     * @param  array{name: string, email: string, role: string}  $data
+     * @param  array{name: string, email: string, role: string, location_id?: int|null}  $data
      * @return array{user: User, created: bool, invited: bool}
      */
     public function inviteStaff(User $actor, array $data): array
     {
         $role = $this->internalRole($data['role']);
+        $locationId = $this->locationFor($role, $data['location_id'] ?? null);
         $email = Str::lower(trim($data['email']));
 
-        $result = DB::transaction(function () use ($data, $email, $role) {
+        $result = DB::transaction(function () use ($data, $email, $role, $locationId) {
             $user = User::query()->where('email', $email)->first();
             $created = false;
 
@@ -91,7 +109,7 @@ class UserAdminService
                 $created = true;
             }
 
-            $this->grantGlobal($user, $role);
+            $this->grant($user, $role, $locationId);
 
             return ['user' => $user, 'created' => $created];
         });
@@ -101,9 +119,31 @@ class UserAdminService
         return ['user' => $result['user'], 'created' => $result['created'], 'invited' => $invited];
     }
 
-    public function assignInternalRole(User $actor, User $user, string $roleName): UserRole
+    public function assignInternalRole(User $actor, User $user, string $roleName, ?int $locationId = null): UserRole
     {
-        return $this->grantGlobal($user, $this->internalRole($roleName));
+        $role = $this->internalRole($roleName);
+
+        return $this->grant($user, $role, $this->locationFor($role, $locationId));
+    }
+
+    /** Lokasyon kapsamlı rol lokasyon ister, global rol lokasyon almaz. */
+    private function locationFor(Role $role, ?int $locationId): ?int
+    {
+        $scoped = in_array($role->name, $this->locationScopedRoles(), true);
+
+        if ($scoped && $locationId === null) {
+            throw new DomainException(__('roles.'.$role->name).' lokasyon kapsamlıdır; bir şube seçin.');
+        }
+
+        if (! $scoped && $locationId !== null) {
+            throw new DomainException(__('roles.'.$role->name).' global bir roldür; lokasyon atanmaz.');
+        }
+
+        if ($locationId !== null && ! Location::query()->whereKey($locationId)->exists()) {
+            throw new DomainException('Şube bulunamadı.');
+        }
+
+        return $locationId;
     }
 
     public function suspendRole(User $actor, UserRole $userRole): void
@@ -143,15 +183,15 @@ class UserAdminService
         return $role;
     }
 
-    /** Global atama = üç kapsam kolonu NULL; varsa yeniden etkinleştirilir. */
-    private function grantGlobal(User $user, Role $role): UserRole
+    /** Global atama = üç kapsam kolonu NULL (lokasyon rolünde location_id dolu); varsa yeniden etkinleştirilir. */
+    private function grant(User $user, Role $role, ?int $locationId = null): UserRole
     {
         $userRole = UserRole::query()->firstOrNew([
             'user_id' => $user->id,
             'role_id' => $role->id,
             'company_id' => null,
             'organization_id' => null,
-            'location_id' => null,
+            'location_id' => $locationId,
         ]);
         $userRole->status = 'active';
         $userRole->save();

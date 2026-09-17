@@ -20,13 +20,22 @@
                 <input class="control" type="email" name="email" value="{{ old('email') }}" required maxlength="190" @error('email') aria-invalid="true" @enderror>
                 @error('email')<span class="small" style="color:var(--danger)">{{ $message }}</span>@enderror
             </label>
-            <label class="field"><span class="label">Rol (global, personel)</span>
+            <label class="field"><span class="label">Rol (personel)</span>
                 <select class="control" name="role" required @error('role') aria-invalid="true" @enderror>
                     @foreach ($roles as $role)
                         <option value="{{ $role->name }}" @selected(old('role') === $role->name)>{{ __('roles.'.$role->name) }} ({{ $role->name }})</option>
                     @endforeach
                 </select>
                 @error('role')<span class="small" style="color:var(--danger)">{{ $message }}</span>@enderror
+            </label>
+            <label class="field"><span class="label">Şube (yalnız lokasyon kapsamlı roller: {{ implode(', ', array_map(fn ($r) => __('roles.'.$r), $locationRoles)) }})</span>
+                <select class="control" name="location_id">
+                    <option value="">— global rol —</option>
+                    @foreach ($locations as $loc)
+                        <option value="{{ $loc->id }}" @selected((string) old('location_id') === (string) $loc->id)>{{ $loc->name }} ({{ $loc->city }})</option>
+                    @endforeach
+                </select>
+                @error('location_id')<span class="small" style="color:var(--danger)">{{ $message }}</span>@enderror
             </label>
             <p class="small muted" style="margin:0">Kişiye şifre belirleme bağlantısı e-postayla gider; ilk girişte 2FA kurması zorunludur.</p>
             <div style="display:flex;gap:10px">

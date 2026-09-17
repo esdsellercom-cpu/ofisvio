@@ -8,6 +8,9 @@
             <p class="eyebrow"><a href="{{ route('panel.geo.index') }}">GEO</a> · {{ $location->city }}</p>
             <h1 class="h2">{{ $location->name }}</h1>
         </div>
+        <div class="panel-head__actions">
+            <a href="{{ route('panel.geo.rooms.index', $location) }}" class="btn btn--ghost">Odalar</a>
+        </div>
     </div>
 
     <form method="POST" action="{{ route('panel.geo.basics', $location) }}" class="panel stack" style="gap:12px;margin-bottom:20px">

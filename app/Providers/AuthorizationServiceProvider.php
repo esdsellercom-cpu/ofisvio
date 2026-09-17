@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Models\Company;
 use App\Models\KycDocument;
+use App\Models\Location;
 use App\Models\User;
 use App\Policies\KycDocumentPolicy;
 use App\Services\AuthorizationService;
@@ -57,6 +58,11 @@ class AuthorizationServiceProvider extends ServiceProvider
 
             if ($companyId !== null) {
                 $ctx['company_id'] = $companyId;
+            }
+
+            // @can('booking.view', $location): lokasyon kapsamlı izinler (resepsiyon).
+            if ($target instanceof Location) {
+                $ctx['location_id'] = (int) $target->id;
             }
 
             return $authorization->can($user, $ability, $ctx);

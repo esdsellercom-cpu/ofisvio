@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Panel;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Services\GeoService;
 use App\Services\UserAdminService;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -19,7 +20,10 @@ use Illuminate\Validation\Rule;
  */
 class UserController extends Controller
 {
-    public function __construct(private readonly UserAdminService $users) {}
+    public function __construct(
+        private readonly UserAdminService $users,
+        private readonly GeoService $geo,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -30,7 +34,7 @@ class UserController extends Controller
 
     public function create(): View
     {
-        return view('panel.users.form', ['roles' => $this->users->internalRoles()]);
+        return view('panel.users.form', ['roles' => $this->users->internalRoles(), 'locationRoles' => $this->users->locationScopedRoles(), 'locations' => $this->geo->allLocations()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -39,10 +43,11 @@ class UserController extends Controller
             'name' => ['required', 'string', 'min:2', 'max:120'],
             'email' => ['required', 'email:rfc', 'max:190'],
             'role' => ['required', 'string', Rule::in($this->users->internalRoles()->pluck('name')->all())],
+            'location_id' => ['nullable', 'integer'],
         ]);
 
         try {
-            $result = $this->users->inviteStaff($request->user(), $validated);
+            $result = $this->users->inviteStaff($request->user(), ['name' => $validated['name'], 'email' => $validated['email'], 'role' => $validated['role'], 'location_id' => isset($validated['location_id']) ? (int) $validated['location_id'] : null]);
         } catch (DomainException $e) {
             return back()->withErrors(['role' => $e->getMessage()])->withInput();
         }
@@ -59,15 +64,17 @@ class UserController extends Controller
         return view('panel.users.show', [
             'user' => $this->users->find($user->id),
             'roles' => $this->users->internalRoles(),
+            'locationRoles' => $this->users->locationScopedRoles(),
+            'locations' => $this->geo->allLocations(),
         ]);
     }
 
     public function assignRole(Request $request, User $user): RedirectResponse
     {
-        $validated = $request->validate(['role' => ['required', 'string', Rule::in($this->users->internalRoles()->pluck('name')->all())]]);
+        $validated = $request->validate(['role' => ['required', 'string', Rule::in($this->users->internalRoles()->pluck('name')->all())], 'location_id' => ['nullable', 'integer']]);
 
         try {
-            $this->users->assignInternalRole($request->user(), $user, $validated['role']);
+            $this->users->assignInternalRole($request->user(), $user, $validated['role'], isset($validated['location_id']) ? (int) $validated['location_id'] : null);
         } catch (DomainException $e) {
             return back()->withErrors(['role' => $e->getMessage()]);
         }

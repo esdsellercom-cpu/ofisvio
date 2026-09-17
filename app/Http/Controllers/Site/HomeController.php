@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
+use App\Services\BookingService;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use App\Services\SiteBlockService;
@@ -28,6 +29,7 @@ class HomeController extends Controller
         private readonly ContentService $contents,
         private readonly SiteBlockService $blocks,
         private readonly CurrentWebsite $website,
+        private readonly BookingService $bookings,
     ) {}
 
     public function __invoke(): View
@@ -52,7 +54,7 @@ class HomeController extends Controller
             'stats' => $this->stats($locations, $this->blocks->texts($this->website->get())),
             'journey' => ActivationJourney::steps(),
             'bookingDays' => $this->bookingDays(),
-            'bookingSlots' => (array) config('ofisvio.booking_slots'),
+            'bookingSlots' => $this->bookings->publicSlots(), // odalardan türetilir (kodda sabit liste yok)
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'posts' => $this->contents->livePosts($this->website->get(), 3),
             // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).

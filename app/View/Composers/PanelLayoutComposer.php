@@ -4,9 +4,11 @@ namespace App\View\Composers;
 
 use App\Exceptions\TenantContextException;
 use App\Models\Organization;
+use App\Services\BookingService;
 use App\Services\ContextSwitchService;
 use App\Services\TenantContext;
 use Illuminate\Contracts\Auth\Guard;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\View\View;
 
 /**
@@ -23,6 +25,7 @@ class PanelLayoutComposer
         private readonly Guard $auth,
         private readonly TenantContext $context,
         private readonly ContextSwitchService $switcher,
+        private readonly BookingService $bookings,
     ) {}
 
     public function compose(View $view): void
@@ -53,6 +56,9 @@ class PanelLayoutComposer
         }
 
         $view->with([
+            // Resepsiyon masaları: kullanıcının lokasyon kapsamlı aktif rolleri (booking v1).
+            // Global personel genel listeden girer; sorgu yalnız lokasyon rolü olabilecekler için.
+            'deskLocations' => $isStaff ? new Collection : $this->bookings->deskLocationsFor($user),
             'isStaff' => $isStaff,
             'activeOrganization' => $active instanceof Organization ? $active : null,
             'canSwitchOrganization' => $isStaff || $this->switcher->enterableOrganizations($user)->count() > 1,

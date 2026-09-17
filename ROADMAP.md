@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **237/237** (Unit 10 · Feature 213 · Architecture 14) |
+| `php artisan test` | ✅ **242/242** (Unit 10 · Feature 218 · Architecture 14) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -296,6 +296,37 @@ geçişleri (kim/neden); arama + tarih süzgeci. `AuditLogService` allowlist’t
 son baseline artefaktı, site önbellek istatistikleri, zamanlayıcı kalp atışı;
 `performance.audit` ile üretim dışı yeniden ölçüm ve doctor kontrol listesi.
 
+### 32. Parite: vitrin ↔ panel ✅ (17 Eylül 2026)
+Vitrindeki her yönetilebilir metin panelden gelir: menü etiketleri, üst şerit /
+menü / hero / çözüm kartı CTA'ları, teklif formu başlık-açıklama-vaatleri, ön talep
+aracı, yazılar başlığı, WhatsApp ön yazılı mesajı (`SiteBlockService::TEXT_KEYS`;
+`OPTIONAL_TEXT_KEYS` boş bırakılınca gizlenir). **WhatsApp numarası** (E.164) ve
+**çalışma saatleri** site genel ayarıdır (`websites.whatsapp_number/business_hours`);
+yüzen WhatsApp düğmesi yalnız numara varsa basılır. Footer sütun maddeleri
+`Etiket = /yol|#bolum|https://` biçimiyle hedef taşır; hedefsiz madde düz metin
+(ölü `#` yok). KVKK bağlantısı yayındaki aydınlatma sayfasına.
+
+### 33. Booking v1 ✅ (17 Eylül 2026)
+`rooms` (lokasyona bağlı Ofisvio varlığı; tür, kapasite, saatlik ücret, açık saat,
+slot, üst sınır; **geo.edit** ile `/panel/geo/lokasyon/{slug}/odalar`) ve `bookings`
+(şirkete ait, `company_id` tenant sınırı; `location_id` masa için denormalize).
+**Uygunluk motoru** `BookingService`: açık saat, geçmiş, 60 gün ufuk, slot katı,
+`max_hours`, pasif oda/lokasyon, askıdaki şirket; **çakışma hiçbir koşulda
+atlanmaz** (işlem + `lockForUpdate`). Müşteri `/panel/sirketler/{company}/rezervasyonlar`
+(`booking.view/create` owner·company_admin·employee, `booking.cancel` owner·company_admin,
+başlangıca ≥2 saat). Personel: `/panel/rezervasyonlar` (`booking.view` global —
+operations_admin) ve **lokasyon masası** `/panel/rezervasyonlar/lokasyon/{slug}`
+(`booking.view,location`: resepsiyon kendi şubesi, `user_roles.location_id`);
+masadan açma `booking.create,location`; **`booking.admin_override` JIT** (kaynak
+`booking_location`/lokasyon) açık saat/ufuk/pasif oda kuralını atlar, çakışmayı
+atlamaz, masadan iptal yalnız bununla. Vitrin ön talep saat çipleri odalardan
+türetilir (`publicSlots`, önbellekli; oda yoksa saat sorulmaz — `booking_slots`
+config sabiti kalktı). Altyapı düzeltmeleri: `permission:…,location` artık
+organizasyon bağlamı istemez (Ofisvio şubesi tenant değildir); lokasyon kapsamlı
+internal rol (resepsiyon) 2FA zorunluluğuna girer (`TenantContext::hasInternalRole`);
+kullanıcı yönetimi lokasyon kapsamlı rolü şubeyle atar (`UserAdminService::locationScopedRoles`).
+Kalan: ödeme/fatura bağlantısı (faz 19+), e-posta bildirimi, tekrarlayan rezervasyon.
+
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 
@@ -315,6 +346,7 @@ Temeller hazır; sıra değişmedi.
 | F7 | CMS editörü | ✅ liste/süzgeç, form (markdown), akış eylemleri, revizyonlar |
 | F8 | SEO/GEO Command Center | 🟡 SEO v1 (`/panel/seo`) + GEO v1 (`/panel/geo`) |
 | F9 | Performance + Cache Command Center | ✅ Cache v1 (`/panel/onbellek`) + Performans (`/panel/performans`: baseline, önbellek, zamanlayıcı, doctor) |
+| F10 | Booking (müşteri + resepsiyon masası) | ✅ v1 (`/panel/sirketler/{company}/rezervasyonlar`, `/panel/rezervasyonlar`, odalar GEO altında) |
 
 ---
 

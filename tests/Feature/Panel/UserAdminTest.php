@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Panel;
 
+use App\Models\Location;
 use App\Models\User;
 use App\Models\UserRole;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -59,10 +60,16 @@ class UserAdminTest extends TestCase
         $this->actingAs($admin)->post("/panel/kullanicilar/{$ayse->id}/davet")->assertRedirect();
         Notification::assertSentToTimes($ayse, ResetPassword::class, 2);
 
-        // Var olan kullanıcıya davet: yalnız rol atanır, e-posta gitmez.
-        $this->actingAs($admin)->post('/panel/kullanicilar', ['name' => 'Ayşe', 'email' => 'ayse@ofisvio.com', 'role' => 'reception'])->assertRedirect()->assertSessionHasNoErrors();
+        // Var olan kullanıcıya davet: yalnız rol atanır, e-posta gitmez. Resepsiyon lokasyon
+        // kapsamlıdır: şubesiz reddedilir, şubeyle location_id dolu atanır; global role şube verilemez.
+        $this->actingAs($admin)->from('/panel/kullanicilar/yeni')->post('/panel/kullanicilar', ['name' => 'Ayşe', 'email' => 'ayse@ofisvio.com', 'role' => 'reception'])->assertSessionHasErrors('role');
+        $konya = Location::create(['name' => 'Konya', 'slug' => 'konya']);
+        $this->actingAs($admin)->post('/panel/kullanicilar', ['name' => 'Ayşe', 'email' => 'ayse@ofisvio.com', 'role' => 'reception', 'location_id' => $konya->id])->assertRedirect()->assertSessionHasNoErrors();
         Notification::assertSentToTimes($ayse, ResetPassword::class, 2);
         $this->assertSame(3, UserRole::where('user_id', $ayse->id)->count());
+        $this->assertSame($konya->id, (int) UserRole::where('user_id', $ayse->id)->whereNotNull('location_id')->firstOrFail()->location_id);
+        $this->actingAs($admin)->from('/panel/kullanicilar/'.$ayse->id)->post("/panel/kullanicilar/{$ayse->id}/rol", ['role' => 'system_admin', 'location_id' => $konya->id])->assertSessionHasErrors('role');
+        $this->actingAs($admin)->get('/panel/kullanicilar/'.$ayse->id)->assertOk()->assertSee('Lokasyon: Konya');
     }
 
     #[Test]

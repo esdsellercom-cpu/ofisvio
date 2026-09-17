@@ -44,7 +44,7 @@
                                     @if ($global) Global (personel)
                                     @elseif ($r->company_id) Şirket #{{ $r->company_id }}
                                     @elseif ($r->organization_id) Organizasyon #{{ $r->organization_id }}
-                                    @else Lokasyon #{{ $r->location_id }}
+                                    @else Lokasyon: {{ $locations->firstWhere('id', $r->location_id)?->name ?? '#'.$r->location_id }}
                                     @endif
                                 </td>
                                 <td><span class="badge badge--{{ $r->status === 'active' ? 'ok' : 'muted' }}">{{ $r->status === 'active' ? 'Etkin' : 'Askıda' }}</span></td>
@@ -78,12 +78,21 @@
             <p class="eyebrow">Personel rolü ata</p>
             <form method="POST" action="{{ route('panel.users.roles.assign', $user) }}" class="stack" style="gap:12px">
                 @csrf
-                <label class="field"><span class="label">Rol (global)</span>
+                <label class="field"><span class="label">Rol</span>
                     <select class="control" name="role" required>
                         @foreach ($roles as $role)
                             <option value="{{ $role->name }}">{{ __('roles.'.$role->name) }} ({{ $role->name }})</option>
                         @endforeach
                     </select>
+                </label>
+                <label class="field"><span class="label">Şube (yalnız lokasyon kapsamlı roller: {{ implode(', ', array_map(fn ($r) => __('roles.'.$r), $locationRoles)) }})</span>
+                    <select class="control" name="location_id">
+                        <option value="">— global rol —</option>
+                        @foreach ($locations as $loc)
+                            <option value="{{ $loc->id }}" @selected((string) old('location_id') === (string) $loc->id)>{{ $loc->name }} ({{ $loc->city }})</option>
+                        @endforeach
+                    </select>
+                    @error('location_id')<span class="small" style="color:var(--danger)">{{ $message }}</span>@enderror
                 </label>
                 <div><button type="submit" class="btn btn--brand">Ata</button></div>
             </form>

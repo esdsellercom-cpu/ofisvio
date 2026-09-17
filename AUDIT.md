@@ -15,7 +15,7 @@ Görev metni Inertia + Vue 3 + TypeScript + Tailwind + MySQL varsayıyor. Kod ta
 | Tailwind | `public/css/ofisvio.css` tasarım sistemi; Tailwind yalnız Vite giriş dosyasında kurulu, kullanılmıyor | Sapma, risk değil. |
 | MySQL 8 / MariaDB | Geliştirme SQLite; üretim `DEPLOY.md` ile MySQL/PgSQL | Migration'lar sürücü bağımsız; CI SQLite. **Üretim DB'sinde koşulmuş test yok → UNKNOWN**. |
 | iyzico, e-Fatura, e-imza, SMS, AI, Search Console | **Yok** (modüller yazılmadı; faz 19–28) | "Frontend doğrudan sağlayıcıya bağlanmıyor" trivially PASS; entegrasyon geçidi **yok** → UNKNOWN/N/A. |
-| Booking, Invoice, Payment, Subscription, Cargo | **Yok** — vitrindeki "rezervasyon" aracı bir **ön talep** kaydıdır (`leads`), kod bunu açıkça söyler | Bu modüllerin CRUD/DECIMAL denetimi **N/A**. |
+| Booking, Invoice, Payment, Subscription, Cargo | **Booking v1 var** (17 Eylül 2026, faz 33: odalar, uygunluk motoru, çakışma kilidi, müşteri/resepsiyon/override). Invoice/Payment/Subscription/Cargo **yok**. Vitrindeki "rezervasyon" aracı hâlâ **ön talep** kaydıdır (`leads`); saat çipleri odalardan türetilir | Booking CRUD/RBAC `BookingTest` ile PASS; tutar tam sayı TL (KDV hariç), DECIMAL yok — Invoice/Payment **N/A**. |
 
 Yığın değişikliği (Vue/Inertia'ya geçiş) bu denetimin kapsamında değildir; ürün kararıdır.
 

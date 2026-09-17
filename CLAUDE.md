@@ -28,6 +28,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 - **`withoutTenantScope()` her çağrısı güvenlik kararıdır**; ArchitectureTest allowlist'inde gerekçesiyle yer almalı.
 - İç içe route'larda `->scopeBindings()` zorunlu; çocuk parametre adı ebeveynin **çoğul ilişki metoduyla** eşleşmeli
   (`{kycDocument}` → `Company::kycDocuments()`, `{userRole}` → `Company::userRoles()`).
+- `permission:<izin>,location` organizasyon bağlamı istemez (lokasyon Ofisvio şubesidir); context yalnız `location_id`. Lokasyon kapsamlı internal rol (resepsiyon) `user_roles.location_id` ile atanır (`UserAdminService::locationScopedRoles`) ve 2FA zorunluluğuna girer.
 - Tenant sınırı ihlali **404** döner (403 kaydın varlığını sızdırır); context yoksa 409 → tarayıcıda seçim ekranı.
 - Tenant scope taşımayan modele (Content, Website) tenant rotasından erişim: parametre **int** kalır (model binding yok), servis organizasyona süzer (`ContentService::findForOrganization`), null → 404. Bkz. `SiteController`.
 - `Gate::before` yasak ("Super Admin != Root"); JIT izinleri (`requires_jit`) `allows()` ile, rolde-var-mı sorusu `can()` ile.

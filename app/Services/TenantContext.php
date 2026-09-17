@@ -72,6 +72,15 @@ class TenantContext
     }
 
     /** @param  callable(): mixed  $compute */
+    /**
+     * İstek kapsamlı memo (composer birden çok kez koşar; aynı sorgu tekrarlanmasın).
+     * Yalnız kullanıcıya bağlı, isteğin içinde değişmeyen okumalar için.
+     */
+    public function rememberForRequest(string $key, callable $compute): mixed
+    {
+        return $this->remember($key, $compute);
+    }
+
     private function remember(string $key, callable $compute): mixed
     {
         if (! $this->memoEnabled) {
@@ -145,6 +154,25 @@ class TenantContext
             ->whereNull('user_roles.company_id')
             ->whereNull('user_roles.organization_id')
             ->whereNull('user_roles.location_id')
+            ->exists());
+    }
+
+    /**
+     * Global YA DA lokasyon kapsamında aktif internal rol taşıyor mu? Personel yolunu
+     * AÇMAZ (o isInternalStaff'tır); 2FA zorunluluğu içindir. Resepsiyon lokasyon
+     * kapsamlı personeldir: müşteri organizasyonuna girmez ama müşteri verisini
+     * (rezervasyon) görür — 2FA'sız kalamaz. Şirkete/organizasyona scope'lanmış
+     * internal atama sehvendir ve hiçbir yolu açmaz (bkz. isInternalStaff).
+     */
+    public function hasInternalRole(User $user): bool
+    {
+        return $this->remember("internal:{$user->id}", fn () => DB::table('user_roles')
+            ->join('roles', 'roles.id', '=', 'user_roles.role_id')
+            ->where('user_roles.user_id', $user->id)
+            ->where('user_roles.status', 'active')
+            ->where('roles.type', 'internal')
+            ->whereNull('user_roles.company_id')
+            ->whereNull('user_roles.organization_id')
             ->exists());
     }
 

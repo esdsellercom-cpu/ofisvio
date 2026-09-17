@@ -50,4 +50,14 @@ class Company extends Model
     {
         return $this->hasMany(UserRole::class);
     }
+
+    /**
+     * Oda rezervasyonları; {booking} scopeBindings ile buradan çözülür.
+     *
+     * @return HasMany<Booking, $this>
+     */
+    public function bookings(): HasMany
+    {
+        return $this->hasMany(Booking::class);
+    }
 }

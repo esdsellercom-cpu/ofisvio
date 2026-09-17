@@ -16,6 +16,8 @@
 
 use App\Http\Controllers\Panel\AccountController;
 use App\Http\Controllers\Panel\AuditController;
+use App\Http\Controllers\Panel\BookingController;
+use App\Http\Controllers\Panel\BookingDeskController;
 use App\Http\Controllers\Panel\CacheController;
 use App\Http\Controllers\Panel\CompanyController;
 use App\Http\Controllers\Panel\ContentController;
@@ -29,6 +31,7 @@ use App\Http\Controllers\Panel\MediaController;
 use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\PerformanceController;
+use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteController;
@@ -66,6 +69,21 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/', [PerformanceController::class, 'index'])->middleware('permission:performance.view')->name('index');
             Route::post('/olc', [PerformanceController::class, 'measure'])->middleware('permission:performance.audit')->name('measure');
             Route::get('/doctor', [PerformanceController::class, 'doctor'])->middleware('permission:performance.audit')->name('doctor');
+        });
+
+        // Rezervasyon (booking v1) — personel tarafı, tenant context'siz.
+        // Genel liste booking.view (global: operations_admin). Lokasyon masası
+        // booking.view,location: resepsiyon kendi şubesi (user_roles.location_id),
+        // global rol hepsi. Masadan açma booking.create,location ya da JIT'li
+        // admin_override; masadan iptal YALNIZ admin_override (JIT, kaynak = lokasyon).
+        Route::prefix('rezervasyonlar')->name('bookings.')->group(function () {
+            Route::get('/', [BookingDeskController::class, 'index'])->middleware('permission:booking.view')->name('index');
+            Route::get('/lokasyon/{location}', [BookingDeskController::class, 'location'])->middleware('permission:booking.view|booking.admin_override,location')->name('location');
+            Route::post('/lokasyon/{location}', [BookingDeskController::class, 'store'])->middleware('permission:booking.create|booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.store');
+            Route::post('/lokasyon/{location}/{booking}/iptal', [BookingDeskController::class, 'cancel'])->where('booking', '[0-9]+')
+                ->middleware('permission:booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.cancel');
+            Route::post('/lokasyon/{location}/jit', [BookingDeskController::class, 'requestJit'])
+                ->middleware(['permission:booking.view|booking.admin_override,location', 'throttle:jit-request'])->name('location.jit');
         });
 
         // Denetim kaydı (audit.view; global, salt okunur).
@@ -196,6 +214,11 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::put('/lokasyon/{location}/kunye', [GeoController::class, 'updateBasics'])->middleware('permission:geo.edit')->name('basics');
             Route::delete('/lokasyon/{location}', [GeoController::class, 'destroy'])->middleware('permission:geo.publish')->name('destroy');
             Route::put('/lokasyon/{location}/yayin', [GeoController::class, 'publish'])->middleware('permission:geo.publish')->name('publish');
+            // Odalar (booking v1): lokasyon künyesinin parçası; {room} int, lokasyona süzülür (RoomController::roomOf).
+            Route::get('/lokasyon/{location}/odalar', [RoomController::class, 'index'])->middleware('permission:geo.edit')->name('rooms.index');
+            Route::post('/lokasyon/{location}/odalar', [RoomController::class, 'store'])->middleware('permission:geo.edit')->name('rooms.store');
+            Route::put('/lokasyon/{location}/odalar/{room}', [RoomController::class, 'update'])->where('room', '[0-9]+')->middleware('permission:geo.edit')->name('rooms.update');
+            Route::delete('/lokasyon/{location}/odalar/{room}', [RoomController::class, 'destroy'])->where('room', '[0-9]+')->middleware('permission:geo.edit')->name('rooms.destroy');
             Route::put('/lokasyon/{location}', [GeoController::class, 'update'])->middleware('permission:geo.edit')->name('update');
             Route::put('/{website}/varlik', [GeoController::class, 'entity'])
                 ->middleware('permission:geo.settings,,geo_entity,website')->name('entity');
@@ -282,6 +305,22 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
                 ->middleware('permission:membership.manage,company')
                 ->scopeBindings()
                 ->name('companies.members.reactivate');
+
+            // Rezervasyonlar (booking v1) — şirket kapsamı; matris: owner/company_admin/employee
+            // view+create, iptal owner/company_admin. {booking} scopeBindings: Company::bookings().
+            Route::get('/sirketler/{company}/rezervasyonlar', [BookingController::class, 'index'])
+                ->middleware('permission:booking.view,company')
+                ->name('companies.bookings.index');
+            Route::get('/sirketler/{company}/rezervasyonlar/yeni', [BookingController::class, 'create'])
+                ->middleware('permission:booking.create,company')
+                ->name('companies.bookings.create');
+            Route::post('/sirketler/{company}/rezervasyonlar', [BookingController::class, 'store'])
+                ->middleware(['permission:booking.create,company', 'throttle:booking'])
+                ->name('companies.bookings.store');
+            Route::post('/sirketler/{company}/rezervasyonlar/{booking}/iptal', [BookingController::class, 'cancel'])
+                ->middleware('permission:booking.cancel,company')
+                ->scopeBindings()
+                ->name('companies.bookings.cancel');
 
             // Personel kuyruğu — aktif organizasyon içinde.
             // Müşteri sitesi (faz 10) — organizasyonun web sitesi, şirket kapsamlı content.*.

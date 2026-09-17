@@ -85,9 +85,15 @@ class EnsurePermission
         // organizasyon henüz seçilmeden/yokken de çalışmalıdır (müşteri
         // açılışı). Organization/company kapsamlı bir izin boş context'te
         // AuthorizationService tarafından zaten fail-closed reddedilir.
-        $context = ($scopeParam === null && $this->context->activeOrganizationId() === null)
-            ? []
-            : $this->context->toArray($user, $companyId, $locationId);
+        //
+        // Lokasyon kapsamı (resepsiyon masası) Ofisvio'nun kendi şubesidir, müşteri
+        // organizasyonuna bağlı değildir: context yalnız location_id taşır. Global
+        // roller (operations_admin) aynı context'te 'global' dalından geçer.
+        $context = match (true) {
+            $scopeParam === 'location' => ['location_id' => $locationId],
+            $scopeParam === null && $this->context->activeOrganizationId() === null => [],
+            default => $this->context->toArray($user, $companyId, $locationId),
+        };
 
         // Kaynak id route parametresinden gelir; '=N' biçimi sabit id'dir
         // (ör. global purge için '=0' — route'ta parametre yok).

@@ -26,6 +26,7 @@ class RateLimitServiceProvider extends ServiceProvider
         'kyc-upload' => 20,
         'jit-request' => 10,
         'invite' => 20,
+        'booking' => 20, // rezervasyon oluşturma (booking v1)
         'context-switch' => 30,
         'webhook' => 120, // sağlayıcı yeniden teslimleri; IP bazlı (oturum yok)
     ];

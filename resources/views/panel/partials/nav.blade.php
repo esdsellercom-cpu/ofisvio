@@ -49,12 +49,21 @@
     </div>
 @endcanany
 
-@can('lead.view')
+@if ($deskLocations->isNotEmpty() || auth()->user()?->can('lead.view') || auth()->user()?->can('booking.view'))
     <div class="panel-nav__group">
         <span class="panel-nav__label">CRM</span>
-        <a href="{{ route('panel.leads.index') }}" {!! $active('panel.leads.*') !!}>Talepler</a>
+        @can('lead.view')
+            <a href="{{ route('panel.leads.index') }}" {!! $active('panel.leads.*') !!}>Talepler</a>
+        @endcan
+        @can('booking.view')
+            <a href="{{ route('panel.bookings.index') }}" {!! $active('panel.bookings.index') !!}>Rezervasyonlar</a>
+        @endcan
+        {{-- Lokasyon kapsamlı personel (resepsiyon): yalnız kendi şubesinin masası. --}}
+        @foreach ($deskLocations as $deskLocation)
+            <a href="{{ route('panel.bookings.location', $deskLocation) }}" {!! request()->routeIs('panel.bookings.location*') && request()->route('location')?->id === $deskLocation->id ? 'aria-current="page"' : '' !!}>{{ $deskLocation->name }} masası</a>
+        @endforeach
     </div>
-@endcan
+@endif
 
 @canany(['cache.view', 'user.manage', 'audit.view', 'performance.view'])
     <div class="panel-nav__group">

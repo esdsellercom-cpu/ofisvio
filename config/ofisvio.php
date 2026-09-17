@@ -67,12 +67,6 @@ return [
         'whatsapp_message' => 'Merhaba, sanal ofis / coworking hakkında bilgi almak istiyorum.',
     ],
 
-    /*
-     * Ön talep formundaki saat seçenekleri — teknik sabit. Gerçek uygunluk
-     * booking modülüyle rezervasyon tablosundan gelecek.
-     */
-    'booking_slots' => ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
-
     'themes' => [
         'kum' => 'Kum — sıcak zemin, orman yeşili (varsayılan)',
         'gece' => 'Gece — koyu zemin, açık yeşil vurgu',
