@@ -54,7 +54,9 @@ class HomeController extends Controller
             'stats' => $this->stats($locations, $this->blocks->texts($this->website->get())),
             'journey' => ActivationJourney::steps(),
             'bookingDays' => $this->bookingDays(),
-            'bookingSlots' => $this->bookings->publicSlots(), // odalardan türetilir (kodda sabit liste yok)
+            // Rezervasyona açık gerçek odalar + onay politikasından türeyen rozet (booking engine v2).
+            'bookableRooms' => $this->bookings->bookableRooms(true),
+            'bookingBadge' => $this->bookings->confirmationBadge(),
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'posts' => $this->contents->livePosts($this->website->get(), 3),
             // Vitrin blokları: CMS kaydı varsa o, yoksa config varsayılanı (faz 10).

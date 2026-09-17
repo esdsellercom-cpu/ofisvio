@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\CompanyStatusTransition;
 use App\Models\ContextSwitchLog;
@@ -26,7 +27,7 @@ use stdClass;
  */
 class AuditLogService
 {
-    public const TYPES = ['jit' => 'JIT erişimleri', 'context' => 'Organizasyon girişleri', 'company' => 'Şirket durum geçişleri', 'webhook' => 'Gelen webhook olayları', 'integration' => 'Giden entegrasyon istekleri'];
+    public const TYPES = ['general' => 'Genel denetim (önce/sonra)', 'jit' => 'JIT erişimleri', 'context' => 'Organizasyon girişleri', 'company' => 'Şirket durum geçişleri', 'webhook' => 'Gelen webhook olayları', 'integration' => 'Giden entegrasyon istekleri'];
 
     /**
      * @param  array{q?: string|null, from?: string|null, to?: string|null}  $filters
@@ -128,7 +129,7 @@ class AuditLogService
     /**
      * Özet sayaçlar (denetim ekranı başlığı).
      *
-     * @return array{jit: int, context: int, company: int, webhook: int, integration: int}
+     * @return array{jit: int, context: int, company: int, webhook: int, integration: int, general: int}
      */
     public function counts(): array
     {
@@ -138,6 +139,7 @@ class AuditLogService
             'company' => CompanyStatusTransition::query()->count(),
             'webhook' => WebhookEvent::query()->count(),
             'integration' => IntegrationLog::query()->count(),
+            'general' => AuditLog::query()->count(),
         ];
     }
 }

@@ -25,6 +25,7 @@ class StoreBookingRequest extends FormRequest
             'start' => ['required', 'date_format:H:i'],
             'hours' => ['required', 'numeric', 'min:0.5', 'max:24'],
             'note' => ['nullable', 'string', 'max:300'],
+            'participants' => ['nullable', 'integer', 'min:1', 'max:500'],
             'override' => ['sometimes', 'boolean'],
         ];
     }

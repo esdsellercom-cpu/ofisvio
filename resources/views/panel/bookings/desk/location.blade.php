@@ -27,7 +27,7 @@
     </form>
 
     <div class="panel" style="margin-bottom:20px">
-        <p class="eyebrow">Doluluk · {{ $day->format('d.m.Y') }}</p>
+        <p class="eyebrow">Doluluk · {{ $day->format('d.m.Y') }} · politika: {{ $policy['auto_confirm'] ? 'otomatik onay' : 'yönetici onayı' }}, en az {{ $policy['min_advance_hours'] }} sa önce, tampon {{ $policy['buffer_minutes'] }} dk</p>
         @forelse ($grid as $roomId => $slots)
             @php($room = $rooms->firstWhere('id', $roomId))
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
@@ -43,27 +43,20 @@
 
     <div class="table-wrap" style="margin-bottom:20px">
         <table class="data">
-            <thead><tr><th>Saat</th><th>Oda</th><th>Şirket</th><th>Not</th><th>Durum</th><th></th></tr></thead>
+            <thead><tr><th>Saat</th><th>No</th><th>Oda</th><th>Müşteri</th><th>Not</th><th>Durum</th><th></th></tr></thead>
             <tbody>
                 @forelse ($rows as $b)
                     <tr>
                         <td class="mono small">{{ $b->starts_at->format('H:i') }}–{{ $b->ends_at->format('H:i') }}</td>
+                        <td class="mono small">{{ $b->reference }}</td>
                         <td>{{ $b->room->name }}</td>
-                        <td>{{ $b->company?->legal_name }}<span class="small muted" style="display:block">{{ $b->booker?->name }}</span></td>
+                        <td>{{ $b->customerLabel() }}<span class="small muted" style="display:block">{{ $b->contactName() }}</span></td>
                         <td class="small">{{ $b->note ?: '—' }}</td>
-                        <td><span class="badge badge--{{ $b->isActive() ? 'ok' : 'warn' }}">{{ $b->statusLabel() }}</span>@if ($b->overridden) <span class="badge badge--warn">JIT</span>@endif</td>
-                        <td>
-                            @if ($b->isActive() && $hasOverride)
-                                <form method="POST" action="{{ route('panel.bookings.location.cancel', [$location, $b->id]) }}" class="inline-form" onsubmit="return confirm('Rezervasyon iptal edilsin mi?')">
-                                    @csrf
-                                    <input class="control" type="text" name="reason" placeholder="Gerekçe (zorunlu)" required minlength="5" maxlength="200" style="min-width:170px">
-                                    <button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">İptal (JIT)</button>
-                                </form>
-                            @endif
-                        </td>
+                        <td><span class="badge badge--{{ $b->status->badge() }}">{{ $b->statusLabel() }}</span>@if ($b->overridden) <span class="badge badge--warn">JIT</span>@endif</td>
+                        <td><a href="{{ route('panel.bookings.show', [$location, $b->id]) }}" class="btn btn--ghost btn--pill">Aç</a></td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="muted">Bu gün için rezervasyon yok.</td></tr>
+                    <tr><td colspan="7" class="muted">Bu gün için rezervasyon yok.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -96,6 +89,9 @@
                     </label>
                     <label class="field"><span class="label">Süre (saat)</span>
                         <input class="control mono" type="number" name="hours" value="{{ old('hours', '1') }}" min="0.5" max="24" step="0.5" required>
+                    </label>
+                    <label class="field"><span class="label">Kişi</span>
+                        <input class="control mono" type="number" name="participants" value="{{ old('participants', 1) }}" min="1" max="500">
                     </label>
                     <label class="field"><span class="label">Not</span>
                         <input class="control" type="text" name="note" maxlength="300" value="{{ old('note') }}">

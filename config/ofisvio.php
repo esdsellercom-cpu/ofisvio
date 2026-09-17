@@ -62,7 +62,6 @@ return [
         'lead_claim_2' => 'Sözleşme süresi 1 aydan başlar',
         'lead_claim_3' => 'Belge inceleme aynı iş günü içinde',
         'booking_widget_title' => 'Hızlı ön talep',
-        'booking_widget_badge' => 'aynı gün teyit',
         'blog_title' => 'Çalışma kültürü günlüğü',
         'whatsapp_message' => 'Merhaba, sanal ofis / coworking hakkında bilgi almak istiyorum.',
     ],
@@ -96,6 +95,9 @@ return [
      * Hesap açılışı (ofisvio:bootstrap-accounts). Değerler yalnız .env'den; config:cache
      * ile uyumlu olsun diye env() burada okunur, komutta config() kullanılır.
      */
+    /** Bildirim merkezi ilk alıcısı: yalnız env, yalnız bootstrap komutu okur (kodda telefon yok). */
+    'notifications' => ['booking_whatsapp' => env('OFISVIO_BOOKING_NOTIFY_WHATSAPP')],
+
     'accounts' => [
         'admin_email' => env('OFISVIO_ADMIN_EMAIL'),
         'admin_password' => env('OFISVIO_ADMIN_PASSWORD'),

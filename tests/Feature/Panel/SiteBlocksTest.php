@@ -4,6 +4,8 @@ namespace Tests\Feature\Panel;
 
 use App\Enums\ContentStatus;
 use App\Models\Content;
+use App\Models\Location;
+use App\Models\Room;
 use App\Models\SiteBlock;
 use App\Models\Website;
 use App\Services\ContentCache;
@@ -76,6 +78,8 @@ class SiteBlocksTest extends TestCase
         $admin = $this->staff('system_admin');
         $default = Website::query()->default()->firstOrFail();
 
+        // Toplantı bölümü yalnız rezervasyona açık gerçek oda varsa basılır (booking engine).
+        Room::create(['location_id' => Location::published()->firstOrFail()->id, 'name' => 'Toplantı A', 'kind' => 'meeting', 'capacity' => 4, 'hourly_rate' => 300, 'open_from' => '09:00', 'open_until' => '18:00', 'slot_minutes' => 60, 'max_hours' => 4]);
         $seedPhone = json_decode((string) file_get_contents(database_path('seeders/data/site_blocks.json')), true)['website']['contact_phone'];
         $this->get('/')->assertOk()->assertSee('Şirketinizin adresi')->assertSee($seedPhone);
         $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Hero başlık (1. satır)');
@@ -138,10 +142,10 @@ class SiteBlocksTest extends TestCase
         $this->actingAs($admin)->get('/panel/icerik/bloklar')->assertOk()->assertSee('Menü: Çözümler')->assertSee('WhatsApp ön yazılı mesaj');
         $this->actingAs($admin)->put('/panel/icerik/bloklar/metinler', [
             'nav_solutions' => 'Hizmetler', 'cta_header' => 'Fiyat iste', 'cta_hero' => 'Müsaitlik', 'lead_title' => 'Bize yazın',
-            'lead_claim_2' => '', 'booking_widget_badge' => '2 saat içinde teyit', 'whatsapp_message' => 'Selam Ofisvio',
+            'lead_claim_2' => '', 'whatsapp_message' => 'Selam Ofisvio',
         ])->assertRedirect()->assertSessionHasNoErrors();
         $home = $this->get('http://localhost/')->assertOk()->getContent();
-        foreach (['>Hizmetler<', '>Fiyat iste<', '>Müsaitlik<', 'Bize yazın', '2 saat içinde teyit', 'wa.me/905320000000?text=Selam%20Ofisvio'] as $needle) {
+        foreach (['>Hizmetler<', '>Fiyat iste<', '>Müsaitlik<', 'Bize yazın', 'wa.me/905320000000?text=Selam%20Ofisvio'] as $needle) {
             $this->assertStringContainsString($needle, $home);
         }
         $this->assertStringNotContainsString(config('ofisvio.texts.lead_claim_2'), $home);
@@ -172,7 +176,7 @@ class SiteBlocksTest extends TestCase
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/solutions', ['text' => 'Eksik | alan'])->assertSessionHasErrors('solutions');
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Tek hücre'])->assertSessionHasErrors('plan_rows');
         $this->actingAs($admin)->from('/panel/icerik/bloklar')->put('/panel/icerik/bloklar/bilinmeyen', ['text' => 'x | y'])->assertSessionHasErrors('bilinmeyen');
-        $this->assertSame(7, SiteBlock::count(), 'Bozuk satırlar seed kayıtlarını değiştirmedi.');
+        $this->assertSame(6, SiteBlock::count(), 'Bozuk satırlar seed kayıtlarını değiştirmedi.');
 
         $this->actingAs($admin)->put('/panel/icerik/bloklar/plan_rows', ['text' => 'Şirket tescil adresi | Dahil | Opsiyonel | Dahil | —'])->assertRedirect();
         $this->assertSame(['Dahil', 'Opsiyonel', 'Dahil', '—'], SiteBlock::where('key', 'plan_rows')->firstOrFail()->data[0]['cells']);

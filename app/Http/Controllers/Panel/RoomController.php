@@ -10,10 +10,11 @@ use App\Services\BookingService;
 use DomainException;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
- * Oda yönetimi (booking v1) — lokasyon künyesinin parçası, geo.edit.
- * {room} lokasyona ait olmalı; aksi 404 (bkz. roomOf).
+ * Oda yönetimi (booking engine) — lokasyon künyesinin parçası, geo.edit.
+ * {room} lokasyona ait olmalı; aksi 404 (bkz. roomOf). Her değişiklik audit'e düşer.
  */
 class RoomController extends Controller
 {
@@ -31,7 +32,7 @@ class RoomController extends Controller
     public function store(StoreRoomRequest $request, Location $location): RedirectResponse
     {
         try {
-            $room = $this->bookings->createRoom($location, $request->roomData());
+            $room = $this->bookings->createRoom($request->user(), $location, $request->roomData());
         } catch (DomainException $e) {
             return back()->withErrors(['open_until' => $e->getMessage()])->withInput();
         }
@@ -42,7 +43,7 @@ class RoomController extends Controller
     public function update(StoreRoomRequest $request, Location $location, int $room): RedirectResponse
     {
         try {
-            $this->bookings->updateRoom($this->roomOf($location, $room), $request->roomData());
+            $this->bookings->updateRoom($request->user(), $this->roomOf($location, $room), $request->roomData());
         } catch (DomainException $e) {
             return back()->withErrors(['open_until' => $e->getMessage()])->withInput();
         }
@@ -50,10 +51,10 @@ class RoomController extends Controller
         return redirect()->route('panel.geo.rooms.index', $location)->with('status', 'Oda güncellendi.');
     }
 
-    public function destroy(Location $location, int $room): RedirectResponse
+    public function destroy(Request $request, Location $location, int $room): RedirectResponse
     {
         try {
-            $this->bookings->deleteRoom($this->roomOf($location, $room));
+            $this->bookings->deleteRoom($request->user(), $this->roomOf($location, $room));
         } catch (DomainException $e) {
             return back()->withErrors(['room' => $e->getMessage()]);
         }

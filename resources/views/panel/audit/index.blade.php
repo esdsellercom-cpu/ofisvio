@@ -80,6 +80,20 @@
                             </tr>
                         @endforeach
                     </tbody>
+                @elseif ($type === 'general')
+                    <thead><tr><th>Zaman</th><th>Eylem</th><th>Kayıt</th><th>Yapan</th><th>Önce → sonra</th><th>IP</th></tr></thead>
+                    <tbody>
+                        @foreach ($rows as $r)
+                            <tr>
+                                <td class="small mono">{{ $r->created_at?->format('d.m.Y H:i:s') }}</td>
+                                <td class="mono small">{{ $r->action }}</td>
+                                <td class="mono small">{{ $r->entity_type }}{{ $r->entity_id ? '#'.$r->entity_id : '' }}</td>
+                                <td class="small">{{ $r->actor?->name ?? 'Sistem' }}</td>
+                                <td class="small mono" style="max-width:420px;white-space:normal;word-break:break-word">{{ $r->before ? json_encode($r->before, JSON_UNESCAPED_UNICODE) : '—' }} → {{ $r->after ? json_encode($r->after, JSON_UNESCAPED_UNICODE) : '—' }}</td>
+                                <td class="small mono">{{ $r->ip }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
                 @elseif ($type === 'integration')
                     <thead><tr><th>Zaman</th><th>Sağlayıcı</th><th>İstek</th><th class="num">Durum</th><th class="num">Süre</th><th>Hata</th></tr></thead>
                     <tbody>

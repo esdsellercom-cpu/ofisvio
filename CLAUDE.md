@@ -33,6 +33,7 @@ mimari kuralları kaynak taramasıyla zorlar; allowlist'e ekleme yalnızca gerek
 - Tenant scope taşımayan modele (Content, Website) tenant rotasından erişim: parametre **int** kalır (model binding yok), servis organizasyona süzer (`ContentService::findForOrganization`), null → 404. Bkz. `SiteController`.
 - `Gate::before` yasak ("Super Admin != Root"); JIT izinleri (`requires_jit`) `allows()` ile, rolde-var-mı sorusu `can()` ile.
 - Sahte ticari veri yasak: seeder yalnızca referans veri (roller, lokasyonlar, vitrin blokları `site_blocks.json`). Kullanıcı/şifre seed edilmez; hesaplar `ofisvio:bootstrap-accounts` (env) ya da `ofisvio:make-admin`.
+- **Rezervasyon durumu yalnızca `BookingService::transition` yazar** (`BookingStatus` durum makinesi); onay politikası/uygunluk kuralları `SettingsService` ayarlarından. Bildirim: servis doğrudan sağlayıcı çağırmaz — `NotificationService::dispatch` → kuyruk → kanal → `*ProviderInterface` (Gateway). Alıcı telefon/e-posta yalnız DB (`notification_recipients`); kritik değişiklikler `AuditService::record`.
 - **Ticari/CMS içerik config'te olmaz** (fiyat, telefon, e-posta, liste): tek kaynak veritabanı + panel. `config/ofisvio.php` yalnız teknik sabit taşır; `MockDataDetectionTest` bunu zorlar. Tarayıcı depolaması (localStorage vb.) ve JS'ten doğrudan HTTP çağrısı yasak.
 
 ## Görünüm katmanı

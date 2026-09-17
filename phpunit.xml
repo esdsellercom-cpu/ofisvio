@@ -38,6 +38,8 @@
         <env name="OFISVIO_ADMIN_PASSWORD" value="" force="true"/>
         <env name="OFISVIO_TEST_CUSTOMER_EMAIL" value="" force="true"/>
         <env name="OFISVIO_TEST_CUSTOMER_PASSWORD" value="" force="true"/>
+        <env name="OFISVIO_BOOKING_NOTIFY_WHATSAPP" value="" force="true"/>
+        <env name="WHATSAPP_ENABLED" value="false" force="true"/>
         <env name="IYZICO_ENABLED" value="false" force="true"/>
         <env name="SMS_ENABLED" value="false" force="true"/>
         <env name="PULSE_ENABLED" value="false"/>

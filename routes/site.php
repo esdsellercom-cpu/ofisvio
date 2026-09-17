@@ -11,6 +11,7 @@
  * permission zinciri) ayrı grupta kalır; bkz. routes/panel.php.
  */
 
+use App\Http\Controllers\Site\BookingController;
 use App\Http\Controllers\Site\ContentController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\LeadController;
@@ -34,6 +35,12 @@ Route::post('/talep', [LeadController::class, 'store'])
  */
 Route::redirect('/giris', '/login', 301);
 
+// Rezervasyon (booking engine v2, §57): uygunluk canlı — önbellek YOK; talep throttle'lı;
+// müşteri talebini tahmin edilemez uuid ile görür.
+Route::get('/rezervasyon', [BookingController::class, 'index'])->name('site.booking.index');
+Route::post('/rezervasyon', [BookingController::class, 'store'])->middleware('throttle:booking-public')->name('site.booking.store');
+Route::get('/rezervasyon/{uuid}', [BookingController::class, 'show'])->where('uuid', '[0-9a-f-]{36}')->name('site.booking.show');
+
 /*
  * CMS (faz 9): yayındaki yazı ve sayfalar. /{slug} EN SONDA kalır — önce
  * tanımlı tüm route'lar eşleşir; slug regex'i /panel, /login gibi yolları
@@ -51,5 +58,5 @@ Route::get('/blog', [ContentController::class, 'posts'])->middleware('public.cac
 Route::get('/blog/etiket/{tag}', [ContentController::class, 'tag'])->where('tag', '[a-z0-9-]+')->middleware('public.cache')->name('site.tag');
 Route::get('/blog/kategori/{category}', [ContentController::class, 'category'])->where('category', '[a-z0-9-]+')->middleware('public.cache')->name('site.category');
 Route::get('/blog/{slug}', [ContentController::class, 'post'])->where('slug', '[a-z0-9-]+')->middleware('public.cache')->name('site.post');
-Route::get('/{parent}/{slug}', [ContentController::class, 'childPage'])->where(['parent' => '(?!panel$|login$|logout$|blog$|lokasyon$|lokasyonlar$|up$)[a-z0-9-]+', 'slug' => '[a-z0-9-]+'])->middleware('public.cache')->name('site.page.child');
-Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');
+Route::get('/{parent}/{slug}', [ContentController::class, 'childPage'])->where(['parent' => '(?!panel$|login$|logout$|blog$|lokasyon$|lokasyonlar$|rezervasyon$|up$)[a-z0-9-]+', 'slug' => '[a-z0-9-]+'])->middleware('public.cache')->name('site.page.child');
+Route::get('/{slug}', [ContentController::class, 'page'])->where('slug', '(?!panel$|login$|logout$|blog$|lokasyonlar$|rezervasyon$|up$)[a-z0-9-]+')->middleware('public.cache')->name('site.page');

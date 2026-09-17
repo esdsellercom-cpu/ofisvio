@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Room;
 use App\Models\SiteBlock;
 use App\Models\User;
 use App\Models\Website;
@@ -22,7 +23,6 @@ class SiteBlockService
     /** blok anahtarı => [etiket, alan başlıkları] — veri yalnız site_blocks tablosundan (SiteBlockSeeder açılışta doldurur) */
     public const BLOCKS = [
         'solutions' => ['label' => 'Çözümler', 'fields' => ['Başlık', 'Açıklama', 'Fiyat', 'Amiral (evet/hayır)']],
-        'room_types' => ['label' => 'Toplantı odaları', 'fields' => ['Başlık', 'Kapasite/donanım', 'Fiyat']],
         'amenities' => ['label' => 'Dahil olanlar', 'fields' => ['Başlık', 'Açıklama']],
         'plans' => ['label' => 'Üyelik planları (sütunlar)', 'fields' => ['Plan', 'Fiyat']],
         'plan_rows' => ['label' => 'Üyelik karşılaştırma satırları', 'fields' => ['Özellik', 'Plan başına hücre…']],
@@ -61,15 +61,14 @@ class SiteBlockService
         'lead_claim_2' => 'Teklif vaadi 2',
         'lead_claim_3' => 'Teklif vaadi 3',
         'booking_widget_title' => 'Ön talep aracı başlığı',
-        'booking_widget_badge' => 'Ön talep aracı rozeti',
         'blog_title' => 'Yazılar bölümü başlığı',
         'whatsapp_message' => 'WhatsApp ön yazılı mesaj',
     ];
 
     /** Boş bırakılınca bölümü gizleyen (varsayılana dönmeyen) metinler. */
-    public const OPTIONAL_TEXT_KEYS = ['lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'booking_widget_badge', 'whatsapp_message'];
+    public const OPTIONAL_TEXT_KEYS = ['lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
 
-    public function __construct(private readonly ContentCache $cache) {}
+    public function __construct(private readonly ContentCache $cache, private readonly BookingService $bookings) {}
 
     /**
      * Ana sayfa metinleri: kayıt (texts bloğu) config varsayılanının üstüne.
@@ -158,10 +157,9 @@ class SiteBlockService
             }
         }
 
-        foreach ((array) $all['room_types'] as $r) {
-            if (is_array($r) && ! empty($r['title'])) {
-                $titles[] = (string) $r['title'];
-            }
+        // Toplantı odası: gerçek oda kaydı varsa (booking engine) teklif formunda seçenek olarak sunulur.
+        if ($this->bookings->hasBookableRooms($website)) {
+            $titles[] = Room::KINDS['meeting'];
         }
 
         return array_values(array_unique($titles));
@@ -236,7 +234,6 @@ class SiteBlockService
                     'title' => $cells[0], 'desc' => $cells[1], 'price' => $cells[2],
                     'flagship' => in_array(mb_strtolower($cells[3]), ['evet', 'e', 'yes', '1'], true),
                 ]),
-                'room_types' => $this->cellsOrFail($cells, 3, $n, $expected, fn () => ['title' => $cells[0], 'meta' => $cells[1], 'price' => $cells[2]]),
                 'amenities' => $this->cellsOrFail($cells, 2, $n, $expected, fn () => ['title' => $cells[0], 'desc' => $cells[1]]),
                 'plans' => $this->cellsOrFail($cells, 2, $n, $expected, fn () => ['name' => $cells[0], 'price' => $cells[1]]),
                 'plan_rows' => count($cells) >= 2
@@ -318,7 +315,6 @@ class SiteBlockService
     {
         return match ($key) {
             'solutions' => [(string) $row['title'], (string) $row['desc'], (string) $row['price'], ! empty($row['flagship']) ? 'evet' : 'hayır'],
-            'room_types' => [(string) $row['title'], (string) $row['meta'], (string) $row['price']],
             'amenities' => [(string) $row['title'], (string) $row['desc']],
             'plans' => [(string) $row['name'], (string) $row['price']],
             'plan_rows' => array_merge([(string) $row['label']], array_map('strval', (array) $row['cells'])),

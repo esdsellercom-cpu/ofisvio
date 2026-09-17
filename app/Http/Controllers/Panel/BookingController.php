@@ -15,9 +15,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 
 /**
- * Müşteri rezervasyonları (booking v1) — şirket kapsamı. Yetki route'ta:
- * booking.view / booking.create / booking.cancel ,company. {booking}
- * scopeBindings ile {company}->bookings() üzerinden çözülür.
+ * Müşteri rezervasyonları (booking engine v2) — şirket kapsamı. Yetki route'ta:
+ * booking.view / booking.create / booking.cancel ,company. {booking} scopeBindings
+ * ile {company}->bookings() üzerinden çözülür. Onay politikası (ayar) durumu belirler;
+ * müşteri durum gönderemez.
  */
 class BookingController extends Controller
 {
@@ -33,6 +34,7 @@ class BookingController extends Controller
         return view('panel.bookings.index', [
             'company' => $company,
             'bookings' => $this->bookings->forCompany($company),
+            'policy' => $this->bookings->policy(null),
         ]);
     }
 
@@ -44,6 +46,7 @@ class BookingController extends Controller
         $roomId = (int) ($request->query('oda') ?? old('room_id') ?? ($first !== null ? $first->id : 0));
         $room = $rooms->firstWhere('id', $roomId) ?? $first;
         $day = $this->day((string) ($request->query('gun') ?? old('date') ?? Carbon::today()->toDateString()));
+        $policy = $this->bookings->policy($room?->location_id);
 
         return view('panel.bookings.create', [
             'company' => $company,
@@ -51,7 +54,9 @@ class BookingController extends Controller
             'room' => $room,
             'day' => $day,
             'slots' => $room ? $this->bookings->availability($room, $day) : [],
-            'horizonDays' => BookingService::HORIZON_DAYS,
+            'horizonDays' => $policy['max_advance_days'],
+            'policy' => $policy,
+            'badge' => $this->bookings->confirmationBadge($room?->location_id),
             'formAction' => route('panel.companies.bookings.store', $company),
             'indexUrl' => route('panel.companies.bookings.index', $company),
         ]);
@@ -68,13 +73,15 @@ class BookingController extends Controller
         }
 
         try {
-            $booking = $this->bookings->book($request->user(), $company, $room, ['date' => $v['date'], 'start' => $v['start'], 'hours' => (float) $v['hours'], 'note' => $v['note'] ?? null]);
+            $booking = $this->bookings->book($request->user(), $company, $room, ['date' => $v['date'], 'start' => $v['start'], 'hours' => (float) $v['hours'], 'note' => $v['note'] ?? null, 'participants' => (int) ($v['participants'] ?? 1), 'source' => 'panel']);
         } catch (DomainException $e) {
             return back()->withErrors(['start' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('panel.companies.bookings.index', $company)
-            ->with('status', $room->name.' · '.$booking->starts_at->format('d.m.Y H:i').'–'.$booking->ends_at->format('H:i').' rezerve edildi.');
+        $message = $booking->reference.' · '.$room->name.' · '.$booking->starts_at->format('d.m.Y H:i').'–'.$booking->ends_at->format('H:i');
+        $message .= $booking->isPending() ? ' — talep alındı, yönetici onayı bekliyor.' : ' rezerve edildi.';
+
+        return redirect()->route('panel.companies.bookings.index', $company)->with('status', $message);
     }
 
     public function cancel(Request $request, Company $company, Booking $booking): RedirectResponse

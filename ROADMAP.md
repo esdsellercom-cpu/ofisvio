@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **242/242** (Unit 10 · Feature 218 · Architecture 14) |
+| `php artisan test` | ✅ **244/244** (Unit 10 · Feature 220 · Architecture 14) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -326,6 +326,37 @@ organizasyon bağlamı istemez (Ofisvio şubesi tenant değildir); lokasyon kaps
 internal rol (resepsiyon) 2FA zorunluluğuna girer (`TenantContext::hasInternalRole`);
 kullanıcı yönetimi lokasyon kapsamlı rolü şubeyle atar (`UserAdminService::locationScopedRoles`).
 Kalan: ödeme/fatura bağlantısı (faz 19+), e-posta bildirimi, tekrarlayan rezervasyon.
+
+### 34. Booking Engine v2 · Bildirim Merkezi · Ayar Merkezi · Genel Denetim ✅ (17 Eylül 2026, master prompt)
+**Booking v2 (§4–11, §57):** `BookingStatus` durum makinesi (REQUESTED → PENDING_APPROVAL/CONFIRMED →
+CHECKED_IN → COMPLETED; REJECTED/CANCELLED/EXPIRED/NO_SHOW), `booking_status_history`, referans no
+(`OV-2026-000124`, önek ayardan), `uuid` ile müşteri durum sayfası. **Onay politikası ayardan**
+(`booking.auto_confirm`, min/max önceden, tampon, iptal süresi, talep süresi; lokasyon üzerine
+yazabilir); vitrin rozeti ("aynı gün teyit") ayardan türer. Uygunluk motoru bekleyen tutmaları da
+meşgul sayar, tampon uygular; çakışma işlem + kilit ile her koşulda reddedilir. **Vitrin akışı**
+`/rezervasyon`: lokasyon → gerçek odalar → canlı slotlar → form (KVKK, E.164 telefon, bot tuzağı)
+→ talep; ana sayfa toplantı bölümü gerçek odalardan (oda yoksa basılmaz). Personel:
+`/panel/rezervasyonlar` sekmeli (onay bekleyen/bugün/yaklaşan/…) + gerçek dashboard toplamları
+(doluluk, iptal oranı, gelmedi, tutar, ort. süre), detay sayfası (geçmiş, bildirimler, denetim izi)
+ve eylemler: onay/red (`booking.approve`), check-in/tamamlandı/gelmedi/iç not/yeniden planlama
+(`booking.manage`), iptal (JIT). `booking:expire-requests` zamanlayıcısı.
+
+**Bildirim merkezi (§12–19):** `notification_recipients` (kanal+adres DB'de, grup, lokasyon;
+telefon kodda yok — `ofisvio:bootstrap-notifications` env'den ilk alıcıyı kurar), `notification_rules`
+(olay × kanal × grup), `notification_templates` (panelden; teknik varsayılan kodda), `notification_logs`
+(deneme, sağlayıcı mesaj id, hata; secret yok). Akış: domain olayı (`BookingStatusChanged`, commit
+sonrası) → `NotificationService::dispatch` → kuyruk (`SendNotification`, üstel geri çekilme, tükenince
+süper yöneticiye uyarı) → kanal adaptörü → `WhatsAppProviderInterface` (`MetaWhatsAppAdapter`, Gateway
+üzerinden; şablon/düz metin) · `SmsProviderInterface` · e-posta · uygulama içi (zil + gelen kutusu).
+Sahte adaptör yok; testler HTTP sahtelemeyle gerçek adaptörü koşturur. Panel `/panel/bildirimler`
+(kurallar, alıcılar maskeli, şablonlar, günlük).
+
+**Ayar merkezi (§31–33):** `SettingsRegistry` (tip/varsayılan/kural/kapsam/açıklama kodda),
+`settings` tablosu, kalıtım lokasyon › şirket › organizasyon › kurulum › varsayılan; `/panel/ayarlar`
+(settings.view/manage; `?lokasyon=` üzerine yazma). **Genel denetim (§46):** `audit_logs`
+(actor/action/entity/before/after/ip/UA; secret maskeli) — booking, oda, ayar, bildirim değişiklikleri;
+`/panel/denetim?tur=general`. Matris: `booking.approve/manage`, `settings.view/manage`,
+`notification.view/manage`. Kalan: ödeme/fatura (faz 19+), takvim görünümü (gün/hafta), CMS page builder (faz 35).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

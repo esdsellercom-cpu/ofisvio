@@ -71,22 +71,42 @@ php artisan ofisvio:bootstrap-accounts
 `OFISVIO_TEST_CUSTOMER_*` yalnız test/staging içindir; production'da komut reddeder.
 Alternatif (interaktif): `php artisan ofisvio:make-admin <e-posta> --name="Ad Soyad"`.
 
+**Bildirim merkezi ilk kurulumu** — varsayılan kural seti + yönetici WhatsApp alıcısı
+(numara kodda/seeder'da YOKTUR; env'den okunur, sonrası panelden yönetilir):
+
+```env
+OFISVIO_BOOKING_NOTIFY_WHATSAPP=+90XXXXXXXXXX
+WHATSAPP_ENABLED=true
+WHATSAPP_ACCESS_TOKEN=<Meta Cloud API kalıcı token>
+WHATSAPP_PHONE_NUMBER_ID=<gönderen numara id>
+```
+
+```bash
+php artisan ofisvio:bootstrap-notifications
+```
+
+Meta Cloud API, 24 saatlik pencere dışındaki işletme mesajları için onaylı şablon
+ister: Ayarlar › WhatsApp › "Onaylı şablon adı" (tek gövde parametreli). Boşsa düz
+metin gönderilir (yalnız açık oturumda teslim olur). Sağlayıcı kapalıyken talepler
+yine kaydedilir; bildirim günlüğü "atlandı" yazar.
+
 Kayıt kapalıdır; hesap yalnız bu komutla ve panel davetleriyle açılır. Personel
 2FA'sız hiçbir panel ekranına giremez — ilk girişte `/panel/hesap/guvenlik`.
 
 ## 4. Süreçler
 
-**Cron (zamanlayıcı)** — dakikada bir; `content:publish-scheduled` buradan
-çalışır ve doctor'un okuduğu kalp atışını bırakır:
+**Cron (zamanlayıcı)** — dakikada bir; `content:publish-scheduled` (kalp atışı) ve
+`booking:expire-requests` (onaysız talepler süresi dolunca EXPIRED) buradan çalışır:
 
 ```
 * * * * * cd /var/www/ofisvio && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-**Kuyruk işçisi** (supervisor/systemd):
+**Kuyruk işçisi** (supervisor/systemd) — bildirimler (WhatsApp/e-posta/SMS/uygulama içi)
+kuyruktan gider; işçi yoksa `queued` kalır, rezervasyon yine kaydedilir:
 
 ```
-php artisan queue:work --tries=3 --max-time=3600
+php artisan queue:work --tries=5 --max-time=3600
 ```
 
 **Doctor'ı izleme**: `php artisan ofisvio:doctor --json` çıktısındaki `ok`

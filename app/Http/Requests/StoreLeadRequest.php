@@ -17,7 +17,8 @@ class StoreLeadRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'kind' => ['required', Rule::in(['quote', 'booking'])],
+            // Ön rezervasyon (booking) artık lead değil: gerçek rezervasyon akışı (/rezervasyon). Eski kayıtlar panelde okunur.
+            'kind' => ['required', Rule::in(['quote'])],
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email:rfc', 'max:190'],
             'phone' => ['nullable', 'string', 'max:32'],

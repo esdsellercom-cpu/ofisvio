@@ -15,7 +15,7 @@
     @else
         @php($selectedStart = old('start', collect($slots)->first(fn ($s) => ! $s['taken'] && ! $s['past'])['start'] ?? ''))
         <div class="panel" data-booking>
-            <p class="eyebrow">1 · Oda ve gün</p>
+            <p class="eyebrow">1 · Oda ve gün · {{ $badge }}</p>
             @include('panel.bookings.partials.slot-picker', ['pickerUrl' => route('panel.companies.bookings.create', $company)])
 
             @if ($room)

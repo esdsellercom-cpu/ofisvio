@@ -97,7 +97,8 @@ class ApiRouteConsistencyTest extends TestCase
             }
 
             // Hesap/context ekranları dışındaki her panel rotası permission ya da tenant taşır.
-            $exempt = str_starts_with($uri, 'panel/hesap') || str_starts_with($uri, 'panel/organizasyon') || $uri === 'panel';
+            // Muaf: hesap, organizasyon seçimi, kök; gelen kutusu (kullanıcının KENDİ uygulama içi bildirimleri — sorgu notifiable ile sınırlı).
+            $exempt = str_starts_with($uri, 'panel/hesap') || str_starts_with($uri, 'panel/organizasyon') || str_starts_with($uri, 'panel/bildirimler/gelen') || $uri === 'panel';
             $hasPermission = collect($middleware)->contains(fn ($m) => is_string($m) && str_starts_with($m, 'permission:'));
             $hasTenant = in_array('tenant', $middleware, true);
 

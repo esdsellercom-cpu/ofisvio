@@ -65,6 +65,18 @@
     </div>
 @endif
 
+@canany(['notification.view', 'notification.manage', 'settings.view', 'settings.manage'])
+    <div class="panel-nav__group">
+        <span class="panel-nav__label">Yönetim</span>
+        @canany(['notification.view', 'notification.manage'])
+            <a href="{{ route('panel.notifications.index') }}" {!! $active('panel.notifications.index') !!}>Bildirim merkezi</a>
+        @endcanany
+        @canany(['settings.view', 'settings.manage'])
+            <a href="{{ route('panel.settings.index') }}" {!! $active('panel.settings.*') !!}>Ayarlar</a>
+        @endcanany
+    </div>
+@endcanany
+
 @canany(['cache.view', 'user.manage', 'audit.view', 'performance.view'])
     <div class="panel-nav__group">
         <span class="panel-nav__label">Sistem</span>
@@ -87,4 +99,5 @@
     <span class="panel-nav__label">Hesap</span>
     <a href="{{ route('panel.context.select') }}" {!! $active('panel.context.*') !!}>Organizasyonlar</a>
     <a href="{{ route('panel.account') }}" {!! $active('panel.account*') !!}>Hesabım</a>
+    <a href="{{ route('panel.notifications.inbox') }}" {!! $active('panel.notifications.inbox') !!}>Bildirimler @if ($unreadNotifications > 0)<span class="badge badge--warn">{{ $unreadNotifications }}</span>@endif</a>
 </div>

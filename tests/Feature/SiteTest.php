@@ -187,42 +187,7 @@ class SiteTest extends TestCase
         $this->assertSame(0, Lead::count());
     }
 
-    // ---------------------------------------------------------------
-    // Ön rezervasyon
-    // ---------------------------------------------------------------
-
-    #[Test]
-    public function on_rezervasyon_talebi_kaydedilir(): void
-    {
-        $this->post(route('site.leads.store'), [
-            'kind' => 'booking',
-            'name' => 'Mehmet Yıldız',
-            'email' => 'mehmet@sirket.com',
-            'location_id' => Location::published()->first()->id,
-            'solution' => 'Toplantı Odası',
-            'requested_date' => now()->addDay()->toDateString(),
-            'requested_slot' => '10:00',
-            'kvkk' => '1',
-        ])->assertRedirect();
-
-        $lead = Lead::firstOrFail();
-
-        $this->assertSame('booking', $lead->kind);
-        $this->assertSame('10:00', $lead->requested_slot);
-    }
-
-    #[Test]
-    public function gecmis_tarihe_rezervasyon_alinmaz(): void
-    {
-        $this->post(route('site.leads.store'), [
-            'kind' => 'booking',
-            'name' => 'Mehmet Yıldız',
-            'email' => 'mehmet@sirket.com',
-            'requested_date' => now()->subDay()->toDateString(),
-            'requested_slot' => '10:00',
-            'kvkk' => '1',
-        ])->assertSessionHasErrors('requested_date');
-    }
+    // Ön rezervasyon artık lead değil: gerçek rezervasyon akışı BookingTest'te (/rezervasyon).
 
     #[Test]
     public function lead_tenant_scope_tasimaz(): void

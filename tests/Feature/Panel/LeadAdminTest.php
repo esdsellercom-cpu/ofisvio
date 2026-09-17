@@ -66,9 +66,10 @@ class LeadAdminTest extends TestCase
         $this->actingAs($owner)->get('/panel/talepler')->assertForbidden();
         $this->actingAs($owner)->put("/panel/talepler/{$lead->id}", ['status' => 'won'])->assertForbidden();
 
-        // Ön rezervasyon türü lokasyonla listelenir.
+        // Eski ön rezervasyon kayıtları (booking engine öncesi) panelde okunur; form artık bu türü ÜRETMEZ (gerçek rezervasyon akışı).
         $location = Location::published()->firstOrFail();
-        $this->post('/talep', ['kind' => 'booking', 'name' => 'Mehmet Kaya', 'email' => 'mehmet@ornek.com', 'location_id' => $location->id, 'requested_date' => now()->addDay()->toDateString(), 'requested_slot' => '10:00', 'kvkk' => '1'])->assertRedirect();
+        $this->post('/talep', ['kind' => 'booking', 'name' => 'Mehmet Kaya', 'email' => 'mehmet@ornek.com', 'location_id' => $location->id, 'kvkk' => '1'])->assertSessionHasErrors('kind');
+        Lead::create(['kind' => 'booking', 'name' => 'Mehmet Kaya', 'email' => 'mehmet@ornek.com', 'location_id' => $location->id, 'requested_date' => now()->addDay()->toDateString(), 'requested_slot' => '10:00', 'consented_at' => now(), 'status' => 'new']);
         $this->actingAs($admin)->get('/panel/talepler?kind=booking')->assertOk()->assertSee('Mehmet Kaya')->assertSee($location->name);
     }
 }

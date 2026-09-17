@@ -52,7 +52,15 @@ return [
             'enabled' => (bool) env('SMS_ENABLED', false),
             'base_url' => env('SMS_BASE_URL'),
             'secrets' => ['api_key' => env('SMS_API_KEY')],
+            'send_path' => env('SMS_SEND_PATH', '/messages'),
             'webhook_secret' => env('SMS_WEBHOOK_SECRET'),
+        ],
+        'whatsapp' => [
+            'label' => 'WhatsApp (Meta Cloud API)',
+            'enabled' => (bool) env('WHATSAPP_ENABLED', false),
+            'base_url' => env('WHATSAPP_BASE_URL', 'https://graph.facebook.com/v20.0'),
+            'secrets' => ['access_token' => env('WHATSAPP_ACCESS_TOKEN'), 'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID')],
+            'webhook_secret' => env('WHATSAPP_WEBHOOK_SECRET'),
         ],
         'efatura' => [
             'label' => 'e-Fatura',

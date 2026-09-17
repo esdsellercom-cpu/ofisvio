@@ -18,7 +18,7 @@
             <select class="control" name="kind">
                 <option value="">Tümü</option>
                 <option value="quote" @selected(($filters['kind'] ?? '') === 'quote')>Teklif</option>
-                <option value="booking" @selected(($filters['kind'] ?? '') === 'booking')>Ön rezervasyon</option>
+                <option value="booking" @selected(($filters['kind'] ?? '') === 'booking')>Ön rezervasyon (eski kayıtlar)</option>
             </select>
         </label>
         <label class="field" style="flex:0 1 180px"><span class="label">Durum</span>

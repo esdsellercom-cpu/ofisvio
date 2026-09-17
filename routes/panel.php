@@ -29,10 +29,12 @@ use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\MediaController;
 use App\Http\Controllers\Panel\MembershipController;
+use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SeoController;
+use App\Http\Controllers\Panel\SettingsController;
 use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
@@ -80,10 +82,41 @@ Route::middleware('auth')->prefix('panel')->name('panel.')->group(function () {
             Route::get('/', [BookingDeskController::class, 'index'])->middleware('permission:booking.view')->name('index');
             Route::get('/lokasyon/{location}', [BookingDeskController::class, 'location'])->middleware('permission:booking.view|booking.admin_override,location')->name('location');
             Route::post('/lokasyon/{location}', [BookingDeskController::class, 'store'])->middleware('permission:booking.create|booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.store');
-            Route::post('/lokasyon/{location}/{booking}/iptal', [BookingDeskController::class, 'cancel'])->where('booking', '[0-9]+')
-                ->middleware('permission:booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.cancel');
             Route::post('/lokasyon/{location}/jit', [BookingDeskController::class, 'requestJit'])
                 ->middleware(['permission:booking.view|booking.admin_override,location', 'throttle:jit-request'])->name('location.jit');
+
+            // Detay + eylemler (§10): onay/red booking.approve; giriş/tamamlandı/gelmedi/not/yeniden planlama
+            // booking.manage; iptal yalnız admin_override (JIT). Hepsi lokasyon kapsamlı — kayıt lokasyona ait olmalı.
+            Route::prefix('/lokasyon/{location}/{booking}')->where(['booking' => '[0-9]+'])->group(function () {
+                $view = 'permission:booking.view|booking.admin_override,location';
+                Route::get('/', [BookingDeskController::class, 'show'])->middleware($view)->name('show');
+                Route::post('/onayla', [BookingDeskController::class, 'approve'])->middleware('permission:booking.approve,location')->name('approve');
+                Route::post('/reddet', [BookingDeskController::class, 'reject'])->middleware('permission:booking.approve,location')->name('reject');
+                Route::post('/giris', [BookingDeskController::class, 'checkIn'])->middleware('permission:booking.manage,location')->name('checkin');
+                Route::post('/tamamla', [BookingDeskController::class, 'complete'])->middleware('permission:booking.manage,location')->name('complete');
+                Route::post('/gelmedi', [BookingDeskController::class, 'noShow'])->middleware('permission:booking.manage,location')->name('noshow');
+                Route::put('/not', [BookingDeskController::class, 'note'])->middleware('permission:booking.manage,location')->name('note');
+                Route::put('/planla', [BookingDeskController::class, 'reschedule'])->middleware('permission:booking.manage,location')->name('reschedule');
+                Route::post('/iptal', [BookingDeskController::class, 'cancel'])
+                    ->middleware('permission:booking.admin_override,location,'.BookingDeskController::RESOURCE.',location')->name('location.cancel');
+            });
+        });
+
+        // Ayar merkezi (§31–33): settings.view görür, settings.manage yazar; ?lokasyon= üzerine yazma.
+        Route::get('/ayarlar', [SettingsController::class, 'index'])->middleware('permission:settings.view|settings.manage')->name('settings.index');
+        Route::put('/ayarlar', [SettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
+
+        // Bildirim merkezi (§16–18): kurallar, alıcılar, şablonlar, günlük; gelen kutusu her kullanıcı.
+        Route::prefix('bildirimler')->name('notifications.')->group(function () {
+            Route::get('/gelen', [NotificationController::class, 'inbox'])->name('inbox');
+            Route::post('/gelen/okundu', [NotificationController::class, 'markRead'])->name('inbox.read');
+            Route::get('/', [NotificationController::class, 'index'])->middleware('permission:notification.view|notification.manage')->name('index');
+            Route::put('/kurallar', [NotificationController::class, 'saveRules'])->middleware('permission:notification.manage')->name('rules');
+            Route::post('/alicilar', [NotificationController::class, 'storeRecipient'])->middleware('permission:notification.manage')->name('recipients.store');
+            Route::put('/alicilar/{recipient}', [NotificationController::class, 'updateRecipient'])->middleware('permission:notification.manage')->name('recipients.update');
+            Route::delete('/alicilar/{recipient}', [NotificationController::class, 'destroyRecipient'])->middleware('permission:notification.manage')->name('recipients.destroy');
+            Route::post('/alicilar/{recipient}/durum', [NotificationController::class, 'toggleRecipient'])->middleware('permission:notification.manage')->name('recipients.toggle');
+            Route::put('/sablonlar', [NotificationController::class, 'saveTemplate'])->middleware('permission:notification.manage|notification_template.manage')->name('templates');
         });
 
         // Denetim kaydı (audit.view; global, salt okunur).

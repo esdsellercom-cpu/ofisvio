@@ -36,23 +36,6 @@
                 "flagship": false
             }
         ],
-        "room_types": [
-            {
-                "title": "Görüşme Odası",
-                "meta": "2–4 kişi · ekran, beyaz tahta",
-                "price": "₺420/saat"
-            },
-            {
-                "title": "Toplantı Odası",
-                "meta": "6–14 kişi · video konferans",
-                "price": "₺780/saat"
-            },
-            {
-                "title": "Etkinlik Katı",
-                "meta": "40–120 kişi · sahne, ses, ikram",
-                "price": "₺9.500/gün"
-            }
-        ],
         "amenities": [
             {
                 "title": "Fiber ve yedek hat",

@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             LocationSeeder::class,
             WebsiteSeeder::class,
             SiteBlockSeeder::class,
+            NotificationRuleSeeder::class,
         ]);
     }
 }

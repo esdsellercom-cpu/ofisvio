@@ -103,6 +103,22 @@ booking,booking.create,reception,location,no,no,
 booking,booking.view,operations_admin,global,no,no,
 booking,booking.admin_override,operations_admin,global,yes,no,resource availability engine'i manuel gecersiz kilma
 booking,booking.admin_override,super_admin,global,yes,no,
+booking,booking.view,location_manager,location,no,no,
+booking,booking.approve,operations_admin,global,no,no,talep onay/red (booking engine v2)
+booking,booking.approve,location_manager,location,no,no,
+booking,booking.manage,operations_admin,global,no,no,giris/tamamlandi/gelmedi/yeniden planlama/ic not
+booking,booking.manage,location_manager,location,no,no,
+booking,booking.manage,reception,location,no,no,masada giris/tamamlandi/gelmedi
+settings,settings.view,system_admin,global,no,no,ayar merkezi
+settings,settings.view,operations_admin,global,no,no,
+settings,settings.view,super_admin,global,no,no,
+settings,settings.manage,system_admin,global,no,no,
+settings,settings.manage,super_admin,global,no,no,
+notifications,notification.view,system_admin,global,no,no,bildirim merkezi: kural/alici/sablon/gunluk
+notifications,notification.view,operations_admin,global,no,no,
+notifications,notification.view,super_admin,global,no,no,
+notifications,notification.manage,system_admin,global,no,no,
+notifications,notification.manage,super_admin,global,no,no,
 cargo,cargo.view,owner,company,no,no,
 cargo,cargo.view,company_admin,company,no,no,
 cargo,cargo.view,employee,company,no,no,
