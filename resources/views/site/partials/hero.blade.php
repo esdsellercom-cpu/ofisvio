@@ -65,11 +65,11 @@
             <img src="{{ $currentWebsite->hero->url() }}" alt="{{ $currentWebsite->hero->alt ?? '' }}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block"{!! ofv_editor() ? ' data-ofv-site-image="hero"' : '' !!}>
         @elseif ($singleLocation?->cover)
             {{-- Tek lokasyon: site görseli yoksa şubenin kapağı hero görselidir. --}}
-            @include('site.partials.picture', ['media' => $singleLocation->cover, 'sizes' => '(max-width: 640px) 100vw, 560px', 'eager' => true, 'style' => 'width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block'])
+            @include('site.partials.picture', ['media' => $singleLocation->cover, 'sizes' => '(max-width: 640px) 100vw, 560px', 'eager' => true, 'style' => 'width:100%;aspect-ratio:4/5;max-height:min(68vh,600px);object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block'])
         @else
             {{-- Medya yoksa marka illüstrasyonu (faz 53); editörde tıklanınca site görseli yüklenir. --}}
             <div style="position:relative">
-                @include('site.partials.illustration', ['key' => 'hero', 'eager' => true, 'alt' => \App\Site\Illustrations::alt('hero', $singleLocation->city ?? null), 'style' => 'width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block'])
+                @include('site.partials.illustration', ['key' => 'hero', 'eager' => true, 'alt' => \App\Site\Illustrations::alt('hero', $singleLocation->city ?? null), 'style' => 'width:100%;aspect-ratio:4/5;max-height:min(68vh,600px);object-fit:cover;object-position:center top;border-radius:20px;border:1px solid var(--line);display:block'])
                 @if (ofv_editor())<span class="shot__note" style="position:absolute;left:22px;bottom:22px" data-ofv-site-image="hero">site görseli yükle · 1200×1500</span>@endif
             </div>
         @endif
