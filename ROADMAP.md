@@ -893,6 +893,11 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   da o olur. Frontend'de şehir/sayı sabitlenmedi.
 - Çözüm ve Kişi alanları aynen; forma aktarım artık kart listesinden bağımsız `initHeroFilter` (tek lokasyonda da çalışır).
 
+### 56b. Şube seed'i üretimden çıkarıldı ✅ (18 Eylül 2026)
+- `DatabaseSeeder` artık `LocationSeeder`'ı çağırmaz: 14 örnek şube (İstanbul/Ankara/İzmir…) yalnız test fixture'ıdır; üretime
+  seed edilseydi vitrin çoklu lokasyon moduna düşüyordu. Gerçek şube panelden açılır (Lokasyonlar › Yeni); geliştirme DB'si
+  Konya-tek şube durumuna çekildi. `Location::directionsUrl` sokak adresi yoksa (yalnız şehir) bağlantı üretmez.
+
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 

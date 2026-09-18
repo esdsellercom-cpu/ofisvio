@@ -17,6 +17,9 @@ use Illuminate\Support\Str;
  *
  * updateOrCreate: elle düzenlenmiş bir şubenin verisi re-seed'de kaybolmasın diye
  * slug üzerinden eşleştirilir.
+ *
+ * DatabaseSeeder bunu ÇAĞIRMAZ (faz 56b): gerçek şubeler panelden açılır; buradaki 14 örnek şube test fixture'ıdır
+ * (testler açıkça seed eder). Üretimde çalıştırılırsa vitrin çoklu lokasyon moduna geçer.
  */
 class LocationSeeder extends Seeder
 {

@@ -17,7 +17,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolePermissionSeeder::class,
             ServiceSeeder::class,
-            LocationSeeder::class,
+            // LocationSeeder BURADA ÇAĞRILMAZ (faz 56b): şubeler işletme verisidir ve panelden açılır (Lokasyonlar › Yeni).
+            // Örnek 14 şube yalnız test fixture'ıdır; üretime seed edilirse vitrin çoklu lokasyon moduna düşer.
             WebsiteSeeder::class,
             SiteBlockSeeder::class,
             NotificationRuleSeeder::class,

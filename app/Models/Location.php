@@ -88,7 +88,8 @@ class Location extends Model
             return 'https://www.google.com/maps/dir/?api=1&destination='.$this->latitude.','.$this->longitude;
         }
 
-        $address = $this->fullAddress();
+        // Yalnız şehir adıyla (sokak adresi girilmemiş) yol tarifi verilmez — anlamsız hedef üretmemek için.
+        $address = (string) $this->address_line !== '' ? $this->fullAddress() : '';
 
         return $address === '' ? null : 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($address);
     }
