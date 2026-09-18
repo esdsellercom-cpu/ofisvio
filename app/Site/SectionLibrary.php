@@ -2,6 +2,8 @@
 
 namespace App\Site;
 
+use App\Support\ActivationJourney;
+
 /**
  * Bölüm kütüphanesi (master prompt §24–29 + görsel editör faz 49): ana sayfaya eklenebilen bölüm tipleri,
  * her tipin ayar alanları (panel formu ve editör paneli buradan türer), veri kaynağı ve paletteki grubu.
@@ -42,11 +44,26 @@ final class SectionLibrary
         'cta' => ['action' => 'page', 'target' => 'franchise', 'label' => 'Franchise Başvurusu'],
     ];
 
+    /**
+     * Nasıl çalışır varsayılanı: adımlar şirket aktivasyon akışından (ActivationJourney — durum makinesine bağlı, uydurma yok),
+     * bilgi kutusu metni. Ayarsız (eski yayın) bölüm de bunu basar; admin adımları editörde değiştirebilir.
+     *
+     * @return array{steps: list<string>, note: string, cta: array{action: string, target: string, label: string}}
+     */
+    public static function journeyDefaults(): array
+    {
+        return [
+            'steps' => array_map(fn (array $step) => '| '.$step['title'].' | '.$step['desc'], ActivationJourney::steps()),
+            'note' => 'Belgeleriniz yalnızca inceleme için açılır. Kimlik ve sicil belgelerinizin içeriğine erişim, gerekçe kaydı tutulan ve süresi dolan bir yetkiyle sınırlıdır; ekibimiz belgeyi görmeden de başvurunuzun durumunu takip edebilir.',
+            'cta' => ['action' => 'none', 'target' => '', 'label' => ''],
+        ];
+    }
+
     /** Palet grupları (editör sol paneli). */
     public const GROUPS = ['temel' => 'Temel', 'icerik' => 'İçerik', 'yerlesim' => 'Yerleşim', 'veri' => 'Gerçek veri'];
 
     /**
-     * @return array<string, array{label: string, description: string, source: string, group: string, icon: string, fields: array<string, array{label: string, type: string, options?: array<string, string>, hint?: string}>, unique?: bool, texts?: array<string, string>}>
+     * @return array<string, array{label: string, description: string, source: string, group: string, icon: string, fields: array<string, array{label: string, type: string, options?: array<string, string>, hint?: string, columns?: list<string>}>, unique?: bool, texts?: array<string, string>}>
      */
     public static function types(): array
     {
@@ -57,12 +74,12 @@ final class SectionLibrary
             'hero' => ['label' => 'Hero', 'description' => 'Başlık, açıklama, süzgeç ve ana görsel.', 'source' => 'Metinler (Ana sayfa) + lokasyonlar + site görseli', 'group' => 'icerik', 'icon' => '▣', 'unique' => true, 'fields' => ['eyebrow' => ['label' => 'Üst etiket (boş: metinler)', 'type' => 'text'], 'title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (boş: metinler)', 'type' => 'textarea'], 'cta' => $cta], 'texts' => ['eyebrow' => 'hero_eyebrow', 'lede' => 'hero_lede']],
             'stats' => ['label' => 'İstatistikler', 'description' => 'Lokasyon/şehir/bölge sayıları — veritabanından.', 'source' => 'Lokasyonlar (canlı sayım)', 'group' => 'veri', 'icon' => '▮▮', 'unique' => true, 'fields' => []],
             'solutions' => ['label' => 'Çözümler (hizmetler)', 'description' => 'Hizmet kartları (Hizmetler modülünden).', 'source' => 'Hizmetler modülü (aktif hizmetler)', 'group' => 'veri', 'icon' => '◫', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (boş: metinler)', 'type' => 'textarea']], 'texts' => ['title' => 'solutions_title', 'lede' => 'solutions_lede']],
-            'journey' => ['label' => 'Nasıl çalışır', 'description' => 'Aktivasyon adımları.', 'source' => 'Şirket aktivasyon durum makinesi', 'group' => 'veri', 'icon' => '➊', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (boş: metinler)', 'type' => 'textarea']], 'texts' => ['title' => 'journey_title', 'lede' => 'journey_lede']],
+            'journey' => ['label' => 'Nasıl çalışır', 'description' => 'Adımlar (ikon/başlık/açıklama, sürükle-bırak), adım görselleri, bilgi kutusu ve CTA.', 'source' => 'Bölüm ayarı; varsayılan adımlar şirket aktivasyon akışından', 'group' => 'icerik', 'icon' => '➊', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (boş: metinler)', 'type' => 'textarea'], 'steps' => ['label' => 'Adımlar', 'type' => 'lines', 'columns' => ['İkon', 'Başlık', 'Açıklama'], 'hint' => 'Sıra numarası otomatik; ikon emoji ya da kısa metin, boş bırakılabilir.'], 'images' => ['label' => 'Adım görselleri (sırayla, isteğe bağlı)', 'type' => 'media_list'], 'note' => ['label' => 'Bilgi kutusu (boş: gizle)', 'type' => 'textarea'], 'cta' => $cta], 'texts' => ['title' => 'journey_title', 'lede' => 'journey_lede']],
             'locations' => ['label' => 'Lokasyonlar', 'description' => 'Yayındaki şubeler, bölge sekmeleri.', 'source' => 'Lokasyonlar (yayında + aktif)', 'group' => 'veri', 'icon' => '◎', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text']], 'texts' => ['title' => 'locations_title']],
             'meeting' => ['label' => 'Toplantı & Etkinlik', 'description' => 'Gerçek odalar + rezervasyon aracı; oda yoksa basılmaz.', 'source' => 'Odalar (booking engine) + onay politikası', 'group' => 'veri', 'icon' => '◧', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (boş: metinler)', 'type' => 'textarea']], 'texts' => ['title' => 'meeting_title', 'lede' => 'meeting_lede']],
             'amenities' => ['label' => 'Dahil olanlar', 'description' => 'Olanak listesi.', 'source' => 'Vitrin bloğu: amenities', 'group' => 'veri', 'icon' => '✓', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text']], 'texts' => ['title' => 'amenities_title']],
             'pricing' => ['label' => 'Üyelikler', 'description' => 'Plan karşılaştırma tablosu.', 'source' => 'Vitrin blokları: plans, plan_rows, pricing_note', 'group' => 'veri', 'icon' => '▤', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text']], 'texts' => ['title' => 'pricing_title']],
-            'blog' => ['label' => 'Blog', 'description' => 'Son yayınlanan yazılar; yazı yoksa basılmaz.', 'source' => 'CMS yazıları (yayında)', 'group' => 'veri', 'icon' => '▭', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'limit' => ['label' => 'Adet (1–6)', 'type' => 'text']], 'texts' => ['title' => 'blog_title']],
+            'blog' => ['label' => 'Blog', 'description' => 'Son yayınlanan yazılar; yazı yoksa basılmaz.', 'source' => 'CMS yazıları (yayında)', 'group' => 'veri', 'icon' => '▭', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (isteğe bağlı)', 'type' => 'textarea'], 'limit' => ['label' => 'Adet (1–6)', 'type' => 'text'], 'category' => ['label' => 'Kategori (boş: tümü)', 'type' => 'text', 'hint' => 'Yazı kategorisinin adı; yalnız o kategorideki yazılar listelenir.']], 'texts' => ['title' => 'blog_title']],
             'lead_form' => ['label' => 'İletişim / Teklif formu', 'description' => 'Teklif/ön talep formu ve vaatler.', 'source' => 'Metinler + çözüm seçenekleri', 'group' => 'icerik', 'icon' => '✉', 'unique' => true, 'fields' => ['title' => ['label' => 'Başlık (boş: metinler)', 'type' => 'text'], 'lede' => ['label' => 'Açıklama (boş: metinler)', 'type' => 'textarea']], 'texts' => ['title' => 'lead_title', 'lede' => 'lead_lede']],
 
             // ---- Statik içerik
@@ -74,17 +91,17 @@ final class SectionLibrary
             'spacer' => ['label' => 'Boşluk', 'description' => 'Dikey boşluk (px).', 'source' => 'Bölüm ayarı (statik)', 'group' => 'yerlesim', 'icon' => '↕', 'fields' => ['height' => ['label' => 'Yükseklik (px)', 'type' => 'number']]],
             'columns' => ['label' => 'Kolonlar (satır)', 'description' => 'Yan yana 2–4 kolon; her kolon Markdown. Cihaz başına kolon sayısı tasarım sekmesinden.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'yerlesim', 'icon' => '▦', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'col1' => ['label' => 'Kolon 1 (Markdown)', 'type' => 'markdown'], 'col2' => ['label' => 'Kolon 2 (Markdown)', 'type' => 'markdown'], 'col3' => ['label' => 'Kolon 3 (Markdown)', 'type' => 'markdown'], 'col4' => ['label' => 'Kolon 4 (Markdown)', 'type' => 'markdown']]],
             'content' => ['label' => 'İçerik bloğu', 'description' => 'CMS stüdyo blokları (:::hero, :::features, [youtube:…] …) — tam Markdown.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'yerlesim', 'icon' => '⧉', 'fields' => ['body' => ['label' => 'Gövde (Markdown + bloklar)', 'type' => 'markdown']]],
-            'features' => ['label' => 'Özellikler', 'description' => 'İkon + başlık + açıklama kartları.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '✦', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'lede' => ['label' => 'Açıklama', 'type' => 'textarea'], 'items' => ['label' => 'Maddeler (her satır: İkon | Başlık | Açıklama | /bağlantı)', 'type' => 'lines', 'hint' => 'İkon: emoji ya da tek harf; bağlantı isteğe bağlı.']]],
-            'testimonials' => ['label' => 'Referanslar', 'description' => 'Müşteri görüşleri.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '❝', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'items' => ['label' => 'Görüşler (her satır: Ad | Şirket/Rol | Görüş)', 'type' => 'lines']]],
+            'features' => ['label' => 'Özellikler', 'description' => 'İkon + başlık + açıklama kartları.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '✦', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'lede' => ['label' => 'Açıklama', 'type' => 'textarea'], 'items' => ['label' => 'Maddeler', 'type' => 'lines', 'columns' => ['İkon', 'Başlık', 'Açıklama', 'Bağlantı'], 'hint' => 'İkon: emoji ya da tek harf; bağlantı isteğe bağlı (/yol, #bolum, https://).']]],
+            'testimonials' => ['label' => 'Referanslar', 'description' => 'Müşteri görüşleri.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '❝', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'items' => ['label' => 'Görüşler', 'type' => 'lines', 'columns' => ['Ad Soyad', 'Şirket / Rol', 'Görüş']]]],
             'gallery' => ['label' => 'Galeri', 'description' => 'Medya kütüphanesinden görsel ızgarası.', 'source' => 'Medya kütüphanesi', 'group' => 'icerik', 'icon' => '▦', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'media' => ['label' => 'Görseller', 'type' => 'media_list'], 'ratio' => ['label' => 'Oran', 'type' => 'select', 'options' => ['4/3' => '4:3', '1/1' => '1:1', '16/9' => '16:9', '3/4' => '3:4']]]],
             'map' => ['label' => 'Harita', 'description' => 'Google Haritalar gömme (yalnız izinli kaynak).', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '⌖', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'embed' => ['label' => 'Gömme adresi (https://www.google.com/maps/embed?…)', 'type' => 'text'], 'address' => ['label' => 'Adres metni', 'type' => 'text']]],
-            'faq' => ['label' => 'Sık sorulanlar', 'description' => 'Soru–cevap listesi (schema.org FAQPage).', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '?', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'items' => ['label' => 'Sorular (her satır: Soru | Cevap)', 'type' => 'lines']]],
-            'franchise' => ['label' => 'Franchise / İş ortaklığı', 'description' => 'Markayı birlikte büyütme daveti + başvuru CTA\'sı (/franchise).', 'source' => 'Bölüm ayarı (statik) + franchise başvuru sayfası', 'group' => 'icerik', 'icon' => '⬡', 'unique' => true, 'fields' => ['eyebrow' => ['label' => 'Üst etiket', 'type' => 'text'], 'title' => ['label' => 'Başlık', 'type' => 'text'], 'lede' => ['label' => 'Açıklama', 'type' => 'textarea'], 'points' => ['label' => 'Öne çıkanlar (her satır bir madde)', 'type' => 'lines'], 'cta' => $cta]],
+            'faq' => ['label' => 'Sık sorulanlar', 'description' => 'Soru–cevap listesi (schema.org FAQPage).', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '?', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'items' => ['label' => 'Sorular', 'type' => 'lines', 'columns' => ['Soru', 'Cevap']]]],
+            'franchise' => ['label' => 'Franchise / İş ortaklığı', 'description' => 'Markayı birlikte büyütme daveti + başvuru CTA\'sı (/franchise).', 'source' => 'Bölüm ayarı (statik) + franchise başvuru sayfası', 'group' => 'icerik', 'icon' => '⬡', 'unique' => true, 'fields' => ['eyebrow' => ['label' => 'Üst etiket', 'type' => 'text'], 'title' => ['label' => 'Başlık', 'type' => 'text'], 'lede' => ['label' => 'Açıklama', 'type' => 'textarea'], 'points' => ['label' => 'Öne çıkanlar', 'type' => 'lines', 'columns' => ['Madde']], 'cta' => $cta]],
             'cta_banner' => ['label' => 'CTA şeridi', 'description' => 'Tek mesaj + düğme.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '➤', 'fields' => ['title' => ['label' => 'Mesaj', 'type' => 'text'], 'lede' => ['label' => 'Alt metin', 'type' => 'text'], 'cta' => $cta, 'style' => ['label' => 'Görünüm', 'type' => 'select', 'options' => ['dark' => 'Koyu şerit', 'light' => 'Açık kart']]]],
         ];
     }
 
-    /** @return array{label: string, description: string, source: string, group: string, icon: string, fields: array<string, array{label: string, type: string, options?: array<string, string>, hint?: string}>, unique?: bool, texts?: array<string, string>} */
+    /** @return array{label: string, description: string, source: string, group: string, icon: string, fields: array<string, array{label: string, type: string, options?: array<string, string>, hint?: string, columns?: list<string>}>, unique?: bool, texts?: array<string, string>} */
     public static function type(string $key): array
     {
         $types = self::types();
@@ -120,6 +137,7 @@ final class SectionLibrary
             'faq' => ['title' => 'Sık sorulanlar', 'items' => ['Soru? | Cevap']],
             'cta_banner' => ['title' => 'Mesaj', 'cta' => ['action' => 'lead_form', 'target' => '', 'label' => 'Teklif al'], 'style' => 'dark'],
             'franchise' => self::FRANCHISE_DEFAULTS,
+            'journey' => self::journeyDefaults(),
             'image' => ['fit' => 'cover', 'ratio' => 'auto', 'width' => '100'],
             'gallery' => ['ratio' => '4/3'],
             'map' => ['title' => 'Harita'],

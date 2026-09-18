@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **330/330** (Unit 12 · Feature 302 · Architecture 16) |
+| `php artisan test` | ✅ **332/332** (Unit 12 · Feature 304 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -897,6 +897,20 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
 - `DatabaseSeeder` artık `LocationSeeder`'ı çağırmaz: 14 örnek şube (İstanbul/Ankara/İzmir…) yalnız test fixture'ıdır; üretime
   seed edilseydi vitrin çoklu lokasyon moduna düşüyordu. Gerçek şube panelden açılır (Lokasyonlar › Yeni); geliştirme DB'si
   Konya-tek şube durumuna çekildi. `Location::directionsUrl` sokak adresi yoksa (yalnız şehir) bağlantı üretmez.
+
+### 57. Görsel editör kapsama: "Nasıl çalışır" tam düzenlenebilir, tekrarlı madde düzenleyici, kapsama denetimi ✅ (18 Eylül 2026)
+- **Kök neden**: Nasıl çalışır bölümü adımlarını koddan (`ActivationJourney`) basıyordu; editörde yalnız başlık alanı vardı, açıklama
+  satır içi işaretli değildi, bilgi kutusu görünümde sabitti. Adımlar/görseller/bilgi kutusu/CTA bölüm ayarına taşındı
+  (`steps` satırları "İkon | Başlık | Açıklama", `images` medya listesi, `note`, `cta`); varsayılan adımlar yine aktivasyon
+  akışından (`SectionLibrary::journeyDefaults`), migrasyon `000037` mevcut bölümlere (taslak + son yayın) yazar.
+- **Tekrarlı madde düzenleyici** (sağ panel, `lines` alanı + `columns`): satır başına sütunlu girdiler, **+ Adım/Madde ekle**,
+  **Sil**, **sürükle-bırak sıralama**; saklama biçimi değişmedi. Çerçevede madde hücreleri satır içi düzenlenir
+  (`data-ofv-item="alan:satır:sütun"`, `ofv_item()` yardımcısı) — Nasıl çalışır adımları, Özellikler, Referanslar, SSS,
+  Franchise maddeleri. Adım görseli tıklanınca medya seçici/yükleme (`data-ofv-image="images[]"`).
+- Blog bölümüne açıklama + kategori süzgeci; SSS editörde açık basılır.
+- **Kapsama denetimi** `EditorCoverageTest`: kütüphanedeki HER bölüm tipi taslağa eklenir, çerçevede seçilebilirlik ve tanımlı
+  her metin/markdown/görsel/madde alanının satır içi işareti doğrulanır; rapor (Component | Frontend | Editor | Düzenlenebilir)
+  test çıktısına basılır — 25/25 ✓. Nasıl çalışır: sırala/sil/ekle/görsel/not/CTA → kaydet → önizleme → yayınla → vitrin.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

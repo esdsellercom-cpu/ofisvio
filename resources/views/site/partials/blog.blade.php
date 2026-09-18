@@ -1,10 +1,11 @@
-{{-- CMS: yalnızca yayındaki yazılar. Yazı yoksa bölüm hiç basılmaz. --}}
+{{-- CMS: yalnızca yayındaki yazılar. Yazı yoksa bölüm hiç basılmaz. Kategori süzgeci ve adet bölüm ayarından (faz 57). --}}
 @if ($posts->isNotEmpty())
 <section @if ($anchor) id="{{ $anchor }}" @endif class="wrap section">
     <div class="section-head" style="margin-bottom:30px">
         <h2 class="h2" style="font-size:clamp(26px,3vw,36px)"{!! ofv($s, 'title', 'texts.blog_title') !!}>{{ $s['title'] ?? $texts['blog_title'] }}</h2>
         <a href="{{ route('site.posts') }}" style="font-size:15px;font-weight:600;color:var(--brand)">Tüm yazılar →</a>
     </div>
+    @if (! empty($s['lede']) || ofv_editor())<p class="body-muted" style="margin:-16px 0 24px;max-width:50ch;font-size:16px"{!! ofv($s, 'lede') !!}>{{ $s['lede'] ?? '' }}</p>@endif
     <div class="grid-auto" style="--min:270px;--gap:22px">
         @foreach ($posts as $post)
             <a href="{{ route('site.post', $post->slug) }}" class="stack" style="gap:14px;min-width:0">

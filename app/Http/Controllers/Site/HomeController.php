@@ -12,7 +12,6 @@ use App\Services\CurrentWebsite;
 use App\Services\ServiceService;
 use App\Services\SiteBlockService;
 use App\Services\SiteBuilderService;
-use App\Support\ActivationJourney;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
@@ -110,7 +109,6 @@ class HomeController extends Controller
             'stats' => $single !== null
                 ? $this->singleStats($single, $services, $rooms, $this->blocks->texts($site))
                 : $this->stats($locations, $this->blocks->texts($site)),
-            'journey' => ActivationJourney::steps(),
             'bookingDays' => $this->bookingDays(),
             // Rezervasyona açık gerçek odalar + onay politikasından türeyen rozet (booking engine v2).
             'bookableRooms' => $rooms,

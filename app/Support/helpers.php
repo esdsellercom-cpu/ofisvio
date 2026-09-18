@@ -58,6 +58,14 @@ if (! function_exists('ofv')) {
     }
 }
 
+if (! function_exists('ofv_item')) {
+    /** Tekrarlı madde (lines alanı) hücresi: yalnız editörde işaretlenir — alan:satır:sütun (faz 57). */
+    function ofv_item(string $field, int $index, int $column): HtmlString
+    {
+        return new HtmlString(ofv_editor() ? ' data-ofv-item="'.e($field).':'.$index.':'.$column.'"' : '');
+    }
+}
+
 if (! function_exists('ofv_global')) {
     /** Bölüm dışı (header/footer/üst şerit) global metin: yalnız editörde işaretlenir. */
     function ofv_global(string $key): HtmlString

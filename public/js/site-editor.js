@@ -148,6 +148,16 @@
         fieldInput: function (ref) {
             if (ref.field && ref.section) { var s = sec(ref.section); if (!s) return; if (s.settings[ref.field] === ref.value) return; s.settings[ref.field] = ref.value; commitDebounced(); if (rightTab === 'content') syncPanelInput(ref.field, ref.value); }
             else if (ref.global && ref.global.indexOf('texts.') === 0) { var k = ref.global.substring(6); if (state.texts[k] === ref.value) return; state.texts[k] = ref.value; applyGlobalText(k, ref.value); commitDebounced(); syncPanelInput('texts.' + k, ref.value); }
+            else if (ref.item && ref.section) {
+                var si = sec(ref.section); if (!si) return;
+                var ip = ref.item.split(':'), ikey = ip[0], iidx = parseInt(ip[1], 10), icol = parseInt(ip[2], 10);
+                var idef = LIB[si.type].fields[ikey]; if (!idef || !idef.columns) return;
+                var rows = Array.isArray(si.settings[ikey]) ? si.settings[ikey].slice() : [];
+                var parts = splitLine(rows[iidx] || '', idef.columns.length); parts[icol] = ref.value.replace(/\|/g, '/');
+                rows[iidx] = parts.join(' | ').replace(/\s*(\|\s*)+$/, '');
+                si.settings[ikey] = rows; commitDebounced();
+                var box = rightBody.querySelector('[data-repeater="' + ikey + '"]'); if (box) { var inp = box.querySelector('.ve-rep-row[data-rep-index="' + iidx + '"] [data-rep-col="' + icol + '"]'); if (inp && document.activeElement !== inp) inp.value = parts[icol]; }
+            }
             else if (ref.site && CONTACT_FIELDS[ref.site]) { if (!cfg.canSiteSettings) { toast('Site iletişim ayarı için website.manage yetkisi gerekir.'); return; } if (state.contact[ref.site] === ref.value) return; state.contact[ref.site] = ref.value; commitDebounced(); syncPanelInput('contact.' + ref.site, ref.value); }
         },
         fieldStyle: function (ref, key, val) {
@@ -263,7 +273,9 @@
         var h = '<div class="ve-field"><span class="label">' + esc(f.label) + '</span>';
         switch (f.type) {
             case 'textarea': case 'markdown': h += '<textarea class="control mono" data-set="' + key + '" rows="' + (f.type === 'markdown' ? 8 : 3) + '">' + esc(val || '') + '</textarea>' + (f.type === 'markdown' ? '<span class="small muted">Markdown + bloklar (:::hero…). Kaydedince yeniden çizilir.</span>' : ''); break;
-            case 'lines': h += '<textarea class="control mono" data-set="' + key + '" rows="6">' + esc(Array.isArray(val) ? val.join('\n') : (val || '')) + '</textarea><span class="small muted">' + esc(f.hint || 'Her satır bir madde; kaydedince yeniden çizilir.') + '</span>'; break;
+            case 'lines':
+                if (f.columns && f.columns.length) { h += repeaterControl(key, f, Array.isArray(val) ? val : []); break; }
+                h += '<textarea class="control mono" data-set="' + key + '" rows="6">' + esc(Array.isArray(val) ? val.join('\n') : (val || '')) + '</textarea><span class="small muted">' + esc(f.hint || 'Her satır bir madde; kaydedince yeniden çizilir.') + '</span>'; break;
             case 'select': h += '<select class="control" data-set="' + key + '">'; Object.keys(f.options || {}).forEach(function (o) { h += '<option value="' + esc(o) + '"' + (String(val) === o ? ' selected' : '') + '>' + esc(f.options[o]) + '</option>'; }); h += '</select>'; break;
             case 'number': h += '<input class="control" type="number" min="0" max="2000" data-set="' + key + '" value="' + esc(val || '') + '">'; break;
             case 'cta': var c = val || {}; h += '<div class="ve-row"><select class="control" data-set="' + key + '.action">'; Object.keys(cfg.ctaActions).forEach(function (o) { h += '<option value="' + o + '"' + ((c.action || 'none') === o ? ' selected' : '') + '>' + esc(cfg.ctaActions[o]) + '</option>'; }); h += '</select><input class="control" type="text" placeholder="Hedef (#bolum, yol, https)" data-set="' + key + '.target" value="' + esc(c.target || '') + '"></div><input class="control" type="text" placeholder="Düğme metni" maxlength="60" data-set="' + key + '.label" value="' + esc(c.label || '') + '" style="margin-top:6px">'; break;
@@ -389,7 +401,53 @@
     }
     function syncPanelInput(key, value) { var el = rightBody.querySelector('[data-set="' + key + '"], [data-global="' + key + '"]' + (key.indexOf('contact.') === 0 ? ', [data-contact="' + key.substring(8) + '"]' : '')); if (el && el.value !== value && document.activeElement !== el) el.value = value; }
 
+    /* Tekrarlı madde düzenleyici (faz 57): "a | b | c" satırları sütunlu girdilere açılır; + Ekle, Sil, sürükle-bırak sıralama.
+       Saklama biçimi değişmez (lines) — vitrin görünümleri aynı kalır; satır içi düzenleme (data-ofv-item) ile senkron. */
+    function splitLine(line, n) { var parts = String(line).split('|').map(function (p) { return p.trim(); }); while (parts.length < n) parts.push(''); return parts.slice(0, n); }
+    function repeaterControl(key, f, rows) {
+        var cols = f.columns, h = '<div class="ve-repeater" data-repeater="' + key + '">';
+        rows.forEach(function (line, i) {
+            var parts = splitLine(line, cols.length);
+            h += '<div class="ve-rep-row" draggable="true" data-rep-index="' + i + '"><span class="ve-rep-handle" title="Sürükleyerek sırala">⋮⋮</span><div class="ve-rep-cols">';
+            cols.forEach(function (c, ci) { var long = c === 'Açıklama' || c === 'Görüş' || c === 'Cevap'; h += (long ? '<textarea rows="2"' : '<input type="text"') + ' class="control" placeholder="' + esc(c) + '" data-rep-col="' + ci + '"' + (long ? '>' + esc(parts[ci]) + '</textarea>' : ' value="' + esc(parts[ci]) + '">'); });
+            h += '</div><button type="button" class="btn btn--ghost btn--pill" data-rep-remove title="Sil">✕</button></div>';
+        });
+        h += '<button type="button" class="btn btn--ghost" data-rep-add>+ ' + esc(f.addLabel || (key === 'steps' ? 'Adım ekle' : 'Ekle')) + '</button>';
+        if (f.hint) h += '<span class="small muted" style="display:block">' + esc(f.hint) + '</span>';
+        return h + '</div>';
+    }
+    function repeaterRead(box) {
+        return $$('.ve-rep-row', box).map(function (row) { return $$('[data-rep-col]', row).map(function (i) { return i.value.trim(); }).join(' | ').replace(/\s*(\|\s*)+$/, ''); }).filter(function (l) { return l !== ''; });
+    }
+    function bindRepeater(s, box) {
+        var key = box.getAttribute('data-repeater'), def = LIB[s.type], f = def.fields[key];
+        function commitRows(rerender) { s.settings[key] = repeaterRead(box); applyItems(s, key); markStale(s.id); commitDebounced(); if (rerender) { renderRight(); } }
+        $$('[data-rep-col]', box).forEach(function (inp) { inp.addEventListener('input', function () { commitRows(false); }); });
+        $$('[data-rep-remove]', box).forEach(function (b) { b.addEventListener('click', function () { b.closest('.ve-rep-row').remove(); commitRows(true); }); });
+        var add = $('[data-rep-add]', box); if (add) add.addEventListener('click', function () { var rows = repeaterRead(box); rows.push(f.columns.map(function (c) { return c === 'Başlık' ? 'Yeni ' + (key === 'steps' ? 'adım' : 'madde') : ''; }).join(' | ')); s.settings[key] = rows; applyItems(s, key); markStale(s.id); commitDebounced(); renderRight(); var last = $$('.ve-rep-row input, .ve-rep-row textarea', rightBody).pop(); if (last) last.focus(); });
+        var dragging = null;
+        $$('.ve-rep-row', box).forEach(function (row) {
+            row.addEventListener('dragstart', function (e) { dragging = row; row.classList.add('is-dragging'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'row'); } catch (x) {} });
+            row.addEventListener('dragend', function () { row.classList.remove('is-dragging'); dragging = null; });
+            row.addEventListener('dragover', function (e) { if (!dragging || dragging === row) return; e.preventDefault(); var r = row.getBoundingClientRect(); var after = e.clientY > r.top + r.height / 2; row.parentNode.insertBefore(dragging, after ? row.nextSibling : row); });
+            row.addEventListener('drop', function (e) { e.preventDefault(); commitRows(true); });
+        });
+        // Girdi alanları sürüklemeyi başlatmasın (metin seçimi).
+        $$('[data-rep-col]', box).forEach(function (inp) { inp.addEventListener('mousedown', function () { inp.closest('.ve-rep-row').setAttribute('draggable', 'false'); }); inp.addEventListener('blur', function () { inp.closest('.ve-rep-row').setAttribute('draggable', 'true'); }); });
+    }
+    /* Çerçevedeki madde metinlerini (data-ofv-item="alan:satır:sütun") durumla eşitler; satır sayısı değiştiyse bölüm kaydedince yeniden çizilir. */
+    function applyItems(s, key) {
+        var el = fnode(s.id); if (!el) return;
+        var rows = s.settings[key] || [];
+        $$('[data-ofv-item^="' + key + ':"]', el).forEach(function (t) {
+            if (t.classList.contains('ofv-editing')) return;
+            var p = t.getAttribute('data-ofv-item').split(':'), idx = parseInt(p[1], 10), col = parseInt(p[2], 10);
+            if (rows[idx] === undefined) return;
+            t.textContent = splitLine(rows[idx], col + 1)[col];
+        });
+    }
     function bindPanel(s) {
+        $$('[data-repeater]', rightBody).forEach(function (box) { bindRepeater(s, box); });
         $$('[data-set]', rightBody).forEach(function (inp) {
             inp.addEventListener('input', function () { onSet(s, inp.getAttribute('data-set'), inp.value, inp); });
             if (inp.tagName === 'SELECT') inp.addEventListener('change', function () { onSet(s, inp.getAttribute('data-set'), inp.value, inp); });

@@ -27,6 +27,7 @@
         '[data-ofv-image]:hover,[data-ofv-site-image]:hover,[data-ofv-md]:hover{outline-color:rgba(37,99,235,.5)}',
         '[data-ofv-image].ofv-dropover{outline:3px solid #16a34a!important}',
         '[data-ofv-global-area]{outline:1px dashed transparent;outline-offset:-1px}[data-ofv-global-area]:hover{outline-color:rgba(37,99,235,.35)}',
+        '[data-ofv-item]{cursor:text;outline:1px dashed transparent;outline-offset:2px}[data-ofv-item]:hover{outline-color:rgba(37,99,235,.45)}',
         '[data-ofv-global-area].ofv-selected{outline:2px solid #2563eb;outline-offset:-2px}',
         '.ofv-toolbar{position:absolute;top:6px;left:6px;z-index:2147483000;display:flex;gap:2px;background:#111827;color:#fff;border-radius:8px;padding:3px;font:12px/1 sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25)}',
         '.ofv-toolbar span{padding:5px 8px;opacity:.7;font-weight:600}',
@@ -84,7 +85,7 @@
         var a = t.closest('a, button[type="submit"], input[type="submit"]');
         if (a && !t.closest('[contenteditable="true"]')) e.preventDefault();
 
-        var field = t.closest('[data-ofv-field], [data-ofv-global], [data-ofv-site-field]');
+        var field = t.closest('[data-ofv-field], [data-ofv-global], [data-ofv-site-field], [data-ofv-item]');
         var img = t.closest('[data-ofv-image], [data-ofv-site-image]');
         var md = t.closest('[data-ofv-md]');
         var sec = t.closest('[data-ofv-section]');
@@ -93,7 +94,7 @@
         $$('.ofv-selected').forEach(function (s) { s.classList.remove('ofv-selected'); });
         if (sec) sec.classList.add('ofv-selected'); else if (area) area.classList.add('ofv-selected');
 
-        if (field) { startEdit(field); parentApi.select({ kind: 'field', section: sec ? sec.getAttribute('data-ofv-section') : null, field: field.getAttribute('data-ofv-field'), global: field.getAttribute('data-ofv-global'), site: field.getAttribute('data-ofv-site-field'), area: area ? area.getAttribute('data-ofv-global-area') : null }); return; }
+        if (field) { startEdit(field); parentApi.select({ kind: 'field', section: sec ? sec.getAttribute('data-ofv-section') : null, field: field.getAttribute('data-ofv-field') || (field.getAttribute('data-ofv-item') || '').split(':')[0] || null, global: field.getAttribute('data-ofv-global'), site: field.getAttribute('data-ofv-site-field'), area: area ? area.getAttribute('data-ofv-global-area') : null }); return; }
         stopEdit();
         if (img) { parentApi.select({ kind: 'image', section: sec ? sec.getAttribute('data-ofv-section') : null, field: img.getAttribute('data-ofv-image'), site: img.getAttribute('data-ofv-site-image'), mediaId: img.getAttribute('data-ofv-media-id') }); return; }
         if (md) { parentApi.select({ kind: 'markdown', section: sec.getAttribute('data-ofv-section'), field: md.getAttribute('data-ofv-md') }); return; }
@@ -138,8 +139,8 @@
         var r = el.getBoundingClientRect();
         textbar.style.top = Math.max(4, r.top + window.scrollY - 38) + 'px';
         textbar.style.left = (r.left + window.scrollX) + 'px';
-        textbar.hidden = !el.hasAttribute('data-ofv-field') && !el.hasAttribute('data-ofv-global') && !el.hasAttribute('data-ofv-site-field');
-        if (el.hasAttribute('data-ofv-site-field')) { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = true; }); }
+        textbar.hidden = !el.hasAttribute('data-ofv-field') && !el.hasAttribute('data-ofv-global') && !el.hasAttribute('data-ofv-site-field') && !el.hasAttribute('data-ofv-item');
+        if (el.hasAttribute('data-ofv-site-field') || el.hasAttribute('data-ofv-item')) { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = true; }); }
         else if (el.hasAttribute('data-ofv-global') && !el.hasAttribute('data-ofv-field')) { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = b.getAttribute('data-ts') !== 'link'; }); } else { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = false; }); }
     }
     function stopEdit() {
@@ -155,7 +156,7 @@
         var sec = el.closest('[data-ofv-section]');
         // innerText CSS text-transform'u (eyebrow: uppercase) uygular; dönüştürülmüş öğede ham metin (textContent) alınır.
         var raw = window.getComputedStyle(el).textTransform !== 'none' ? el.textContent : el.innerText;
-        parentApi.fieldInput({ section: sec ? sec.getAttribute('data-ofv-section') : null, field: el.getAttribute('data-ofv-field'), global: el.getAttribute('data-ofv-global'), site: el.getAttribute('data-ofv-site-field'), value: raw.replace(/\n{2,}/g, '\n').trim() });
+        parentApi.fieldInput({ section: sec ? sec.getAttribute('data-ofv-section') : null, field: el.getAttribute('data-ofv-field'), global: el.getAttribute('data-ofv-global'), site: el.getAttribute('data-ofv-site-field'), item: el.getAttribute('data-ofv-item'), value: raw.replace(/\n{2,}/g, '\n').trim() });
     });
     doc.addEventListener('keydown', function (e) {
         if (!editing) return;
