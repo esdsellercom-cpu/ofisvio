@@ -91,7 +91,7 @@
         <form method="POST" action="{{ route('panel.geo.media.store', $location) }}" enctype="multipart/form-data" class="panel stack" style="gap:12px">
             @csrf
             <p class="eyebrow" style="margin:0">Görsel yükle</p>
-            <p class="small muted" style="margin:0">JPEG/PNG/WebP, ≤ 5 MB. Dosya karantinaya alınır; MIME → uzantı → sihirli bayt → boyut → ClamAV → sha256 zincirinden geçmeden yayınlanmaz. Tarayıcı erişilemezse yükleme reddedilir. 480/960/1600 px responsive kopyalar otomatik üretilir.</p>
+            <p class="small muted" style="margin:0">JPEG/PNG/WebP, ≤ 10 MB (uzun kenar 2400 px’e otomatik küçültülür). Dosya karantinaya alınır; MIME → uzantı → sihirli bayt → boyut → ClamAV → sha256 zincirinden geçmeden yayınlanmaz. Tarayıcı erişilemezse yükleme reddedilir. 480/960/1600 px responsive kopyalar otomatik üretilir.</p>
             <label class="field"><span class="label">Dosya</span><input class="control" type="file" name="file" accept="image/jpeg,image/png,image/webp" required></label>
             <label class="field"><span class="label">Kategori</span>
                 <select class="control" name="category">@foreach ($categories as $k => $label)<option value="{{ $k }}" @selected(old('category', 'gallery') === $k)>{{ $label }}</option>@endforeach</select>

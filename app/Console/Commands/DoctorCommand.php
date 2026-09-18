@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Integrations\SecretStore;
 use App\Models\Content;
+use App\Models\Media;
 use App\Models\Permission;
 use App\Models\UserRole;
 use App\Models\Website;
@@ -49,6 +50,7 @@ class DoctorCommand extends Command
         $this->checkCache($production);
         $this->checkScanner($production, $scanner);
         $this->checkStorage();
+        $this->checkMedia();
         $this->checkMailAndQueue($production);
         $this->checkScheduler($production);
         $this->checkSeedAndAdmin();
@@ -222,6 +224,40 @@ class DoctorCommand extends Command
         $ok
             ? $this->add('KYC depolama', 'ok', 'private disk yazılabilir')
             : $this->add('KYC depolama', 'fail', 'private disk yazılamıyor ('.config('filesystems.disks.private.root').')');
+    }
+
+    /**
+     * Vitrin görselleri: public disk bağlantısı (`public/storage`) ve kayıtlı medya dosyalarının diskte gerçekten
+     * var olması. Eksik dosya = vitrinde kırık görsel; sayı ve ilk örnekler raporlanır.
+     */
+    private function checkMedia(): void
+    {
+        $link = public_path('storage');
+
+        if (! is_dir($link)) {
+            $this->add('Medya deposu', 'fail', 'public/storage bağlantısı yok — `php artisan storage:link` çalıştırın; görseller yüklenmez');
+
+            return;
+        }
+
+        $missing = [];
+        $total = 0;
+
+        Media::query()->select(['id', 'disk', 'path', 'variants'])->orderBy('id')->chunk(200, function ($rows) use (&$missing, &$total) {
+            foreach ($rows as $media) {
+                $total++;
+
+                foreach ($media->allPaths() as $path) {
+                    if (! Storage::disk($media->disk)->exists($path)) {
+                        $missing[] = '#'.$media->id.' '.basename($path);
+                    }
+                }
+            }
+        });
+
+        $missing === []
+            ? $this->add('Medya dosyaları', 'ok', $total.' kayıt, tüm dosyalar diskte')
+            : $this->add('Medya dosyaları', 'warn', count($missing).' eksik dosya: '.implode(', ', array_slice($missing, 0, 5)).(count($missing) > 5 ? ' …' : ''));
     }
 
     private function checkMailAndQueue(bool $production): void

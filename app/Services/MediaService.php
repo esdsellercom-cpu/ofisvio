@@ -20,7 +20,9 @@ use Illuminate\Support\Str;
  *   Quarantine (private disk, kamuya kapalı) → MIME (içerikten, finfo) → uzantı (MIME'dan türer,
  *   istemci adına bakılmaz) → sihirli bayt (getimagesize + MIME eşleşmesi) → boyut → ClamAV
  *   (tarayıcı yoksa REDDEDİLİR, enfekte dosya asla public'e çıkmaz) → sha256 (yinelenen
- *   engeli) → Approved → public diske UUID adla + responsive varyantlar (GD) → karantina temizlenir.
+ *   engeli) → **otomatik boyutlandırma** (uzun kenar > MAX_EDGE ise GD ile küçültülür, EXIF yönü düzeltilir,
+ *   yeniden kodlanır — 6000px'lik telefon fotoğrafı vitrine 2400px olarak girer) → Approved → public diske
+ *   UUID adla + responsive varyantlar (GD) → karantina temizlenir.
  *
  * Zincirin herhangi bir halkası düşerse dosya karantinadan silinir ve hiçbir kayıt yazılmaz.
  * Denetim: her onaylı yükleme `media.uploaded`, her red `media.rejected` (aşama adıyla).
@@ -29,7 +31,11 @@ class MediaService
 {
     public const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp'];
 
-    public const MAX_BYTES = 5 * 1024 * 1024;
+    /** Yükleme girişi üst sınırı; kaydedilen dosya otomatik boyutlandırmayla bundan küçüktür. */
+    public const MAX_BYTES = 10 * 1024 * 1024;
+
+    /** Kaydedilen orijinalin uzun kenarı (px); büyük yüklemeler bu ölçüye indirilir. */
+    public const MAX_EDGE = 2400;
 
     /** Responsive varyant genişlikleri (px); orijinalden küçük olanlar üretilir. */
     public const VARIANT_WIDTHS = [480, 960, 1600];
@@ -121,7 +127,14 @@ class MediaService
                 return $existing; // yinelenen içerik: mevcut kayıt ve meta korunur
             }
 
-            // 8) Approved → public disk + varyantlar.
+            // 8) Otomatik boyutlandırma: uzun kenar MAX_EDGE'i aşıyorsa (ya da EXIF yönü döndürülmüşse) karantina
+            //    kopyası yerinde küçültülüp yeniden kodlanır; boyutlar/bayt bu sonuçtan alınır (sha256 orijinalden —
+            //    aynı büyük dosya ikinci kez yüklenince yine yinelenen sayılır).
+            $normalized = $this->normalize($path, $mime, (int) $dimensions[0], (int) $dimensions[1]);
+            $dimensions = [$normalized[0], $normalized[1]];
+            $size = (int) filesize($path);
+
+            // 9) Approved → public disk + varyantlar.
             $uuid = Str::uuid()->toString();
             $target = 'media/'.$website->id.'/'.$uuid.'.'.$extension;
 
@@ -150,7 +163,7 @@ class MediaService
                 'status' => Media::STATUS_APPROVED,
             ]));
 
-            $this->audit->record($uploader, 'media.uploaded', 'media', $media->id, [], ['path' => $target, 'mime' => $mime, 'size' => $size, 'variants' => count($variants), 'sha256' => $hash]);
+            $this->audit->record($uploader, 'media.uploaded', 'media', $media->id, [], ['path' => $target, 'mime' => $mime, 'size' => $size, 'variants' => count($variants), 'sha256' => $hash, 'resized' => $normalized[2]]);
 
             return $media;
         } finally {
@@ -235,6 +248,76 @@ class MediaService
      *
      * @return array<int, array{w: int, h: int, path: string}>
      */
+    /**
+     * Otomatik boyutlandırma: uzun kenar MAX_EDGE'e indirilir, EXIF yönü (JPEG) uygulanır; dosya yerinde yeniden
+     * yazılır. GD yoksa ya da görsel zaten sınırın içindeyse dokunulmaz.
+     *
+     * @return array{0: int, 1: int, 2: bool} [genişlik, yükseklik, değişti mi]
+     */
+    private function normalize(string $path, string $mime, int $width, int $height): array
+    {
+        $orientation = $mime === 'image/jpeg' && function_exists('exif_read_data') ? (int) ((@exif_read_data($path)['Orientation'] ?? 1)) : 1;
+        $needsResize = max($width, $height) > self::MAX_EDGE;
+
+        if ((! $needsResize && $orientation <= 1) || ! function_exists('imagecreatefromstring')) {
+            return [$width, $height, false];
+        }
+
+        $image = @imagecreatefromstring((string) file_get_contents($path));
+
+        if ($image === false) {
+            return [$width, $height, false];
+        }
+
+        // EXIF yönü: 3 = 180°, 6 = saat yönünde 90°, 8 = saat yönünün tersine 90° (ayna yönleri nadirdir, atlanır).
+        $rotated = match ($orientation) {
+            3 => imagerotate($image, 180, 0),
+            6 => imagerotate($image, -90, 0),
+            8 => imagerotate($image, 90, 0),
+            default => false,
+        };
+
+        if ($rotated !== false) {
+            imagedestroy($image);
+            $image = $rotated;
+            $width = imagesx($image);
+            $height = imagesy($image);
+        }
+
+        if (max($width, $height) > self::MAX_EDGE) {
+            $ratio = self::MAX_EDGE / max($width, $height);
+            $w = max(1, (int) round($width * $ratio));
+            $h = max(1, (int) round($height * $ratio));
+            $resized = imagecreatetruecolor($w, $h);
+
+            if ($mime !== 'image/jpeg') {
+                imagealphablending($resized, false);
+                imagesavealpha($resized, true);
+            }
+
+            imagecopyresampled($resized, $image, 0, 0, 0, 0, $w, $h, $width, $height);
+            imagedestroy($image);
+            $image = $resized;
+            $width = $w;
+            $height = $h;
+        }
+
+        ob_start();
+        match ($mime) {
+            'image/jpeg' => imagejpeg($image, null, 85),
+            'image/png' => imagepng($image, null, 6),
+            default => imagewebp($image, null, 85),
+        };
+        $bytes = (string) ob_get_clean();
+        imagedestroy($image);
+
+        if ($bytes === '' || file_put_contents($path, $bytes) === false) {
+            return [$width, $height, false];
+        }
+
+        return [$width, $height, true];
+    }
+
     private function makeVariants(string $source, string $mime, int $width, int $height, string $base, string $extension): array
     {
         if (! function_exists('imagecreatefromstring')) {
@@ -290,7 +373,7 @@ class MediaService
         throw new DomainException($message ?? match ($stage) {
             'mime' => 'Yalnız JPEG, PNG ve WebP görsel kabul edilir.',
             'magic_bytes' => 'Dosya geçerli bir görsel değil (sihirli bayt doğrulaması).',
-            'size' => 'Görsel 5 MB\'tan büyük olamaz.',
+            'size' => 'Görsel '.(self::MAX_BYTES / 1048576).' MB\'tan büyük olamaz.',
             default => 'Yükleme reddedildi.',
         });
     }

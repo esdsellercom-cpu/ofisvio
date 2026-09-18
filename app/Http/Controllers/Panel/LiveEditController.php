@@ -95,7 +95,7 @@ class LiveEditController extends Controller
             return redirect()->to(self::returnPath($request))->with('live_error', $e->getMessage());
         }
 
-        return redirect()->to(self::returnPath($request))->with('live_status', $data['action'] === 'remove' ? 'Görsel kaldırıldı.' : 'Görsel güncellendi.');
+        return redirect()->to(self::returnPath($request))->with('live_status', $media === null ? 'Görsel kaldırıldı.' : 'Görsel güncellendi ('.$media->width.'×'.$media->height.' px).');
     }
 
     /** Dönüş: yalnız site içi yol (açık yönlendirme yok). */

@@ -3,12 +3,14 @@
 namespace Tests\Feature\Panel;
 
 use App\Enums\ContentStatus;
+use App\Models\AuditLog;
 use App\Models\Content;
 use App\Models\Media;
 use App\Models\Website;
 use App\Security\MalwareScanner;
 use App\Security\ScanResult;
 use App\Services\ContentCache;
+use App\Services\MediaService;
 use Database\Seeders\LocationSeeder;
 use Database\Seeders\SiteBlockSeeder;
 use Database\Seeders\WebsiteSeeder;
@@ -92,7 +94,8 @@ class MediaLibraryTest extends TestCase
         app(ContentCache::class)->invalidate($this->site);
 
         $this->get('/blog')->assertOk()->assertSee('src="'.$media->url().'"', false)->assertDontSee('kapak · 800×500');
-        $this->get('/blog/kapakli-yazi')->assertOk()->assertSee('<meta property="og:image" content="'.$media->url().'">', false)->assertSee('alt="Levent şubesi"', false);
+        // og:image mutlak (paylaşım botları bağıl adres okumaz), <img> bağıl.
+        $this->get('/blog/kapakli-yazi')->assertOk()->assertSee('<meta property="og:image" content="'.$media->absoluteUrl().'">', false)->assertSee('alt="Levent şubesi"', false);
 
         // Hero (website.manage).
         // Site görseli yokken marka illüstrasyonu (faz 53); görsel yüklenince o basılır, illüstrasyon kalkar.
@@ -112,6 +115,44 @@ class MediaLibraryTest extends TestCase
         $this->actingAs($admin)->delete("/panel/icerik/medya/{$media->id}")->assertRedirect();
         $this->assertNull(Media::find($media->id));
         Storage::disk('public')->assertMissing($media->path);
+    }
+
+    /**
+     * Adresler host'a göre bağıl: vitrin hangi alan adından açılırsa açılsın görsel aynı origin'den gelir (CSP
+     * `img-src 'self'`); paylaşım görselleri ise mutlak. Büyük yükleme otomatik küçültülür (uzun kenar MAX_EDGE),
+     * responsive varyantlar üretilir; aynı büyük dosya ikinci kez yüklenince yinelenen sayılır.
+     */
+    #[Test]
+    public function adresler_bagil_paylasim_mutlak_ve_buyuk_gorsel_kucultulur(): void
+    {
+        $admin = $this->staff('system_admin');
+
+        $this->actingAs($admin)->post('/panel/icerik/medya', ['file' => UploadedFile::fake()->image('buyuk.jpg', 4800, 2400), 'alt' => 'Geniş açı'])->assertRedirect()->assertSessionHasNoErrors();
+        $media = Media::firstOrFail();
+        $this->assertSame([MediaService::MAX_EDGE, MediaService::MAX_EDGE / 2], [$media->width, $media->height], 'uzun kenar MAX_EDGE\'e iner, oran korunur');
+        $this->assertSame(MediaService::MAX_EDGE, getimagesize(Storage::disk('public')->path($media->path))[0] ?? null, 'diskteki dosya da küçültülmüş olmalı');
+        $this->assertLessThan(MediaService::MAX_BYTES, $media->size_bytes);
+        $this->assertSame([480, 960, 1600], array_column((array) $media->variants, 'w'));
+        $this->assertStringStartsWith('/storage/media/', $media->url());
+        $this->assertStringStartsWith('/storage/media/', $media->urlFor(960));
+        $this->assertSame(rtrim((string) config('app.url'), '/').$media->url(), $media->absoluteUrl(), 'istek dışında APP_URL ile tamamlanır');
+        $this->assertSame(1, AuditLog::query()->where('action', 'media.uploaded')->count());
+
+        // Aynı dosya yeniden: yinelenen (sha256 orijinal baytlardan).
+        $this->actingAs($admin)->post('/panel/icerik/medya', ['file' => UploadedFile::fake()->image('buyuk.jpg', 4800, 2400)])->assertRedirect();
+        $this->assertSame(1, Media::count());
+
+        // Küçük görsel dokunulmaz.
+        $this->actingAs($admin)->post('/panel/icerik/medya', ['file' => UploadedFile::fake()->image('kucuk.png', 800, 500)])->assertRedirect()->assertSessionHasNoErrors();
+        $small = Media::orderByDesc('id')->firstOrFail();
+        $this->assertSame([800, 500], [$small->width, $small->height]);
+
+        // Hero olarak bağlanınca farklı Host'tan açılan vitrinde de <img src> bağıldır; og:image o Host ile mutlaktır.
+        $this->actingAs($admin)->put("/panel/websiteler/{$this->site->id}/hero", ['hero_media_id' => $media->id])->assertRedirect();
+        $home = $this->get('http://127.0.0.1/')->assertOk()->getContent();
+        $this->assertStringContainsString('src="'.$media->url().'"', $home);
+        $this->assertStringContainsString('<meta property="og:image" content="http://127.0.0.1'.$media->url().'">', $home);
+        $this->assertStringNotContainsString('http://localhost/storage/', $home);
     }
 
     #[Test]

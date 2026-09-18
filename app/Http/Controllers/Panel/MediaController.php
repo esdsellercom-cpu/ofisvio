@@ -58,7 +58,7 @@ class MediaController extends Controller
     {
         $website = $this->website($request);
         $validated = $request->validate([
-            'file' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
+            'file' => ['required', 'file', 'max:10240', 'mimes:jpg,jpeg,png,webp'],
             'alt' => ['nullable', 'string', 'max:190'],
             'title' => ['nullable', 'string', 'max:160'],
             'caption' => ['nullable', 'string', 'max:300'],
@@ -72,7 +72,7 @@ class MediaController extends Controller
             return back()->withErrors(['file' => $e->getMessage()])->withInput();
         }
 
-        return $this->back($request, $website, $media->original_name.' yüklendi.');
+        return $this->back($request, $website, $media->original_name.' yüklendi ('.$media->width.'×'.$media->height.' px, '.number_format($media->size_bytes / 1024, 0, ',', '.').' KB).');
     }
 
     public function update(Request $request, Media $media): RedirectResponse

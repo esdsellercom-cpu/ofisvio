@@ -95,7 +95,7 @@ class LocationMediaTest extends TestCase
         $this->assertStringContainsString('sizes="(max-width: 700px) 100vw, 60vw"', $page);
         $this->assertStringContainsString('alt="Lobi"', $page);
         $this->assertStringContainsString('loading="eager"', $page);
-        $this->assertStringContainsString('property="og:image" content="'.$media->urlFor(1600), $page);
+        $this->assertStringContainsString('property="og:image" content="'.$media->absoluteUrlFor(1600), $page);
         $this->assertStringContainsString('<figcaption class="small muted" style="padding:8px 12px">Zemin kat', $page);
         // Ana sayfa ve lokasyon listesi kartları: kapak + lazy.
         $home = $this->get('http://localhost/')->assertOk()->getContent();
@@ -168,8 +168,8 @@ class LocationMediaTest extends TestCase
 
         // .jpg uzantılı ama PHP içerikli dosya: MIME aşamasında düşer.
         $this->actingAs($ops)->from($base)->post($base, ['file' => UploadedFile::fake()->createWithContent('kotu.jpg', "<?php echo 'x';"), 'category' => 'gallery'])->assertSessionHasErrors('file');
-        // Boyut sınırı (validation 5 MB).
-        $this->actingAs($ops)->from($base)->post($base, ['file' => UploadedFile::fake()->create('buyuk.jpg', 6000, 'image/jpeg'), 'category' => 'gallery'])->assertSessionHasErrors('file');
+        // Boyut sınırı (validation 10 MB; üstü otomatik küçültme öncesinde reddedilir).
+        $this->actingAs($ops)->from($base)->post($base, ['file' => UploadedFile::fake()->create('buyuk.jpg', 11000, 'image/jpeg'), 'category' => 'gallery'])->assertSessionHasErrors('file');
         // Tarayıcı erişilemez → fail-closed: dosya yayınlanmaz, kayıt yok, karantina boş.
         $this->scanner->result = ScanResult::unavailable('clamd bağlantısı yok');
         $this->actingAs($ops)->from($base)->post($base, ['file' => UploadedFile::fake()->image('temiz.jpg', 800, 600), 'category' => 'gallery'])->assertSessionHasErrors('file');

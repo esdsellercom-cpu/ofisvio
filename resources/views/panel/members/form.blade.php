@@ -73,7 +73,7 @@
                     <p class="eyebrow" style="margin:0">Profil görseli</p>
                     @if ($p?->avatar)<img src="{{ $p->avatar->urlFor(400) }}" alt="" style="width:120px;height:120px;border-radius:50%;object-fit:cover">@endif
                     <input class="control" type="file" name="avatar" accept="image/jpeg,image/png,image/webp">
-                    <span class="small muted">JPG/PNG/WebP, 5 MB. Medya kütüphanesine güvenli yükleme zincirinden geçer.</span>
+                    <span class="small muted">JPG/PNG/WebP, 10 MB (otomatik küçültülür). Medya kütüphanesine güvenli yükleme zincirinden geçer.</span>
                 </div>
                 <div class="panel stack" style="gap:10px">
                     <p class="eyebrow" style="margin:0">Not</p>

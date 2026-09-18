@@ -96,7 +96,7 @@ class SiteBuilderController extends Controller
         $v = $request->validate([
             'payload' => ['required', 'string', 'max:1500000'],
             'uploads' => ['nullable', 'array', 'max:20'],
-            'uploads.*' => ['file', 'max:5120', 'mimes:jpg,jpeg,png,webp'],
+            'uploads.*' => ['file', 'max:10240', 'mimes:jpg,jpeg,png,webp'],
             'then' => ['nullable', Rule::in(['stay', 'preview'])],
         ]);
         $payload = json_decode($v['payload'], true);

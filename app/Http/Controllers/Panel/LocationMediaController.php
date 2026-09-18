@@ -32,7 +32,7 @@ class LocationMediaController extends Controller
     public function store(Request $request, Location $location): RedirectResponse
     {
         $v = $request->validate([
-            'file' => ['required', 'file', 'max:5120'],
+            'file' => ['required', 'file', 'max:10240'],
             'category' => ['required', Rule::in(array_keys(LocationMedia::CATEGORIES))],
             'alt' => ['nullable', 'string', 'max:190'], 'title' => ['nullable', 'string', 'max:160'], 'caption' => ['nullable', 'string', 'max:300'],
             'primary' => ['nullable', 'boolean'],
@@ -86,7 +86,7 @@ class LocationMediaController extends Controller
 
     public function replace(Request $request, Location $location, int $link): RedirectResponse
     {
-        $request->validate(['file' => ['required', 'file', 'max:5120']]);
+        $request->validate(['file' => ['required', 'file', 'max:10240']]);
 
         return $this->act($location, $link, fn (LocationMedia $l) => $this->media->replace($request->user(), $location, $l, $request->file('file')), 'Görsel değiştirildi; bilgiler korundu.', 'file');
     }

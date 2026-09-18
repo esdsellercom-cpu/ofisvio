@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **335/335** (Unit 12 · Feature 307 · Architecture 16) |
+| `php artisan test` | ✅ **337/337** (Unit 12 · Feature 309 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -956,6 +956,17 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
 - `LiveEditTest` (+2): ziyaretçi sızıntısı yok, yetkisiz düğme/API yok, hero → blog → hizmet (yükleme) → lokasyon (galeri) →
   bölüm görseli (taslak yayınlanmaz) → kaldır → yenilemede kalıcı; dönüş adresi güvenliği. Sorgu bütçesi: yalnız oturum açık
   kullanıcıda +2 (yetki kararı).
+
+### 59b. Kırık görsel düzeltmesi + otomatik boyutlandırma ✅ (19 Eylül 2026)
+- **Kök neden:** `Media::url()` APP_URL'lu mutlak adres üretiyordu; vitrin başka Host'tan (127.0.0.1, IP, ek alan adı)
+  açılınca `img-src 'self'` CSP görseli engelliyor, canlı düzenlemede seçilen hero kırık görünüyordu. Artık yerel diskte
+  adres **host'a göre bağıl** (`/storage/…`), paylaşım/JSON-LD adresleri `absoluteUrl()` ile istekteki origin'den; migration
+  000040 kayıtlı kapak adreslerini bağıl yapar. Test: farklı Host'ta `<img src>` bağıl, og:image o Host ile mutlak.
+- **Otomatik boyutlandırma** (`MediaService::normalize`): uzun kenar > 2400 px ise GD ile küçültülür, JPEG EXIF yönü uygulanır,
+  yeniden kodlanır; boyut/bayt kayıtta gerçek sonuçtur, sha256 orijinalden (aynı büyük dosya yinelenen sayılır). Giriş sınırı
+  10 MB (formlar + mesajlar hizalı). Yükleme/canlı düzenleme geri bildirimi kaydedilen ölçüyü söyler (`2400×1600 px`).
+- **Doğrulama:** `ofisvio:doctor` → "Medya dosyaları" satırı (public/storage bağlantısı + her kaydın orijinal ve varyant
+  dosyası diskte; eksikler örnekle uyarı) — sistem sağlığı ekranında da görünür. Testler +2 → 337/337.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

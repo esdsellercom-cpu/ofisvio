@@ -5,6 +5,7 @@ namespace Tests\Feature\Console;
 use App\Console\Commands\DoctorCommand;
 use App\Enums\ContentStatus;
 use App\Models\Content;
+use App\Models\Media;
 use App\Models\Website;
 use App\Security\MalwareScanner;
 use App\Security\ScanResult;
@@ -12,6 +13,7 @@ use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Panel\CreatesTenantFixtures;
 use Tests\TestCase;
@@ -108,5 +110,20 @@ class DoctorCommandTest extends TestCase
         $json = json_decode($out, true);
         $this->assertTrue($json['ok']);
         $this->assertContains('RBAC matrisi', array_column($json['rows'], 'name'));
+        $this->assertContains('Medya dosyaları', array_column($json['rows'], 'name'), 'medya dosyaları diskte var mı kontrolü raporda olmalı');
+    }
+
+    /** Kayıtlı medyanın dosyası diskte yoksa (kırık görsel) doktor uyarır ve örneği söyler. */
+    #[Test]
+    public function eksik_medya_dosyasi_uyarilir(): void
+    {
+        Storage::fake('public');
+        $website = Website::query()->default()->first() ?? Website::query()->create(['name' => 'Ofisvio', 'domain' => 'localhost', 'is_default' => true]);
+        Media::query()->create(['website_id' => $website->id, 'disk' => 'public', 'path' => 'media/1/yok.jpg', 'original_name' => 'yok.jpg', 'mime_type' => 'image/jpeg', 'size_bytes' => 10, 'width' => 1, 'height' => 1, 'checksum_sha256' => str_repeat('a', 64), 'status' => 'approved']);
+
+        [, $out] = $this->doctor('--json');
+        $row = collect(json_decode($out, true)['rows'])->firstWhere('name', 'Medya dosyaları');
+        $this->assertSame('warn', $row['level'] ?? null, $out);
+        $this->assertStringContainsString('yok.jpg', (string) ($row['note'] ?? ''));
     }
 }

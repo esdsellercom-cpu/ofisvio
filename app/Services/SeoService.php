@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ContentKind;
 use App\Models\Content;
 use App\Models\Location;
+use App\Models\Media;
 use App\Models\Website;
 use App\Seo\SeoSettingsRegistry;
 use Illuminate\Support\Str;
@@ -59,8 +60,8 @@ class SeoService
 
         // Kapak görseli (medya kütüphanesi) paylaşım görseli ve LocalBusiness image olur.
         if ($location->cover_media_id !== null && $location->cover !== null) {
-            $head['og_image'] = $location->cover->urlFor(1600);
-            $jsonLd['image'] = $location->cover->url();
+            $head['og_image'] = $location->cover->absoluteUrlFor(1600);
+            $jsonLd['image'] = $location->cover->absoluteUrl();
 
             if ($head['twitter'] !== null && $head['twitter']['image'] === null) {
                 $head['twitter']['image'] = $head['og_image'];
@@ -116,8 +117,10 @@ class SeoService
         $contentRobots = $content !== null ? (string) ($content->robots ?? '') : '';
         $index = $index && ! str_starts_with($contentRobots, 'noindex');
         $canonicalPath = $content?->path() ?? $path;
+        // Paylaşım görselleri mutlak adres ister (Media adresleri bağıldır; bkz. Media::absolute).
         $pageImage = $content?->cover_url ?: ($website->hero_media_id !== null ? $website->hero?->url() : null);
-        $ogImage = $content !== null && $content->og_media_id !== null && $content->ogImage !== null ? $content->ogImage->url() : ($pageImage ?: ($s['meta.og_image'] !== '' ? $s['meta.og_image'] : null));
+        $pageImage = $pageImage !== null && $pageImage !== '' ? Media::absolute($pageImage) : null;
+        $ogImage = $content !== null && $content->og_media_id !== null && $content->ogImage !== null ? $content->ogImage->absoluteUrl() : ($pageImage ?: ($s['meta.og_image'] !== '' ? $s['meta.og_image'] : null));
         $ogTitle = $content !== null && trim((string) $content->og_title) !== '' ? trim((string) $content->og_title) : ($content === null && $s['meta.og_title'] !== '' ? $s['meta.og_title'] : $title);
         $ogDescription = $content !== null && trim((string) $content->og_description) !== '' ? trim((string) $content->og_description) : ($content === null && $s['meta.og_description'] !== '' ? $s['meta.og_description'] : $description);
         $contentCanonical = $content !== null ? trim((string) ($content->canonical_url ?? '')) : '';

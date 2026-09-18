@@ -12,6 +12,10 @@ use Illuminate\Support\Facades\Storage;
  * sha256) geçmiş, public diske UUID adla yazılmış kayıt (bkz. MediaService). Responsive
  * varyantlar (`variants`: [{w,h,path}]) GD ile yükleme anında üretilir; `srcset()` bunlardan
  * kurulur. Görsel yolları kodda yazılmaz; her <img> bu modelden gelir.
+ *
+ * Adresler yerel diskte **host'a göre bağıl** (`/storage/…`) üretilir: vitrin hangi alan adından/IP'den açılırsa
+ * açılsın görsel aynı origin'den gelir (CSP `img-src 'self'` ve çoklu Host→Website çözümlemesiyle uyumlu; APP_URL
+ * farklı olsa da kırık görsel olmaz). Paylaşım/JSON-LD gibi mutlak adres isteyen yerler `absoluteUrl()` kullanır.
  */
 class Media extends Model
 {
@@ -28,7 +32,38 @@ class Media extends Model
 
     public function url(): string
     {
-        return Storage::disk($this->disk)->url($this->path);
+        return $this->pathUrl($this->path);
+    }
+
+    /** Mutlak adres (og:image, JSON-LD, site haritası): bağıl yol istekteki origin ile tamamlanır. */
+    public function absoluteUrl(): string
+    {
+        return self::absolute($this->url());
+    }
+
+    public function absoluteUrlFor(int $width): string
+    {
+        return self::absolute($this->urlFor($width));
+    }
+
+    /** Bağıl (`/storage/…`) adresi mutlak yapar; zaten mutlaksa (S3 vb.) dokunmaz. */
+    public static function absolute(string $url): string
+    {
+        return str_starts_with($url, '/') && ! str_starts_with($url, '//') ? url($url) : $url;
+    }
+
+    /** Dosyanın adresi: yerel sürücüde yalnız yol bileşeni; uzak diskte (S3) diskin verdiği mutlak adres. */
+    private function pathUrl(string $path): string
+    {
+        $url = Storage::disk($this->disk)->url($path);
+
+        if ((string) config('filesystems.disks.'.$this->disk.'.driver') === 'local') {
+            $relative = parse_url($url, PHP_URL_PATH);
+
+            return is_string($relative) && $relative !== '' ? $relative : $url;
+        }
+
+        return $url;
     }
 
     /**
@@ -40,7 +75,7 @@ class Media extends Model
 
         foreach ((array) ($this->variants ?? []) as $v) {
             if (is_array($v) && isset($v['w'], $v['path'])) {
-                $entries[(int) $v['w']] = Storage::disk($this->disk)->url((string) $v['path']).' '.(int) $v['w'].'w';
+                $entries[(int) $v['w']] = $this->pathUrl((string) $v['path']).' '.(int) $v['w'].'w';
             }
         }
 
@@ -61,7 +96,7 @@ class Media extends Model
             }
         }
 
-        return $best === null ? $this->url() : Storage::disk($this->disk)->url((string) $best['path']);
+        return $best === null ? $this->url() : $this->pathUrl((string) $best['path']);
     }
 
     /** @return array<int, string> silinecek tüm dosya yolları (orijinal + varyantlar) */
