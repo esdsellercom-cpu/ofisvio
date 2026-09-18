@@ -23,5 +23,6 @@ Schedule::command('spaces:end-expired')->dailyAt('00:30')->withoutOverlapping();
 Schedule::command('ofisvio:search-console-sync')->dailyAt('04:00')->withoutOverlapping();
 Schedule::command('ofisvio:analytics-sync')->dailyAt('04:20')->withoutOverlapping();
 Schedule::command('ofisvio:web-vitals')->weeklyOn(1, '04:40')->withoutOverlapping();
+Schedule::command('ofisvio:content-refresh-scan')->weeklyOn(1, '05:00')->withoutOverlapping(); // yenileme adayları (faz 60e)
 // Giriş geçmişi 180 gün (LoginEvent::prunable).
 Schedule::command('model:prune', ['--model' => [LoginEvent::class]])->daily();

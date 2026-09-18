@@ -72,6 +72,12 @@ return [
             'base_url' => env('AI_BASE_URL', 'https://api.anthropic.com'),
             'secrets' => ['api_key' => env('AI_API_KEY')],
             'webhook_secret' => null,
+            // Faz 60e: model + API sürümü; fiyat isteğe bağlı (tanımlıysa iş kaydına maliyet yazılır, yoksa yalnız token).
+            'model' => env('AI_MODEL', 'claude-sonnet-5'),
+            'version' => env('AI_API_VERSION', '2023-06-01'),
+            'price_input_per_mtok' => env('AI_PRICE_INPUT_PER_MTOK'),
+            'price_output_per_mtok' => env('AI_PRICE_OUTPUT_PER_MTOK'),
+            'price_currency' => env('AI_PRICE_CURRENCY', 'USD'),
         ],
         'sms' => [
             'label' => 'SMS',

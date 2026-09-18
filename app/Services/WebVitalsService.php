@@ -94,10 +94,10 @@ class WebVitalsService
      */
     public function latest(Website $website): Collection
     {
-        $samples = WebVitalsSample::query()->where('website_id', $website->id)->orderByDesc('measured_at')->limit(400)->get();
+        $measurements = WebVitalsSample::query()->where('website_id', $website->id)->orderByDesc('measured_at')->limit(400)->get();
         $latest = [];
 
-        foreach ($samples as $sample) {
+        foreach ($measurements as $sample) {
             $key = $sample->path.'|'.$sample->strategy;
 
             if (! isset($latest[$key])) {

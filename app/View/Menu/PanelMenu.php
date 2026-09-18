@@ -112,6 +112,10 @@ class PanelMenu
                 $can('seo.view') ? $this->item('Internal Linking', route('panel.seo.links.home'), $this->routeIs('panel.seo.links*') || $seoTab('baglanti')) : null,
                 $can('seo.analytics.view') ? $this->item('Search Console', route('panel.seo.search-console.home'), $this->routeIs('panel.seo.search-console*')) : null,
                 $can('seo.analytics.view') ? $this->item('Analytics', route('panel.seo.analytics.home'), $this->routeIs('panel.seo.analytics*')) : null,
+                $can('ai_content.generate', 'ai_content.review', 'ai_content.approve', 'ai_content.publish') ? $this->item('AI Content', route('panel.seo.ai.home'), $this->routeIs('panel.seo.ai.index', 'panel.seo.ai.show', 'panel.seo.ai.home')) : null,
+                $can('seo.view') ? $this->item('İçerik yenileme', route('panel.seo.refresh.home'), $this->routeIs('panel.seo.refresh*')) : null,
+                $can('ai_content.generate') ? $this->item('Prompt Registry', route('panel.seo.ai.prompts.home'), $this->routeIs('panel.seo.ai.prompts*')) : null,
+                $can('ai_content.generate', 'seo.view') ? $this->item('API kullanımı & maliyet', route('panel.seo.ai.usage.home'), $this->routeIs('panel.seo.ai.usage*')) : null,
                 $can('seo.view') ? $this->item('Doğrulama & bildirim', route('panel.seo.settings.home', ['sekme' => 'dogrulama']), $seoTab('dogrulama')) : null,
             ]],
             ['Performans', [

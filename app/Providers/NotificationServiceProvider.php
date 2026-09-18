@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Integrations\Ai\AiProviderInterface;
+use App\Integrations\Ai\AnthropicAdapter;
 use App\Integrations\Sms\GatewaySmsAdapter;
 use App\Integrations\Sms\SmsProviderInterface;
 use App\Integrations\WhatsApp\MetaWhatsAppAdapter;
@@ -19,6 +21,8 @@ class NotificationServiceProvider extends ServiceProvider
     {
         $this->app->bind(WhatsAppProviderInterface::class, MetaWhatsAppAdapter::class);
         $this->app->bind(SmsProviderInterface::class, GatewaySmsAdapter::class);
+        // AI Content Engine (faz 60e): tek sağlayıcı adaptörü, Gateway üzerinden.
+        $this->app->bind(AiProviderInterface::class, AnthropicAdapter::class);
     }
 
     // Dinleyiciler Laravel olay keşfiyle (app/Listeners) bağlanır; burada tekrar bağlamak çift bildirim üretirdi.

@@ -15,6 +15,7 @@
  */
 
 use App\Http\Controllers\Panel\AccountController;
+use App\Http\Controllers\Panel\AiContentController;
 use App\Http\Controllers\Panel\AuditController;
 use App\Http\Controllers\Panel\BookingController;
 use App\Http\Controllers\Panel\BookingDeskController;
@@ -448,6 +449,27 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/analytics', [SearchPerformanceController::class, 'analyticsHome'])->middleware('permission:seo.analytics.view')->name('analytics.home');
             Route::get('/{website}/analytics', [SearchPerformanceController::class, 'analytics'])->middleware('permission:seo.analytics.view')->name('analytics');
             Route::post('/{website}/senkron/{provider}', [SearchPerformanceController::class, 'sync'])->where('provider', 'search_console|analytics')->middleware(['permission:seo.audit', 'throttle:10,1'])->name('sync');
+
+            // AI Content Engine + Prompt Registry + kullanım + içerik yenileme (faz 60e).
+            Route::get('/ai-icerik', [AiContentController::class, 'home'])->middleware('permission:ai_content.generate|ai_content.review|ai_content.approve|ai_content.publish')->name('ai.home');
+            Route::get('/prompt-kaydi', [AiContentController::class, 'promptsHome'])->middleware('permission:ai_content.generate')->name('ai.prompts.home');
+            Route::get('/ai-kullanim', [AiContentController::class, 'usageHome'])->middleware('permission:ai_content.generate|seo.view')->name('ai.usage.home');
+            Route::get('/icerik-yenileme', [AiContentController::class, 'refreshHome'])->middleware('permission:seo.view')->name('refresh.home');
+            Route::prefix('/{website}/ai-icerik')->name('ai.')->where(['job' => '[0-9]+'])->group(function () {
+                Route::get('/', [AiContentController::class, 'index'])->middleware('permission:ai_content.generate|ai_content.review|ai_content.approve|ai_content.publish')->name('index');
+                Route::post('/', [AiContentController::class, 'store'])->middleware('permission:ai_content.generate')->name('store');
+                Route::get('/prompt-kaydi', [AiContentController::class, 'prompts'])->middleware('permission:ai_content.generate')->name('prompts');
+                Route::post('/prompt-kaydi', [AiContentController::class, 'storePrompt'])->middleware('permission:ai_content.generate')->name('prompts.store');
+                Route::get('/kullanim', [AiContentController::class, 'usage'])->middleware('permission:ai_content.generate|seo.view')->name('usage');
+                Route::get('/{job}', [AiContentController::class, 'show'])->middleware('permission:ai_content.generate|ai_content.review|ai_content.approve|ai_content.publish')->name('show');
+                Route::post('/{job}/adim', [AiContentController::class, 'step'])->middleware(['permission:ai_content.generate', 'throttle:20,1'])->name('step');
+                Route::post('/{job}/incele', [AiContentController::class, 'review'])->middleware('permission:ai_content.review')->name('review');
+                Route::post('/{job}/onayla', [AiContentController::class, 'approve'])->middleware('permission:ai_content.approve')->name('approve');
+                Route::post('/{job}/yayinla', [AiContentController::class, 'publish'])->middleware('permission:ai_content.publish')->name('publish');
+            });
+            Route::get('/{website}/icerik-yenileme', [AiContentController::class, 'refresh'])->middleware('permission:seo.view')->name('refresh');
+            Route::post('/{website}/icerik-yenileme/tara', [AiContentController::class, 'detect'])->middleware(['permission:seo.audit', 'throttle:10,1'])->name('refresh.detect');
+            Route::post('/{website}/icerik-yenileme/{candidate}', [AiContentController::class, 'decideRefresh'])->where('candidate', '[0-9]+')->middleware('permission:seo.edit')->name('refresh.decide');
 
             // Keyword Intelligence + Internal Linking Engine (faz 60c).
             Route::get('/anahtar-kelimeler', [KeywordController::class, 'home'])->middleware('permission:seo.view')->name('keywords.home');

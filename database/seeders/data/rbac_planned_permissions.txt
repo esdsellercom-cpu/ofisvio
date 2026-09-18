@@ -5,10 +5,6 @@
 address.assign | Yasal adres tahsisi (sanal ofis adres modülü)
 address.terminate | Yasal adres tahsisi (sanal ofis adres modülü)
 address.view | Yasal adres tahsisi (sanal ofis adres modülü)
-ai_content.approve | AI içerik üretimi (Command Center, ROADMAP ⛔ 19–22)
-ai_content.generate | AI içerik üretimi
-ai_content.publish | AI içerik üretimi
-ai_content.review | AI içerik üretimi
 analytics.integration.manage | Analytics sağlayıcı bağlantısı (config var, kod yok)
 break_glass.activate | Acil erişim (JIT + dual-control altyapısı hazır, ekran yok)
 cargo.create | Kargo/posta karşılama modülü
