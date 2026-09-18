@@ -31,15 +31,15 @@ class SystemCenterTest extends TestCase
         $ops = $this->staff('operations_admin'); // settings.view var, manage yok
         $finance = $this->staff('finance_admin'); // settings yok
 
-        $page = $this->actingAs($admin)->get('/panel/ayarlar/api')->assertOk();
+        $page = $this->actingAs($admin)->get('/panel/ayarlar/api/cekirdek')->assertOk(); // faz 61b: çekirdek/env ekranı /api/cekirdek, /api entegrasyon merkezi
         $page->assertSee('API &amp; Entegrasyonlar', false)->assertSee('SMS')->assertSee('WhatsApp')->assertSee('iyzico')->assertSee('IndexNow')->assertSee('E-posta')->assertSee('Veritabanı')->assertSee('Kuyruk')->assertSee('SMS_API_KEY')->assertSee('Bağlantıyı test et')
             ->assertDontSee('GIZLI-ANAHTAR-123456')->assertDontSee('Mapbox API')->assertSee('Kullanılmayan servisler');
-        $this->actingAs($ops)->get('/panel/ayarlar/api')->assertOk()->assertDontSee('Bağlantıyı test et');
-        $this->actingAs($finance)->get('/panel/ayarlar/api')->assertForbidden();
+        $this->actingAs($ops)->get('/panel/ayarlar/api/cekirdek')->assertOk()->assertDontSee('Bağlantıyı test et');
+        $this->actingAs($finance)->get('/panel/ayarlar/api/cekirdek')->assertForbidden();
 
         // Test bağlantısı: çekirdek (veritabanı) ok; kapalı sağlayıcı uyarı; günlük + audit; yetkisiz 403; tanımsız anahtar hata.
-        $this->actingAs($admin)->post('/panel/ayarlar/api/database/test')->assertRedirect('/panel/ayarlar/api');
-        $this->actingAs($admin)->get('/panel/ayarlar/api')->assertOk()->assertSee('çalışıyor');
+        $this->actingAs($admin)->post('/panel/ayarlar/api/database/test')->assertRedirect('/panel/ayarlar/api/cekirdek');
+        $this->actingAs($admin)->get('/panel/ayarlar/api/cekirdek')->assertOk()->assertSee('çalışıyor');
         $this->assertTrue(IntegrationLog::query()->where('provider', 'health:database')->where('ok', true)->exists());
         $this->assertTrue(AuditLog::query()->where('action', 'integration.tested')->exists());
         $this->actingAs($admin)->post('/panel/ayarlar/api/whatsapp/test')->assertRedirect();

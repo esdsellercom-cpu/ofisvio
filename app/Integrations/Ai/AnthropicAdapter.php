@@ -21,7 +21,7 @@ class AnthropicAdapter implements AiProviderInterface
 
     public function defaultModel(): string
     {
-        return (string) config('integrations.providers.ai.model', 'claude-sonnet-5');
+        return (string) $this->secrets->config('ai', 'model', 'claude-sonnet-5');
     }
 
     public function complete(string $system, string $user, ?string $model = null, int $maxTokens = 4000): array
@@ -32,9 +32,9 @@ class AnthropicAdapter implements AiProviderInterface
 
         $model = $model !== null && $model !== '' ? $model : $this->defaultModel();
         $response = $this->gateway->request('ai', 'POST', '/v1/messages', [
-            'headers' => ['x-api-key' => $this->secrets->get('ai', 'api_key'), 'anthropic-version' => (string) config('integrations.providers.ai.version', '2023-06-01')],
+            'headers' => ['x-api-key' => $this->secrets->get('ai', 'api_key'), 'anthropic-version' => (string) $this->secrets->config('ai', 'version', '2023-06-01')],
             'json' => ['model' => $model, 'max_tokens' => $maxTokens, 'system' => $system, 'messages' => [['role' => 'user', 'content' => $user]]],
-            'timeout' => 120,
+            'timeout' => max(30, (int) $this->secrets->config('ai', 'timeout', 120)),
         ]);
 
         if (! $response->successful()) {

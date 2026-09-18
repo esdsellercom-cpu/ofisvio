@@ -307,3 +307,12 @@ website,website.view,super_admin,global,no,no,
 website,website.view,operations_admin,global,no,no,
 website,website.manage,system_admin,global,no,no,Website acma ve alan adi atama (§66 Organization -> Website)
 website,website.manage,super_admin,global,no,no,
+integrations,integrations.view,system_admin,global,no,no,Entegrasyon merkezi (faz 61b): liste/durum/log
+integrations,integrations.view,super_admin,global,no,no,
+integrations,integrations.view,operations_admin,global,no,no,
+integrations,integrations.manage,system_admin,global,no,no,Entegrasyon ayari/aktiflestirme/test (secret haric)
+integrations,integrations.manage,super_admin,global,no,no,
+integrations,secrets.manage,system_admin,global,no,no,API anahtari/secret girme; deger asla gosterilmez/loglanmaz
+integrations,secrets.manage,super_admin,global,no,no,
+integrations,webhooks.manage,system_admin,global,no,no,Giden webhook uclari + tekrar gonderim (faz 61c)
+integrations,webhooks.manage,super_admin,global,no,no,

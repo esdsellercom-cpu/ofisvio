@@ -58,7 +58,7 @@ class SystemController extends Controller
         $this->tester->log($key, $result, $duration);
         $this->audit->record($request->user(), 'integration.tested', 'integration', null, [], ['key' => $key, 'level' => $result['level'], 'duration_ms' => $duration]);
 
-        return redirect()->route('panel.settings.api')->with('test_result', ['key' => $key] + $result)->with('status', 'Bağlantı testi: '.$key.' → '.['ok' => 'çalışıyor', 'warn' => 'uyarı', 'fail' => 'hata'][$result['level']].' ('.$duration.' ms). '.$result['note']);
+        return redirect()->route('panel.settings.api.core')->with('test_result', ['key' => $key] + $result)->with('status', 'Bağlantı testi: '.$key.' → '.['ok' => 'çalışıyor', 'warn' => 'uyarı', 'fail' => 'hata'][$result['level']].' ('.$duration.' ms). '.$result['note']);
     }
 
     public function health(): View

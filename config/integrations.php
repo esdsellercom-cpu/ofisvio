@@ -52,6 +52,14 @@ return [
             'api_key' => env('PAGESPEED_API_KEY'),
             'webhook_secret' => null,
         ],
+        // Google Maps Platform (faz 61b): geocoding/places — isteğe bağlı; harita gömme OpenStreetMap ile anahtarsız.
+        'google_maps' => [
+            'label' => 'Google Maps Platform',
+            'enabled' => (bool) env('GOOGLE_MAPS_ENABLED', false),
+            'base_url' => env('GOOGLE_MAPS_BASE_URL', 'https://maps.googleapis.com'),
+            'secrets' => ['api_key' => env('GOOGLE_MAPS_API_KEY')],
+            'webhook_secret' => null,
+        ],
         'search_console' => [
             'label' => 'Google Search Console',
             'enabled' => (bool) env('SEARCH_CONSOLE_ENABLED', false),

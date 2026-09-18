@@ -135,7 +135,7 @@ class PanelMenu
                 $can('analytics.view') ? $this->item('Raporlar & analitik', route('panel.reports.index'), $this->routeIs('panel.reports.*')) : null,
                 $can('user.manage') ? $this->item('Roller, yetkiler & güvenlik', route('panel.users.index'), $this->routeIs('panel.users.*', 'panel.onboarding.*')) : null,
                 $can('performance.view') ? $this->item('Entegrasyonlar & API', route('panel.integrations.index'), $this->routeIs('panel.integrations.*')) : null,
-                $can('settings.view', 'settings.manage') ? $this->item('API & entegrasyonlar', route('panel.settings.api'), $this->routeIs('panel.settings.api')) : null,
+                $can('settings.view', 'settings.manage', 'integrations.view', 'integrations.manage') ? $this->item('Entegrasyon merkezi', route('panel.settings.api'), $this->routeIs('panel.settings.api*', 'panel.settings.integrations.*')) : null,
                 $can('settings.view', 'settings.manage') ? $this->item('Sistem sağlığı', route('panel.settings.health'), $this->routeIs('panel.settings.health')) : null,
                 $can('settings.view', 'settings.manage') ? $this->item('Site & sistem ayarları', route('panel.settings.index'), $this->routeIs('panel.settings.index', 'panel.settings.update') && $this->request->query('grup') !== 'general') : null,
                 $can('audit.view') ? $this->item('Denetim kaydı', route('panel.audit.index'), $this->routeIs('panel.audit.*')) : null,

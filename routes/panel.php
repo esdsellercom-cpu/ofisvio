@@ -34,6 +34,7 @@ use App\Http\Controllers\Panel\EventController;
 use App\Http\Controllers\Panel\FranchiseController;
 use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\IntegrationController;
+use App\Http\Controllers\Panel\IntegrationHubController;
 use App\Http\Controllers\Panel\InventoryController;
 use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KeywordController;
@@ -272,7 +273,16 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::post('/{area}/surum/{version}', [SiteChromeController::class, 'rollback'])->middleware('permission:website.manage')->name('rollback');
         });
 
-        Route::get('/ayarlar/api', [SystemController::class, 'api'])->middleware('permission:settings.view|settings.manage')->name('settings.api');
+        // Entegrasyon merkezi (faz 61b): integrations.view görür; integrations.manage yazar/test eder; secret girişi secrets.manage (controller).
+        Route::get('/ayarlar/api', [IntegrationHubController::class, 'index'])->middleware('permission:integrations.view|integrations.manage|settings.view|settings.manage')->name('settings.api');
+        Route::get('/ayarlar/entegrasyonlar', fn () => redirect()->route('panel.settings.api'))->middleware('permission:integrations.view|integrations.manage|settings.view|settings.manage')->name('settings.integrations.index');
+        Route::get('/ayarlar/entegrasyonlar/saglik', [IntegrationHubController::class, 'health'])->middleware('permission:integrations.view|integrations.manage|settings.view')->name('settings.integrations.health');
+        Route::get('/ayarlar/entegrasyonlar/loglar', [IntegrationHubController::class, 'logs'])->middleware('permission:integrations.view|integrations.manage|settings.view')->name('settings.integrations.logs');
+        Route::get('/ayarlar/entegrasyonlar/{key}', [IntegrationHubController::class, 'show'])->where('key', '[a-z_]+')->middleware('permission:integrations.view|integrations.manage')->name('settings.integrations.show');
+        Route::post('/ayarlar/entegrasyonlar/{key}', [IntegrationHubController::class, 'save'])->where('key', '[a-z_]+')->middleware('permission:integrations.manage')->name('settings.integrations.save');
+        Route::post('/ayarlar/entegrasyonlar/{key}/test', [IntegrationHubController::class, 'test'])->where('key', '[a-z_]+')->middleware(['permission:integrations.manage', 'throttle:20,1'])->name('settings.integrations.test');
+        // Çekirdek bağlantılar (env tabanlı bilgi ekranı; faz 52): DB, önbellek, kuyruk, zamanlayıcı, tarayıcı.
+        Route::get('/ayarlar/api/cekirdek', [SystemController::class, 'api'])->middleware('permission:settings.view|settings.manage')->name('settings.api.core');
         Route::post('/ayarlar/api/{key}/test', [SystemController::class, 'test'])->where('key', '[a-z_]+')->middleware(['permission:settings.manage', 'throttle:20,1'])->name('settings.api.test');
         Route::get('/ayarlar/saglik', [SystemController::class, 'health'])->middleware('permission:settings.view|settings.manage')->name('settings.health');
         Route::post('/ayarlar/saglik', [SystemController::class, 'recheck'])->middleware('permission:settings.manage')->name('settings.health.recheck');

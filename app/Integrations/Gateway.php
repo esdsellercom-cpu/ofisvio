@@ -32,11 +32,7 @@ class Gateway
      */
     public function request(string $provider, string $method, string $path, array $options = []): Response
     {
-        $config = config("integrations.providers.{$provider}");
-
-        if (! is_array($config)) {
-            throw new RuntimeException("Bilinmeyen sağlayıcı: {$provider}");
-        }
+        $config = $this->secrets->provider($provider); // config + panel üst yazımı (faz 61b)
 
         if (! $this->secrets->enabled($provider)) {
             throw new RuntimeException("{$provider} sağlayıcısı kapalı (env ile açılır).");
@@ -55,7 +51,7 @@ class Gateway
         $error = null;
 
         try {
-            $pending = Http::timeout((int) ($options['timeout'] ?? config('integrations.timeout_seconds', 10)))
+            $pending = Http::timeout((int) ($options['timeout'] ?? $config['timeout'] ?? config('integrations.timeout_seconds', 10)))
                 ->withOptions(['allow_redirects' => false])
                 ->withHeaders($options['headers'] ?? [])
                 ->acceptJson();

@@ -3,6 +3,7 @@
 namespace App\Integrations\Google;
 
 use App\Integrations\Gateway;
+use App\Integrations\SecretStore;
 use RuntimeException;
 
 /**
@@ -11,7 +12,7 @@ use RuntimeException;
  */
 class PageSpeedClient
 {
-    public function __construct(private readonly Gateway $gateway) {}
+    public function __construct(private readonly Gateway $gateway, private readonly SecretStore $secrets) {}
 
     /**
      * @return array{score: int|null, lab: array<string, float|null>, field: array<string, float|null>, fetched_at: string}
@@ -19,7 +20,7 @@ class PageSpeedClient
     public function measure(string $url, string $strategy = 'mobile'): array
     {
         $query = ['url' => $url, 'strategy' => $strategy, 'category' => 'performance'];
-        $key = (string) config('integrations.providers.pagespeed.api_key', '');
+        $key = (string) $this->secrets->config('pagespeed', 'api_key', '');
 
         if ($key !== '') {
             $query['key'] = $key;

@@ -7,6 +7,7 @@ use App\Content\PromptDefaults;
 use App\Content\SeoAnalyzer;
 use App\Enums\ContentStatus;
 use App\Integrations\Ai\AiProviderInterface;
+use App\Integrations\SecretStore;
 use App\Models\AiJob;
 use App\Models\AiPrompt;
 use App\Models\Content;
@@ -38,6 +39,7 @@ class AiContentService
         private readonly KeywordService $keywords,
         private readonly SearchPerformanceService $performance,
         private readonly AuditService $audit,
+        private readonly SecretStore $secrets,
     ) {}
 
     // ---- Prompt Registry -----------------------------------------------------------------------
@@ -489,8 +491,8 @@ class AiContentService
         return [
             'by_model' => $byModel,
             'total' => ['jobs' => $jobs->count(), 'input' => (int) $jobs->sum('input_tokens'), 'output' => (int) $jobs->sum('output_tokens'), 'cost' => (float) $jobs->sum('cost')],
-            'priced' => config('integrations.providers.ai.price_input_per_mtok') !== null && config('integrations.providers.ai.price_output_per_mtok') !== null,
-            'currency' => (string) config('integrations.providers.ai.price_currency', 'USD'),
+            'priced' => $this->secrets->config('ai', 'price_input_per_mtok') !== null && $this->secrets->config('ai', 'price_output_per_mtok') !== null,
+            'currency' => (string) $this->secrets->config('ai', 'price_currency', 'USD'),
             'stages' => $jobs->countBy('stage')->all(),
         ];
     }
@@ -520,15 +522,15 @@ class AiContentService
     /** Maliyet yalnız fiyat env'de tanımlıysa (1M token başına) yazılır. */
     private function applyCost(AiJob $job): void
     {
-        $in = config('integrations.providers.ai.price_input_per_mtok');
-        $out = config('integrations.providers.ai.price_output_per_mtok');
+        $in = $this->secrets->config('ai', 'price_input_per_mtok');
+        $out = $this->secrets->config('ai', 'price_output_per_mtok');
 
         if ($in === null || $out === null || ! is_numeric($in) || ! is_numeric($out)) {
             return;
         }
 
         $job->cost = round($job->input_tokens / 1_000_000 * (float) $in + $job->output_tokens / 1_000_000 * (float) $out, 4);
-        $job->cost_currency = (string) config('integrations.providers.ai.price_currency', 'USD');
+        $job->cost_currency = (string) $this->secrets->config('ai', 'price_currency', 'USD');
     }
 
     /**

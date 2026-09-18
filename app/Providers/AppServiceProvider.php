@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Integrations\IntegrationConfigRepository;
+use App\Integrations\IntegrationHub;
 use App\Models\Content;
 use App\Models\Location;
 use App\Models\SeoLandingPage;
@@ -20,6 +22,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Entegrasyon üst yazımları istek başına tek okuma (faz 61b).
+        $this->app->singleton(IntegrationConfigRepository::class);
         //
     }
 
@@ -31,6 +35,9 @@ class AppServiceProvider extends ServiceProvider
         // Sayfalama: tasarım sistemi (public/css/ofisvio.css) Tailwind taşımaz; kendi görünümümüz.
         Paginator::defaultView('vendor.pagination.ofisvio');
         Paginator::defaultSimpleView('vendor.pagination.ofisvio');
+
+        // Entegrasyon merkezi (faz 61b): panelden girilen SMTP / S3 alanları çalışma zamanı config'ine (env boşsa ya da üstüne).
+        $this->app->make(IntegrationHub::class)->applyRuntime();
 
         // Önbellek geçersizleme kaskadı (faz 60f): CMS değişikliği → site sürümü atlar + cache_events izi.
         foreach ([Service::class, Location::class, Content::class, SeoLandingPage::class, Website::class, SiteRevision::class] as $model) {
