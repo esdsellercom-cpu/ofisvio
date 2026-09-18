@@ -69,6 +69,7 @@ class FranchiseHomeTest extends TestCase
         $this->assertSame('toplanti-odasi', Illustrations::forService('toplanti-odasi', 'Toplantı Odası'));
         $this->assertSame('etkinlik-alani', Illustrations::forService('etkinlik-alani', 'Etkinlik Alanı'));
         $this->assertSame('coworking', Illustrations::forService('coworking', 'Coworking'));
+        $this->assertSame('gunluk-kullanim', Illustrations::forService('gunluk-kullanim', 'Günlük Kullanım'));
         $this->assertSame('hazir-ofis', Illustrations::forService('bilinmeyen', 'Başka bir şey'));
         $this->assertSame("Konya'da sanal ofis: yasal adres, posta ve evrak yönetimi — illüstrasyon", Illustrations::alt('sanal-ofis', 'Konya'));
         $this->assertStringContainsString('images/illustrations/hero-office.svg', Illustrations::url('hero'));

@@ -54,7 +54,7 @@
                 "price": "₺13.900/ay"
             },
             {
-                "name": "Gün Geçişi",
+                "name": "Günlük Kullanım",
                 "price": "₺390/gün"
             }
         ],
@@ -140,8 +140,8 @@
                         "href": "/cozum/coworking"
                     },
                     {
-                        "label": "Gün Geçişi",
-                        "href": "/cozum/gun-gecisi"
+                        "label": "Günlük Kullanım",
+                        "href": "/cozum/gunluk-kullanim"
                     },
                     {
                         "label": "Toplantı Odası",

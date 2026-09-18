@@ -825,6 +825,9 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   gizli; editörde satır içi + Header paneli), telefon/WhatsApp/e-posta editörden (`globals.contact` → site ayarı,
   yalnız `website.manage`, audit `website.settings_updated`; üst şeritte telefon satır içi `data-ofv-site-field`).
   `TopbarGlobalsTest` (+1).
+- **"Gün Geçişi" → "Günlük Kullanım"** (tüm alanlar): hizmet adı + slug (`gunluk-kullanim`), referans veri
+  (`services.json`, `site_blocks.json` plan/footer), illüstrasyon anahtarı, üye profili üyelik tipi anahtarı;
+  migrasyon `000033` mevcut kayıtları taşır ve `/cozum/gun-gecisi` için 301 yönlendirme kuralı ekler.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

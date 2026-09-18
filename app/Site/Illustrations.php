@@ -22,7 +22,7 @@ final class Illustrations
         'sanal-ofis' => ['sanal-ofis', 800, 600, 'Sanal ofis: yasal adres, posta ve evrak yönetimi'],
         'hazir-ofis' => ['hazir-ofis', 800, 600, 'Hazır ofis: mobilyalı, hemen taşınılabilir özel ofis'],
         'coworking' => ['coworking', 800, 600, 'Coworking: paylaşımlı çalışma alanı ve esnek masalar'],
-        'gun-gecisi' => ['gun-gecisi', 800, 600, 'Günlük geçiş: tek günlük çalışma alanı erişimi'],
+        'gunluk-kullanim' => ['gunluk-kullanim', 800, 600, 'Günlük kullanım: tek günlük çalışma alanı erişimi'],
         'toplanti-odasi' => ['toplanti-odasi', 800, 600, 'Toplantı odası: ekranlı, saatlik rezervasyonlu masa'],
         'etkinlik-alani' => ['etkinlik-alani', 800, 600, 'Etkinlik alanı: sahne ve oturma düzeniyle salon'],
     ];
@@ -31,7 +31,7 @@ final class Illustrations
     private const SERVICE_HINTS = [
         'sanal' => 'sanal-ofis', 'virtual' => 'sanal-ofis', 'adres' => 'sanal-ofis',
         'cowork' => 'coworking', 'paylas' => 'coworking', 'ortak' => 'coworking', 'masa' => 'coworking',
-        'gun' => 'gun-gecisi', 'day' => 'gun-gecisi', 'gecis' => 'gun-gecisi',
+        'gunluk' => 'gunluk-kullanim', 'gun' => 'gunluk-kullanim', 'day' => 'gunluk-kullanim', 'kullanim' => 'gunluk-kullanim',
         'toplanti' => 'toplanti-odasi', 'meeting' => 'toplanti-odasi', 'oda' => 'toplanti-odasi',
         'etkinlik' => 'etkinlik-alani', 'event' => 'etkinlik-alani', 'egitim' => 'etkinlik-alani', 'seminer' => 'etkinlik-alani',
         'hazir' => 'hazir-ofis', 'ofis' => 'hazir-ofis', 'ozel' => 'hazir-ofis',

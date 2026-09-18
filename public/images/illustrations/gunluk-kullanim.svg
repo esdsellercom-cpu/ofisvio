@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="t"><title id="t">Gün geçişi: tek günlük çalışma alanı erişimi</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="t"><title id="t">Günlük kullanım: tek günlük çalışma alanı erişimi</title>
 <defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#E3DED2" stroke-width="1"/></pattern></defs>
 <rect width="800" height="600" fill="#F5F1E8"/><rect width="800" height="600" fill="url(#g)" opacity=".55"/><circle cx="600" cy="150" r="120" fill="#9ECBB4" opacity=".3"/>
 

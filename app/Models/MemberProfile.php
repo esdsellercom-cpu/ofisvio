@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class MemberProfile extends Model
 {
-    public const MEMBERSHIP_TYPES = ['sanal_ofis' => 'Sanal ofis', 'hazir_ofis' => 'Hazır ofis', 'coworking' => 'Coworking', 'gun_gecisi' => 'Gün geçişi', 'toplanti' => 'Toplantı & etkinlik', 'diger' => 'Diğer'];
+    public const MEMBERSHIP_TYPES = ['sanal_ofis' => 'Sanal ofis', 'hazir_ofis' => 'Hazır ofis', 'coworking' => 'Coworking', 'gunluk_kullanim' => 'Günlük kullanım', 'toplanti' => 'Toplantı & etkinlik', 'diger' => 'Diğer'];
 
     protected $fillable = ['user_role_id', 'member_no', 'first_name', 'last_name', 'title', 'phone', 'identity_number', 'address', 'city', 'country', 'membership_type', 'member_since', 'note', 'avatar_media_id', 'updated_by'];
 

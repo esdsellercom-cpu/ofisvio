@@ -25,7 +25,7 @@
             "sort_order": 3
         },
         {
-            "name": "Gün Geçişi",
+            "name": "Günlük Kullanım",
             "summary": "Sözleşmesiz günlük kullanım. Hızlı internet, telefon kabini, gün boyu ikram.",
             "price_text": "₺390/gün'den",
             "is_flagship": false,
