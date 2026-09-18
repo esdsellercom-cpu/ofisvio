@@ -28,7 +28,7 @@ class Gateway
     ) {}
 
     /**
-     * @param  array{headers?: array<string, string>, json?: array<string, mixed>, query?: array<string, mixed>}  $options
+     * @param  array{headers?: array<string, string>, json?: array<string, mixed>, form?: array<string, string>, query?: array<string, mixed>, timeout?: int}  $options
      */
     public function request(string $provider, string $method, string $path, array $options = []): Response
     {
@@ -55,7 +55,7 @@ class Gateway
         $error = null;
 
         try {
-            $pending = Http::timeout((int) config('integrations.timeout_seconds', 10))
+            $pending = Http::timeout((int) ($options['timeout'] ?? config('integrations.timeout_seconds', 10)))
                 ->withOptions(['allow_redirects' => false])
                 ->withHeaders($options['headers'] ?? [])
                 ->acceptJson();
@@ -64,9 +64,12 @@ class Gateway
                 $pending = $pending->withQueryParameters($options['query']);
             }
 
-            $response = isset($options['json'])
-                ? $pending->send($method, $url, ['json' => $options['json']])
-                : $pending->send($method, $url);
+            // form: OAuth2 token uçları (application/x-www-form-urlencoded); json: API gövdesi.
+            $response = match (true) {
+                isset($options['json']) => $pending->send($method, $url, ['json' => $options['json']]),
+                isset($options['form']) => $pending->asForm()->send($method, $url, ['form_params' => $options['form']]),
+                default => $pending->send($method, $url),
+            };
 
             $status = $response->status();
 

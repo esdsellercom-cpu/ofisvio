@@ -55,6 +55,7 @@ use App\Http\Controllers\Panel\RedirectController;
 use App\Http\Controllers\Panel\ReportController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SearchController;
+use App\Http\Controllers\Panel\SearchPerformanceController;
 use App\Http\Controllers\Panel\SeoCenterController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SeoSettingsController;
@@ -441,6 +442,13 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::delete('/{website}/varliklar/{relation}', [EntityGraphController::class, 'unlink'])->where('relation', '[0-9]+')->middleware('permission:seo.edit')->name('entities.unlink');
             Route::get('/geo-yonetimi', [EntityGraphController::class, 'geoHome'])->middleware('permission:seo.view')->name('geo.home');
             Route::get('/{website}/geo-yonetimi', [EntityGraphController::class, 'geo'])->middleware('permission:seo.view')->name('geo');
+            // Search Console / Analytics (faz 60d): seo.analytics.view görür; elle senkron seo.audit (salt okuma).
+            Route::get('/search-console', [SearchPerformanceController::class, 'searchConsoleHome'])->middleware('permission:seo.analytics.view')->name('search-console.home');
+            Route::get('/{website}/search-console', [SearchPerformanceController::class, 'searchConsole'])->middleware('permission:seo.analytics.view')->name('search-console');
+            Route::get('/analytics', [SearchPerformanceController::class, 'analyticsHome'])->middleware('permission:seo.analytics.view')->name('analytics.home');
+            Route::get('/{website}/analytics', [SearchPerformanceController::class, 'analytics'])->middleware('permission:seo.analytics.view')->name('analytics');
+            Route::post('/{website}/senkron/{provider}', [SearchPerformanceController::class, 'sync'])->where('provider', 'search_console|analytics')->middleware(['permission:seo.audit', 'throttle:10,1'])->name('sync');
+
             // Keyword Intelligence + Internal Linking Engine (faz 60c).
             Route::get('/anahtar-kelimeler', [KeywordController::class, 'home'])->middleware('permission:seo.view')->name('keywords.home');
             Route::get('/{website}/anahtar-kelimeler', [KeywordController::class, 'index'])->middleware('permission:seo.view')->name('keywords');

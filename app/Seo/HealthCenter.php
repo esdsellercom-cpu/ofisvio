@@ -15,6 +15,7 @@ use App\Services\ContentService;
 use App\Services\GeoService;
 use App\Services\LandingPageService;
 use App\Services\RedirectService;
+use App\Services\SearchPerformanceService;
 use App\Services\SeoService;
 use App\Services\SeoSettingsService;
 use App\Services\ServiceService;
@@ -84,6 +85,7 @@ class HealthCenter
         private readonly AuditService $audit,
         private readonly ContentCache $cache,
         private readonly LandingPageService $landing,
+        private readonly SearchPerformanceService $performance,
     ) {}
 
     /**
@@ -529,6 +531,13 @@ class HealthCenter
 
         // Entegrasyonlar: bağlı değilse bilgi; sahte metrik üretilmez.
         $integrations = $this->integrations();
+
+        // Arama performansı (faz 60d): yalnız bağlı ve senkron edilmiş veriden — tıklaması yarıdan fazla düşen sayfalar.
+        foreach ($this->performance->pageClickTrend($website) as $path => $trend) {
+            if ($trend['before'] >= 20 && $trend['now'] <= $trend['before'] / 2) {
+                $add('search_performance', 'drop:'.$path, 'medium', 'Tıklama düşüşü: '.$path.' ('.$trend['before'].' → '.$trend['now'].')', $path, 'Search Console: son dönem tıklaması önceki dönemin yarısından az.', 'İçerik Yenileme adayı; başlık/açıklama/güncellik ve rakip içerik kontrolü.');
+            }
+        }
 
         if (! $integrations['search_console']['connected']) {
             $add('search_performance', 'not_connected', 'info', 'Search Console bağlı değil', null, $integrations['search_console']['note'], 'SEARCH_CONSOLE_ENABLED + servis hesabı JSON env\'i ve ayarlardaki mülk adresi ile bağlayın; tıklama/gösterim/sıra verisi o zaman gelir.');

@@ -34,6 +34,24 @@ return [
             'secrets' => [],
             'webhook_secret' => null,
         ],
+        // Google servis hesabı token ucu (faz 60d): Search Console / Analytics servis hesabı JWT'sini erişim
+        // belirtecine çevirir. Secret taşımaz; iki sağlayıcıdan biri açıksa açık.
+        'google_oauth' => [
+            'label' => 'Google OAuth (servis hesabı)',
+            'enabled' => (bool) env('SEARCH_CONSOLE_ENABLED', false) || (bool) env('ANALYTICS_ENABLED', false),
+            'base_url' => env('GOOGLE_OAUTH_BASE_URL', 'https://oauth2.googleapis.com'),
+            'secrets' => [],
+            'webhook_secret' => null,
+        ],
+        // PageSpeed Insights (faz 60d): Core Web Vitals lab + alan verisi. Anahtar isteğe bağlı (kotayı artırır).
+        'pagespeed' => [
+            'label' => 'PageSpeed Insights (Core Web Vitals)',
+            'enabled' => (bool) env('PAGESPEED_ENABLED', false),
+            'base_url' => env('PAGESPEED_BASE_URL', 'https://www.googleapis.com'),
+            'secrets' => [],
+            'api_key' => env('PAGESPEED_API_KEY'),
+            'webhook_secret' => null,
+        ],
         'search_console' => [
             'label' => 'Google Search Console',
             'enabled' => (bool) env('SEARCH_CONSOLE_ENABLED', false),

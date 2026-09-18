@@ -23,7 +23,7 @@ final class IntegrationCatalog
     ];
 
     /** Sağlayıcı geçidi anahtarı → kategori. */
-    public const PROVIDER_CATEGORY = ['iyzico' => 'payment', 'efatura' => 'payment', 'indexnow' => 'seo', 'search_console' => 'seo', 'analytics' => 'seo', 'ai' => 'ai', 'sms' => 'messaging', 'whatsapp' => 'messaging'];
+    public const PROVIDER_CATEGORY = ['iyzico' => 'payment', 'efatura' => 'payment', 'indexnow' => 'seo', 'search_console' => 'seo', 'analytics' => 'seo', 'pagespeed' => 'seo', 'google_oauth' => 'seo', 'ai' => 'ai', 'sms' => 'messaging', 'whatsapp' => 'messaging'];
 
     /** Sağlayıcının env anahtarları (panelde "nasıl tanımlanır" için; değer gösterilmez). */
     public const PROVIDER_ENV = [
@@ -32,6 +32,8 @@ final class IntegrationCatalog
         'indexnow' => ['INDEXNOW_ENABLED', 'INDEXNOW_BASE_URL'],
         'search_console' => ['SEARCH_CONSOLE_ENABLED', 'SEARCH_CONSOLE_SERVICE_ACCOUNT_JSON'],
         'analytics' => ['ANALYTICS_ENABLED', 'ANALYTICS_SERVICE_ACCOUNT_JSON'],
+        'pagespeed' => ['PAGESPEED_ENABLED', 'PAGESPEED_API_KEY'],
+        'google_oauth' => ['GOOGLE_OAUTH_BASE_URL'],
         'ai' => ['AI_ENABLED', 'AI_BASE_URL', 'AI_API_KEY'],
         'sms' => ['SMS_ENABLED', 'SMS_BASE_URL', 'SMS_API_KEY', 'SMS_SEND_PATH', 'SMS_WEBHOOK_SECRET'],
         'whatsapp' => ['WHATSAPP_ENABLED', 'WHATSAPP_BASE_URL', 'WHATSAPP_ACCESS_TOKEN', 'WHATSAPP_PHONE_NUMBER_ID', 'WHATSAPP_WEBHOOK_SECRET'],
@@ -44,6 +46,8 @@ final class IntegrationCatalog
         'indexnow' => 'İçerik yayınlanınca arama motoru bildirimi (NotifyIndexNowOnContentChange). Anahtar: SEO & GEO › Entegrasyonlar.',
         'search_console' => 'Search Console verisi (Gateway). Doğrulama etiketi: SEO & GEO › Entegrasyonlar.',
         'analytics' => 'Analytics API (Gateway). GA4 / GTM kimlikleri: SEO & GEO › Entegrasyonlar.',
+        'pagespeed' => 'Core Web Vitals ölçümü (ofisvio:web-vitals; Performans › Core Web Vitals).',
+        'google_oauth' => 'Search Console / Analytics servis hesabı belirteci (otomatik; iki sağlayıcıdan biri açıkken).',
         'ai' => 'AI tasarım yardımcısı ve GEO önerileri şu an kural tabanlıdır; sağlayıcı açılınca Gateway üzerinden kullanılır.',
         'sms' => 'Bildirim kanalı SMS (NotificationService › SmsProvider).',
         'whatsapp' => 'Bildirim kanalı WhatsApp (NotificationService › WhatsAppProvider; şablon adı Ayarlar › WhatsApp).',

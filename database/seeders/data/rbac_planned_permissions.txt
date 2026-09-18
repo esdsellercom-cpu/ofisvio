@@ -43,7 +43,6 @@ retention.manage | KVKK saklama politikası (P2-22)
 role.manage | Panelden rol düzenleme (kasıtlı yok: CSV tek kaynak; JIT)
 search_console.integration.manage | Search Console bağlantısı (P3-27)
 secret.manage | Secret yönetimi (env dışı; JIT)
-seo.analytics.view | SEO analitik (P3-27)
 seo.integration.manage | SEO entegrasyonları (P3-27)
 subscription.downgrade | Üyelik düşürme akışı
 subscription.override | Üyelik istisna/kampanya (JIT)
