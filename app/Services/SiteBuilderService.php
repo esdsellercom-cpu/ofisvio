@@ -61,7 +61,8 @@ class SiteBuilderService
         }
 
         foreach (SectionLibrary::defaultLayout() as $i => $row) {
-            SiteSection::query()->create(['website_id' => $website->id, 'type' => $row['type'], 'anchor' => $row['anchor'], 'sort_order' => $i + 1, 'is_visible' => true, 'settings' => []]);
+            // Varsayılan ayarlar (ör. franchise CTA) baştan kayıtta: editör durumu ile vitrin aynı; kaydedince kaybolmaz.
+            SiteSection::query()->create(['website_id' => $website->id, 'type' => $row['type'], 'anchor' => $row['anchor'], 'sort_order' => $i + 1, 'is_visible' => true, 'settings' => SectionLibrary::defaults($row['type'])]);
         }
     }
 
@@ -801,7 +802,7 @@ class SiteBuilderService
             $latest = SiteRevision::query()->where('website_id', $website->id)->orderByDesc('number')->first();
 
             return $latest === null
-                ? array_map(fn (array $r) => $r + ['is_visible' => true, 'hide_on_mobile' => false, 'hide_on_desktop' => false, 'settings' => [], 'publish_from' => null, 'publish_until' => null], SectionLibrary::defaultLayout())
+                ? array_map(fn (array $r) => $r + ['is_visible' => true, 'hide_on_mobile' => false, 'hide_on_desktop' => false, 'settings' => SectionLibrary::defaults($r['type']), 'publish_from' => null, 'publish_until' => null], SectionLibrary::defaultLayout())
                 : (array) $latest->snapshot;
         });
 

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **329/329** (Unit 12 · Feature 301 · Architecture 16) |
+| `php artisan test` | ✅ **330/330** (Unit 12 · Feature 302 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -861,6 +861,16 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   hedefe çözülür; 404 sayfası yalnız mevcut içerikleri önerir. Migrasyon `000034_url_redirects`. `RedirectSystemTest` (+6):
   eşleştirici, slug değişimi/geri alma, silme onayı üç seçenek + geçersiz hedef, hizmet/lokasyon silme, 404 zinciri
   (otomatik/öneri+onay/üst kategori/düz 404/günlük/yok say), manuel yönetim + zincir + döngü + sitemap + canonical + bot + yetki.
+
+### 54b. Editör kayıt bütünlüğü düzeltmesi ✅ (18 Eylül 2026)
+- **Kök neden**: PHP boş ayar dizisi `[]` JSON'da JS dizisi oluyor; satır içi düzenlemede diziye atanan alan (`settings.title`)
+  `JSON.stringify`'da düşüyordu → "Kaydet" hiçbir bölüm metnini yazmıyordu (yalnız daha önce ayarı olan bölümler). Ayrıca çerçeve
+  yeniden yüklenince global metin (`applyGlobalText`) bölüm alanını eziyor, `innerText` eyebrow'u BÜYÜK HARFE çeviriyor,
+  `normalizeSettings` boş CTA'yı `none` yazınca franchise bölümünün varsayılan düğmesi kayboluyordu.
+- **Düzeltme**: JS `fixSection/asObject` (yükleme, geri alma, ekleme, erişim), config boş ayarı `{}` basar, global metin bölüm
+  değerini atlar, dönüştürülmüş öğede `textContent`; varsayılan yerleşim/ilk açılış `SectionLibrary::defaults` ile yazılır;
+  migrasyon `000035` mevcut boş franchise bölümlerine (taslak + son yayın) varsayılanı verir. Tarayıcıda 13 satır içi alan +
+  panel girdisi + global metin → kaydet → yayınla → vitrin doğrulandı; `EditorSaveIntegrityTest` (+1).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

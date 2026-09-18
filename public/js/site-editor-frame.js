@@ -153,7 +153,9 @@
         var el = e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
         if (!el || el !== editing) return;
         var sec = el.closest('[data-ofv-section]');
-        parentApi.fieldInput({ section: sec ? sec.getAttribute('data-ofv-section') : null, field: el.getAttribute('data-ofv-field'), global: el.getAttribute('data-ofv-global'), site: el.getAttribute('data-ofv-site-field'), value: el.innerText.replace(/\n{2,}/g, '\n').trim() });
+        // innerText CSS text-transform'u (eyebrow: uppercase) uygular; dönüştürülmüş öğede ham metin (textContent) alınır.
+        var raw = window.getComputedStyle(el).textTransform !== 'none' ? el.textContent : el.innerText;
+        parentApi.fieldInput({ section: sec ? sec.getAttribute('data-ofv-section') : null, field: el.getAttribute('data-ofv-field'), global: el.getAttribute('data-ofv-global'), site: el.getAttribute('data-ofv-site-field'), value: raw.replace(/\n{2,}/g, '\n').trim() });
     });
     doc.addEventListener('keydown', function (e) {
         if (!editing) return;

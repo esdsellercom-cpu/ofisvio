@@ -17,7 +17,7 @@
     var CONTACT_FIELDS = { contact_phone: 'Telefon', whatsapp_number: 'WhatsApp numarası', contact_email: 'E-posta' };
 
     /* ---------- Durum ---------- */
-    var state = { sections: JSON.parse(JSON.stringify(cfg.sections || [])), texts: Object.assign({}, cfg.texts || {}), footerColumns: cfg.footerColumns || '', heroMedia: '', blocks: Object.assign({}, cfg.dataBlocks || {}), contact: Object.assign({}, cfg.contact || {}) };
+    var state = { sections: fixSections(JSON.parse(JSON.stringify(cfg.sections || []))), texts: Object.assign({}, cfg.texts || {}), footerColumns: cfg.footerColumns || '', heroMedia: '', blocks: Object.assign({}, cfg.dataBlocks || {}), contact: Object.assign({}, cfg.contact || {}) };
     var DATA_SECTIONS = cfg.dataBlockSections || {}, DATA_META = cfg.dataBlockMeta || {};
     var uploads = {}; // token → File
     var history = [], future = [];
@@ -31,7 +31,18 @@
     function updateUndo() { $('[data-undo]').disabled = history.length === 0; $('[data-redo]').disabled = future.length === 0; }
     function setDirty(v) { dirty = v; $('[data-dirty-badge]').hidden = !v; }
     function toast(msg) { var t = $('[data-toast]'); t.textContent = msg; t.hidden = false; clearTimeout(t._t); t._t = setTimeout(function () { t.hidden = true; }, 2200); }
-    function sec(id) { for (var i = 0; i < state.sections.length; i++) if (String(state.sections[i].id) === String(id)) return state.sections[i]; return null; }
+    /* PHP boş dizi ([]) JSON'da JS dizisi olur; diziye atanan alan (s.settings.title = …) JSON.stringify'da KAYBOLUR.
+       Ayar nesneleri her zaman düz nesne olmalı: yükleme, geri alma, ekleme ve erişimde normalize edilir (Kaydet kaybı). */
+    function asObject(v) { return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {}; }
+    function fixSection(s) {
+        if (!s) return s;
+        s.settings = asObject(s.settings);
+        ['style', 'style_tablet', 'style_mobile', 'field_styles', 'cta'].forEach(function (k) { if (k in s.settings) s.settings[k] = asObject(s.settings[k]); });
+        if (s.settings.field_styles) Object.keys(s.settings.field_styles).forEach(function (f) { s.settings.field_styles[f] = asObject(s.settings.field_styles[f]); });
+        return s;
+    }
+    function fixSections(list) { (list || []).forEach(fixSection); return list; }
+    function sec(id) { for (var i = 0; i < state.sections.length; i++) if (String(state.sections[i].id) === String(id)) return fixSection(state.sections[i]); return null; }
     function secIndex(id) { for (var i = 0; i < state.sections.length; i++) if (String(state.sections[i].id) === String(id)) return i; return -1; }
     function label(id, type) { var s = sec(id); var p = s && s.preset_id ? PRESETS[s.preset_id] : null; return (s && s.label) || (p && p.global ? p.name : null) || (LIB[type || (s && s.type)] || { label: type }).label; }
     function linkedGlobal(s) { var p = s && s.preset_id ? PRESETS[s.preset_id] : null; return p && p.global ? p : null; }
@@ -105,6 +116,9 @@
         var d = fdoc(); if (!d) return;
         $$('[data-ofv-global="texts.' + key + '"]', d).forEach(function (t) {
             if (t.classList.contains('ofv-editing')) return;
+            // Bölüm alanı (data-ofv-field) kendi değerini taşıyorsa global metin onu EZMEZ (bölüm değeri > global varsayılan).
+            var field = t.getAttribute('data-ofv-field');
+            if (field) { var secEl = t.closest('[data-ofv-section]'); var s = secEl ? sec(secEl.getAttribute('data-ofv-section')) : null; if (s && s.settings[field]) return; }
             var n = t.getAttribute('data-ofv-count');
             t.textContent = n !== null ? value.split('{count}').join(n) : value;
             if (t.hasAttribute('hidden') && value.trim() !== '') t.removeAttribute('hidden');
@@ -155,7 +169,7 @@
     /* ---------- Bölüm işlemleri ---------- */
     function addSection(what, index) {
         var type, settings, presetId = null;
-        if (what.indexOf('preset:') === 0) { presetId = parseInt(what.substring(7), 10); var p = PRESETS[presetId]; if (!p) return; type = p.type; settings = JSON.parse(JSON.stringify(p.settings || {})); }
+        if (what.indexOf('preset:') === 0) { presetId = parseInt(what.substring(7), 10); var p = PRESETS[presetId]; if (!p) return; type = p.type; settings = asObject(JSON.parse(JSON.stringify(p.settings || {}))); }
         else { type = what; settings = {}; }
         var def = LIB[type]; if (!def) return;
         if (def.unique && state.sections.some(function (s) { return s.type === type; })) { toast(def.label + ' sayfada zaten var (tek olabilir).'); return; }
@@ -558,7 +572,7 @@
     $$('[data-left-tabs] button').forEach(function (b) { b.addEventListener('click', function () { $$('[data-left-tabs] button').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); $$('[data-left-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-left-panel') !== b.getAttribute('data-tab'); }); if (b.getAttribute('data-tab') === 'layers') renderLayers(); }); });
     $$('[data-device]').forEach(function (b) { b.addEventListener('click', function () { device = b.getAttribute('data-device'); $$('[data-device]').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); frameWrap.setAttribute('data-device', device); if (selection && rightTab === 'design') renderRight(); }); });
     function restore(json) {
-        var st = JSON.parse(json); state.sections = st.sections; state.texts = st.texts; state.footerColumns = st.footerColumns; state.heroMedia = st.heroMedia; state.blocks = st.blocks || {}; state.contact = st.contact || {};
+        var st = JSON.parse(json); state.sections = fixSections(st.sections); state.texts = st.texts; state.footerColumns = st.footerColumns; state.heroMedia = st.heroMedia; state.blocks = st.blocks || {}; state.contact = st.contact || {};
         resyncFrame(); renderLayers(); renderRight(); setDirty(true); updateUndo(); lastSnapshot = snapshot();
     }
     $('[data-undo]').addEventListener('click', function () { if (!history.length) return; future.push(snapshot()); restore(history.pop()); });

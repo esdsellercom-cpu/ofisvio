@@ -9,12 +9,12 @@
     @if (! $website)
         <div class="empty-state" style="margin:24px">Site yok.</div>
     @else
-    @php($sectionRows = $sections->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'anchor' => $s->anchor, 'is_visible' => $s->is_visible, 'hide_on_mobile' => $s->hide_on_mobile, 'hide_on_desktop' => $s->hide_on_desktop, 'locked' => $s->locked, 'label' => $s->label, 'preset_id' => $s->preset_id, 'settings' => $s->settings ?? [], 'publish_from' => $s->publish_from?->format('Y-m-d\TH:i'), 'publish_until' => $s->publish_until?->format('Y-m-d\TH:i')])->values())
+    @php($sectionRows = $sections->map(fn ($s) => ['id' => $s->id, 'type' => $s->type, 'anchor' => $s->anchor, 'is_visible' => $s->is_visible, 'hide_on_mobile' => $s->hide_on_mobile, 'hide_on_desktop' => $s->hide_on_desktop, 'locked' => $s->locked, 'label' => $s->label, 'preset_id' => $s->preset_id, 'settings' => (object) ($s->settings ?? []), 'publish_from' => $s->publish_from?->format('Y-m-d\TH:i'), 'publish_until' => $s->publish_until?->format('Y-m-d\TH:i')])->values())
     @php($config = [
         'websiteId' => $website->id,
         'library' => $library, 'groups' => $groups, 'defaults' => $defaults, 'ctaActions' => $ctaActions, 'styleKeys' => $styleKeys, 'fieldStyleKeys' => $fieldStyleKeys,
         'sections' => $sectionRows, 'texts' => $texts, 'textKeys' => $textKeys, 'footerColumns' => $footerColumns, 'contact' => $contact, 'canSiteSettings' => $canSiteSettings,
-        'media' => $mediaOptions, 'presets' => $presets->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'type' => $p->type, 'category' => $p->category, 'global' => $p->is_global, 'settings' => $p->settings ?? []])->values(),
+        'media' => $mediaOptions, 'presets' => $presets->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'type' => $p->type, 'category' => $p->category, 'global' => $p->is_global, 'settings' => (object) ($p->settings ?? [])])->values(),
         'dataBlocks' => $dataBlocks, 'dataBlockSections' => $dataBlockSections, 'dataBlockMeta' => $dataBlockMeta, 'add' => $add,
         'canPublish' => auth()->user()->can('content.publish'), 'device' => $device, 'selected' => $selected,
         'frameUrl' => $frameUrl, 'revisionPreviewBase' => $revisionPreviewBase, 'previewUrl' => $previewUrl,
