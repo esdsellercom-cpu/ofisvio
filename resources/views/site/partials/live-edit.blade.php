@@ -13,11 +13,16 @@
         <input type="hidden" name="return" value="{{ $currentPath }}">
         <button type="submit" class="le-toggle {{ $on ? 'is-on' : '' }}" title="{{ $on ? 'Düzenleme modunu kapat' : 'Görselleri yerinde düzenle' }}">✎ Düzenleme Modu{{ $on ? ': AÇIK' : '' }}</button>
     </form>
+    @if ($on && ! empty($liveEdit['can']['website']))
+        {{-- Global bileşenler (faz 61a): header/footer ayar ekranına gider; değişiklik tüm sitede uygulanır. --}}
+        <a href="{{ route('panel.settings.chrome.header', ['return' => $currentPath]) }}" class="le-panel-link" title="Header ayarları — tüm sitede uygulanır">Header</a>
+        <a href="{{ route('panel.settings.chrome.footer', ['return' => $currentPath]) }}" class="le-panel-link" title="Footer ayarları — tüm sitede uygulanır">Footer</a>
+    @endif
     <a href="{{ route('panel.dashboard') }}" class="le-panel-link">Panel</a>
 </div>
 
 @if ($on)
-<div class="le-modal" data-le-modal hidden>
+<div class="le-modal" data-le-modal hidden data-le-area-header="{{ route('panel.settings.chrome.header', ['return' => $currentPath]) }}" data-le-area-footer="{{ route('panel.settings.chrome.footer', ['return' => $currentPath]) }}">
     <div class="le-modal__box" role="dialog" aria-modal="true" aria-labelledby="le-title">
         <form method="POST" data-le-form enctype="multipart/form-data" class="le-modal__form"
               data-action-website="{{ route('panel.live.website') }}"

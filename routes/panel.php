@@ -65,6 +65,7 @@ use App\Http\Controllers\Panel\ServiceController;
 use App\Http\Controllers\Panel\SettingsController;
 use App\Http\Controllers\Panel\SiteBlockController;
 use App\Http\Controllers\Panel\SiteBuilderController;
+use App\Http\Controllers\Panel\SiteChromeController;
 use App\Http\Controllers\Panel\SiteController;
 use App\Http\Controllers\Panel\SiteSeoController;
 use App\Http\Controllers\Panel\SpaceController;
@@ -261,6 +262,16 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
         Route::get('/ayarlar', [SettingsController::class, 'index'])->middleware('permission:settings.view|settings.manage')->name('settings.index');
         Route::put('/ayarlar', [SettingsController::class, 'update'])->middleware('permission:settings.manage')->name('settings.update');
         // API & Entegrasyonlar merkezi + Sistem sağlığı (faz 52): görüntüleme settings.view; test/yeniden kontrol settings.manage.
+        // Header / Footer (faz 61a): görüntüleme website.view|content.edit; taslak önizleme content.edit; yayın/geri alma website.manage (tüm sitede).
+        Route::prefix('ayarlar')->name('settings.chrome.')->where(['area' => 'header|footer', 'version' => '[0-9]+'])->group(function () {
+            Route::get('/header', [SiteChromeController::class, 'header'])->middleware('permission:website.view|website.manage|content.edit')->name('header');
+            Route::get('/footer', [SiteChromeController::class, 'footer'])->middleware('permission:website.view|website.manage|content.edit')->name('footer');
+            Route::post('/{area}/onizle', [SiteChromeController::class, 'preview'])->middleware('permission:website.manage|content.edit')->name('preview');
+            Route::post('/{area}/yayinla', [SiteChromeController::class, 'publish'])->middleware('permission:website.manage')->name('publish');
+            Route::post('/{area}/taslak-at', [SiteChromeController::class, 'discard'])->middleware('permission:website.manage|content.edit')->name('discard');
+            Route::post('/{area}/surum/{version}', [SiteChromeController::class, 'rollback'])->middleware('permission:website.manage')->name('rollback');
+        });
+
         Route::get('/ayarlar/api', [SystemController::class, 'api'])->middleware('permission:settings.view|settings.manage')->name('settings.api');
         Route::post('/ayarlar/api/{key}/test', [SystemController::class, 'test'])->where('key', '[a-z_]+')->middleware(['permission:settings.manage', 'throttle:20,1'])->name('settings.api.test');
         Route::get('/ayarlar/saglik', [SystemController::class, 'health'])->middleware('permission:settings.view|settings.manage')->name('settings.health');

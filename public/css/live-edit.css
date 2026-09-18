@@ -43,3 +43,7 @@
 .le-btn--brand { background: var(--brand, #1f5b45); border-color: var(--brand, #1f5b45); color: #fff; }
 .le-btn--danger { color: #a13c2c; border-color: #e9c4bc; }
 .le-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* Global alanlar (faz 61a): header/footer çerçevesi — tıklanınca ayar ekranı (tüm sitede uygulanır). */
+[data-le-area] { outline: 2px dashed transparent; outline-offset: -3px; transition: outline-color .12s; }
+[data-le-area]:hover { outline-color: rgba(201, 162, 74, .9); }

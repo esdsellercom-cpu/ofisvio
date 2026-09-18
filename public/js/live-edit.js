@@ -27,6 +27,26 @@
     tag.style.top = Math.max(4, e.clientY - tag.offsetHeight - 10) + 'px';
   });
 
+  /* ---------- global alanlar (faz 61a): header/footer → ayar ekranı (tüm sitede uygulanır) ---------- */
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-le]') || e.target.closest('a, button, input, select, textarea, label')) return;
+    var area = e.target.closest('[data-le-area]');
+    if (!area) return;
+    var url = modal.getAttribute('data-le-area-' + area.getAttribute('data-le-area'));
+    if (!url) return;
+    e.preventDefault();
+    if (window.confirm('Bu değişiklik tüm sitede uygulanacaktır. ' + (area.getAttribute('data-le-area-label') || '') + ' ayarlarına gidilsin mi?')) window.location.href = url;
+  }, true);
+  document.addEventListener('mousemove', function (e) {
+    if (e.target.closest('[data-le]')) return;
+    var area = e.target.closest('[data-le-area]');
+    if (!area) return;
+    tag.innerHTML = '✎ Düzenle<small>' + esc(area.getAttribute('data-le-area-label') || '') + '</small>';
+    tag.hidden = false;
+    tag.style.left = Math.min(window.innerWidth - tag.offsetWidth - 8, e.clientX + 14) + 'px';
+    tag.style.top = Math.max(4, e.clientY - tag.offsetHeight - 10) + 'px';
+  });
+
   /* ---------- tıkla → modal ---------- */
   document.addEventListener('click', function (e) {
     var el = e.target.closest ? e.target.closest('[data-le]') : null;

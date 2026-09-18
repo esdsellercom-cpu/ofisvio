@@ -24,6 +24,8 @@
         </div>
     </div>
 
+    @if (! $group)@include('panel.settings.partials.hub')@endif
+
     @error('settings')<div class="notice notice--error" role="alert" style="margin-bottom:22px"><span class="notice__dot" aria-hidden="true"></span><div>{{ $message }}</div></div>@enderror
 
     <p class="small muted" style="margin:0 0 18px">Kalıtım: lokasyon › şirket › organizasyon › kurulum › varsayılan. Boş bırakılan alan bir üst kapsamdan miras alır. Site marka/iletişim bilgileri <a href="{{ route('panel.websites.index') }}">Websiteler</a>'de, bildirim alıcıları <a href="{{ route('panel.notifications.index') }}">Bildirim Merkezi</a>'nde.</p>

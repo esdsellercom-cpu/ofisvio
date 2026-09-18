@@ -27,6 +27,8 @@ Route::get('/', HomeController::class)->middleware('public.cache')->name('site.h
 
 // Form gönderimleri: throttle ile korunur. Bot tuzağı (website alanı)
 // StoreLeadRequest içinde; captcha eklenene kadar ilk savunma bu ikisi.
+// Bülten kaydı (faz 61a, footer): lead kind=newsletter; throttle + bot tuzağı.
+Route::post('/bulten', [LeadController::class, 'newsletter'])->middleware('throttle:10,1')->name('site.newsletter');
 Route::post('/talep', [LeadController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('site.leads.store');

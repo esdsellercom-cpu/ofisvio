@@ -5,7 +5,7 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.leads.index') }}">Talepler</a> · {{ $lead->kind === 'booking' ? 'Ön rezervasyon' : 'Teklif' }}</p>
+            <p class="eyebrow"><a href="{{ route('panel.leads.index') }}">Talepler</a> · {{ $lead->kind === 'booking' ? 'Ön rezervasyon' : ($lead->kind === 'newsletter' ? 'Bülten' : 'Teklif') }}</p>
             <h1 class="h2">{{ $lead->name }}</h1>
         </div>
         <div class="panel-head__actions">

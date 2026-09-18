@@ -91,6 +91,7 @@ class PanelMenu
                 $can('content.edit', 'content.publish') ? $this->item('Ana sayfa tasarımı', route('panel.content.builder.index'), $this->routeIs('panel.content.builder.*')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Blok kütüphanesi', route('panel.content.blocks'), $this->routeIs('panel.content.blocks*')) : null,
                 $can('content.edit') ? $this->item('Menü & tema', route('panel.content.menu'), $this->routeIs('panel.content.menu')) : null,
+                $can('website.view', 'website.manage', 'content.edit') ? $this->item('Header & footer', route('panel.settings.chrome.header'), $this->routeIs('panel.settings.chrome.*')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Medya kütüphanesi', route('panel.content.media.index'), $this->routeIs('panel.content.media.*')) : null,
                 $can('website.view', 'website.manage') ? $this->item('Websiteler', route('panel.websites.index'), $this->routeIs('panel.websites.*')) : null,
                 $can('settings.view', 'settings.manage') ? $this->item('Yerelleştirme', route('panel.settings.index', ['grup' => 'general']), $this->routeIs('panel.settings.*') && $this->request->query('grup') === 'general') : null,

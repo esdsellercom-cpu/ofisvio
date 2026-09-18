@@ -42,7 +42,7 @@
                     @foreach ($leads as $lead)
                         <tr>
                             <td class="small mono">{{ $lead->created_at?->format('d.m.Y H:i') }}</td>
-                            <td>{{ $lead->kind === 'booking' ? 'Ön rezervasyon' : 'Teklif' }}</td>
+                            <td>{{ $lead->kind === 'booking' ? 'Ön rezervasyon' : ($lead->kind === 'newsletter' ? 'Bülten' : 'Teklif') }}</td>
                             <td><a href="{{ route('panel.leads.show', $lead) }}">{{ $lead->name }}</a><span class="small muted mono" style="display:block">{{ $lead->email }}</span></td>
                             @php($detail = array_filter([$lead->solution, $lead->location?->name, $lead->requested_date ? $lead->requested_date->format('d.m.Y').' '.$lead->requested_slot : null]))
                             <td class="small">{{ $detail === [] ? '—' : implode(' · ', $detail) }}</td>

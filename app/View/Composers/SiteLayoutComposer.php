@@ -5,6 +5,7 @@ namespace App\View\Composers;
 use App\Models\Content;
 use App\Models\Event;
 use App\Models\Location;
+use App\Models\Media;
 use App\Models\SeoLandingPage;
 use App\Models\Service;
 use App\Models\Website;
@@ -17,6 +18,7 @@ use App\Services\SeoService;
 use App\Services\SeoSettingsService;
 use App\Services\SiteBlockService;
 use App\Services\SiteBuilderService;
+use App\Services\SiteChromeService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -39,6 +41,7 @@ class SiteLayoutComposer
         private readonly Request $request,
         private readonly AuthorizationService $authorization,
         private readonly LiveEditService $live,
+        private readonly SiteChromeService $chrome,
     ) {}
 
     /**
@@ -175,8 +178,14 @@ class SiteLayoutComposer
             ];
         }
 
+        // Global header (faz 61a): panel yapılandırması; menü boşsa bölüm çapaları. Önizleme/editörde taslak.
+        $header = $site !== null ? $this->chrome->config($site, 'header', (bool) ($data['preview'] ?? false) || $this->request->attributes->get('ofv.editor') === true) : SiteChromeService::HEADER_DEFAULTS;
+        $header['logo'] = $site !== null && $header['logo_media_id'] !== null ? Media::query()->where('website_id', $site->id)->find($header['logo_media_id']) : null;
+        $header['logo_mobile'] = $site !== null && $header['logo_mobile_media_id'] !== null ? Media::query()->where('website_id', $site->id)->find($header['logo_mobile_media_id']) : null;
+
         $view->with($contentExtras + [
             'siteNavLinks' => $navLinks,
+            'header' => $header,
             'kvkkUrl' => $kvkk?->path() ?? '/',
             'brand' => $brand,
             'texts' => $texts,

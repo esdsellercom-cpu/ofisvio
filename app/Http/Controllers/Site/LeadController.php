@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLeadRequest;
 use App\Services\LeadService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 
 /**
  * Teklif ve ön rezervasyon talepleri.
@@ -21,6 +22,15 @@ use Illuminate\Http\RedirectResponse;
 class LeadController extends Controller
 {
     public function __construct(private readonly LeadService $leads) {}
+
+    /** Bülten kaydı (faz 61a): yalnız e-posta + açık rıza; bot tuzağı doluysa sessizce yok sayılır. */
+    public function newsletter(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email', 'max:190'], 'consent' => ['accepted'], 'website' => ['nullable', 'max:0']], ['website.max' => 'Gönderim reddedildi.']);
+        $this->leads->capture(['kind' => 'newsletter', 'name' => 'Bülten aboneliği', 'email' => $data['email']], ['ip' => $request->ip(), 'user_agent' => $request->userAgent()]);
+
+        return back()->with('newsletter_sent', true);
+    }
 
     public function store(StoreLeadRequest $request): RedirectResponse
     {

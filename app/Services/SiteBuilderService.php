@@ -41,6 +41,7 @@ class SiteBuilderService
         private readonly AuditService $audit,
         private readonly SiteBlockService $blocks,
         private readonly MediaService $media,
+        private readonly SiteChromeService $chrome,
     ) {}
 
     // ---- Taslak --------------------------------------------------------------
@@ -456,7 +457,9 @@ class SiteBuilderService
             }
         }
 
-        $draft = $texts === [] && $footer === null && $blocks === [] ? null : array_filter(['texts' => $texts, 'footer_columns' => $footer, 'blocks' => $blocks], fn ($v) => $v !== null && $v !== []);
+        $draft = $texts === [] && $footer === null && $blocks === [] ? [] : array_filter(['texts' => $texts, 'footer_columns' => $footer, 'blocks' => $blocks], fn ($v) => $v !== null && $v !== []);
+        // Header/footer taslağı (faz 61a) editör globals kaydından etkilenmez.
+        $draft += array_intersect_key((array) ($website->builder_globals ?? []), array_flip(SiteChromeService::AREAS));
         $website->forceFill(['builder_globals' => $draft ?: null])->save();
     }
 
@@ -483,7 +486,10 @@ class SiteBuilderService
             }
         }
 
-        $website->forceFill(['builder_globals' => null])->save();
+        // Header/footer taslağı (faz 61a) — kendi sürümlemesiyle yayınlanır; kalan globals temizlenir.
+        $chrome = array_intersect_key($raw, array_flip(SiteChromeService::AREAS));
+        $website->forceFill(['builder_globals' => $chrome === [] ? null : $chrome])->save();
+        $this->chrome->publishDrafts($actor, $website);
     }
 
     // ---- Kayıtlı bloklar ------------------------------------------------------------
