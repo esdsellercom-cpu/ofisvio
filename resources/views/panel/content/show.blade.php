@@ -238,9 +238,7 @@
                 @endif
 
                 @if (in_array($s, [ContentStatus::DRAFT, ContentStatus::ARCHIVED], true) && $can['archive'])
-                    <form method="POST" action="{{ route('panel.content.destroy', $content) }}" onsubmit="return confirm('İçerik silinsin mi? Revizyonlarla birlikte çöpe gider.')">@csrf @method('DELETE')
-                        <button type="submit" class="btn btn--ghost btn--block" style="color:var(--danger);border-color:#E9C4BC">Sil</button>
-                    </form>
+                    <a href="{{ route('panel.content.delete', $content) }}" class="btn btn--ghost btn--block" style="color:var(--danger);border-color:#E9C4BC">Sil…</a>
                 @endif
 
                 @if ($s !== ContentStatus::ARCHIVED && $can['archive'])

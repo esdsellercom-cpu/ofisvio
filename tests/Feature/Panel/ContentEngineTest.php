@@ -247,10 +247,10 @@ class ContentEngineTest extends TestCase
         }
         app(ContentCache::class)->invalidate($this->website);
 
-        // Kanonik yol: /hizmetler/sanal-ofis 200; /sanal-ofis 404; /baska/hizmetler 404.
+        // Kanonik yol: /hizmetler/sanal-ofis 200; /sanal-ofis kanonik alt sayfaya 301 (akıllı URL, faz 54: slug birebir); /baska/hizmetler 404.
         $this->get('/hizmetler/sanal-ofis')->assertOk()->assertSee('Detay.')->assertSee('href="/hizmetler"', false);
-        $this->get('/sanal-ofis')->assertNotFound();
-        $this->get('/baska/hizmetler')->assertNotFound();
+        $this->get('/sanal-ofis')->assertStatus(301)->assertRedirect('/hizmetler/sanal-ofis');
+        $this->get('/baska/hizmetler')->assertStatus(301)->assertRedirect('/hizmetler'); // son parça birebir sayfa slug'ı → kanonik adrese
         $this->get('/hizmetler')->assertOk()->assertSee('Alt sayfalar')->assertSee('href="/hizmetler/sanal-ofis"', false);
 
         // Breadcrumb ebeveyni içerir; sitemap alt yolu kullanır.

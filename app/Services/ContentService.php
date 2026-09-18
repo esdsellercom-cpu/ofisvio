@@ -40,7 +40,7 @@ class ContentService
 
     private const WORDS_PER_MINUTE = 200;
 
-    public function __construct(private readonly ContentCache $cache, private readonly AuditService $audit) {}
+    public function __construct(private readonly ContentCache $cache, private readonly AuditService $audit, private readonly UrlHistoryService $urls) {}
 
     // -----------------------------------------------------------------
     // Okuma (vitrin)
@@ -260,7 +260,10 @@ class ContentService
      * Yayındaki metin önce yayından kaldırılır — silme, yayın akışını atlatamaz.
      * Alt sayfaları olan sayfa silinemez (çocuklar yetim kalır).
      */
-    public function delete(User $actor, Content $content): void
+    /**
+     * @param  string|null  $redirectTo  Silinen adres için hedef (faz 54): admin seçimi; null = yönlendirme kurulmaz, yalnız URL geçmişi.
+     */
+    public function delete(User $actor, Content $content, ?string $redirectTo = null): void
     {
         if (! in_array($content->status, [ContentStatus::DRAFT, ContentStatus::ARCHIVED], true)) {
             throw new DomainException('Yalnızca taslak ya da arşivdeki içerik silinir; önce yayından kaldırın/arşivleyin.');
@@ -275,6 +278,11 @@ class ContentService
         $content->delete();
         $this->cache->invalidate($content->website);
         $this->audit->record($actor, 'content.deleted', 'content', $content->id, ['title' => $content->title, 'slug' => $content->slug, 'status' => $content->status->value], []);
+
+        // URL geçmişi (faz 54): yayınlanmış bir adres siliniyorsa geçmişe + (seçildiyse) yönlendirme; hiç yayınlanmamış taslakta adres yoktu.
+        if ($content->published_at !== null || $content->published_by !== null || $redirectTo !== null) {
+            $this->urls->recordDeletion($content->website, 'content', $content->id, $content->path(), RedirectService::snapshotOf($content), $redirectTo, $actor);
+        }
 
         if ($wasLive) {
             event(new ContentPublicationChanged($content, false));
@@ -391,6 +399,8 @@ class ContentService
 
         return DB::transaction(function () use ($editor, $content, $data) {
             $slugInput = $data['slug'] ?? null;
+            $oldPath = $content->path();
+            $wasPublished = $content->published_at !== null || $content->published_by !== null; // taslağa alınca published_at sıfırlanır; yayınlanmış adres yine korunur
 
             $content->fill([
                 'title' => trim($data['title']),
@@ -424,8 +434,22 @@ class ContentService
             $content->save();
             $this->audit->record($editor, 'content.updated', 'content', $content->id, ['title' => $content->getOriginal('title'), 'slug' => $content->getOriginal('slug')], ['title' => $content->title, 'slug' => $content->slug]);
 
-            // Ebeveynin slug'ı değiştiyse çocukların denormalize yolu güncellenir.
-            Content::query()->where('parent_id', $content->id)->where('parent_slug', '!=', $content->slug)->update(['parent_slug' => $content->slug]);
+            // Ebeveynin slug'ı değiştiyse çocukların denormalize yolu güncellenir (+ URL geçmişi: eski çocuk yolu → yeni).
+            if ($content->kind === ContentKind::PAGE && $content->wasChanged('slug')) {
+                foreach (Content::query()->where('parent_id', $content->id)->where('parent_slug', '!=', $content->slug)->get() as $child) {
+                    $childOld = $child->path();
+                    $child->forceFill(['parent_slug' => $content->slug])->save();
+
+                    if ($child->published_at !== null || $child->published_by !== null) {
+                        $this->urls->recordMove($content->website, 'content', $child->id, $childOld, $child->path(), 'parent_change', $editor);
+                    }
+                }
+            }
+
+            // URL değişimi (faz 54): yayınlanmış bir içeriğin adresi değiştiyse eski adres otomatik 301 ile yeniye.
+            if ($wasPublished && $content->path() !== $oldPath) {
+                $this->urls->recordMove($content->website, 'content', $content->id, $oldPath, $content->path(), $content->wasChanged('slug') ? 'slug_change' : 'parent_change', $editor);
+            }
 
             $this->snapshot($content, $editor);
             $this->cache->invalidate($content->website);
@@ -594,6 +618,15 @@ class ContentService
             }
 
             $content->save();
+
+            // Yayından düşen adres URL geçmişine (faz 54): sonraki 404'te benzer içerik eşleşmesi için anlık görüntüyle.
+            if ($target === ContentStatus::PUBLISHED) {
+                $this->urls->recordRestore($content->website, $content->path());
+            }
+
+            if ($wasLive && in_array($target, [ContentStatus::ARCHIVED, ContentStatus::DRAFT], true)) {
+                $this->urls->recordDeletion($content->website, 'content', $content->id, $content->path(), RedirectService::snapshotOf($content), null, $actor, $target === ContentStatus::ARCHIVED ? 'archived' : 'unpublished');
+            }
             $this->cache->invalidate($content->website);
             $this->audit->record($actor, 'content.status_changed', 'content', $content->id, ['status' => $current->value], ['status' => $target->value, 'note' => $note]);
 

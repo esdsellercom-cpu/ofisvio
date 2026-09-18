@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Website;
 use App\Services\CurrentWebsite;
 use App\Services\SeoSettingsService;
+use App\Services\UrlHistoryService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -22,11 +23,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SiteSeoPolicy
 {
-    private const SKIP_PREFIXES = ['/panel', '/login', '/logout', '/register', '/forgot-password', '/reset-password', '/two-factor-challenge', '/user/', '/email/', '/webhooks/', '/up', '/onizleme/', '/build/', '/storage/', '/css/', '/js/', '/images/', '/fonts/'];
+    public const SKIP_PREFIXES = ['/panel', '/login', '/logout', '/register', '/forgot-password', '/reset-password', '/two-factor-challenge', '/user/', '/email/', '/webhooks/', '/up', '/onizleme/', '/build/', '/storage/', '/css/', '/js/', '/images/', '/fonts/'];
 
     private const PROTECTED_HEADERS = ['content-security-policy', 'strict-transport-security', 'x-frame-options', 'x-content-type-options', 'referrer-policy', 'permissions-policy', 'set-cookie', 'content-type', 'content-length', 'location', 'cache-control'];
 
-    public function __construct(private readonly CurrentWebsite $website, private readonly SeoSettingsService $settings) {}
+    public function __construct(private readonly CurrentWebsite $website, private readonly SeoSettingsService $settings, private readonly UrlHistoryService $urls) {}
 
     public function handle(Request $request, Closure $next): Response
     {
@@ -99,6 +100,15 @@ class SiteSeoPolicy
             } elseif ($path === $from) {
                 return $this->redirectUnless($request, $to.$suffix, $code);
             }
+        }
+
+        // 1b) Yönlendirme tablosu (faz 54): slug değişimi / silinen içerik / manuel / onaylı öneri. Zincir çözülmüş hedef.
+        $hit = $this->urls->resolve($site, $path);
+
+        if ($hit !== null) {
+            $this->urls->registerHit($hit['id']);
+
+            return $this->redirectUnless($request, (str_starts_with($hit['to'], '/') ? $hit['to'].$suffix : $hit['to']), $hit['code']);
         }
 
         // 2) Şema/alan adı standardı — yalnız alan adı tanımlı sitede (yerel/test kurulumu etkilenmez).

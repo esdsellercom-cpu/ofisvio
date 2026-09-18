@@ -20,7 +20,7 @@ use Illuminate\Support\Str;
  */
 class ServiceService
 {
-    public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache) {}
+    public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache, private readonly UrlHistoryService $urls) {}
 
     /**
      * Vitrin: aktif hizmetler (önbellekli; site sürümüyle).
@@ -111,16 +111,24 @@ class ServiceService
     }
 
     /** Silme: lokasyona bağlı hizmet silinemez (önce kaldır) — sessiz kopukluk yok. */
-    public function delete(User $actor, Service $service): void
+    /** @param  string|null  $redirectTo  Silinen /cozum/{slug} adresi için hedef (faz 54); null = yalnız URL geçmişi. */
+    public function delete(User $actor, Service $service, ?string $redirectTo = null): void
     {
         if ($service->locations()->exists()) {
             throw new DomainException('Bu hizmet lokasyonlara bağlı; önce lokasyonlardan kaldırın ya da pasife alın.');
         }
 
         $before = $service->toArray();
+        $snapshot = RedirectService::snapshotOf($service);
         $service->delete();
         $this->audit->record($actor, 'service.deleted', 'service', $service->id, $before, []);
         $this->bump();
+
+        $website = Website::query()->default()->first();
+
+        if ($website !== null) {
+            $this->urls->recordDeletion($website, 'service', $service->id, $service->path(), $snapshot, $redirectTo, $actor);
+        }
     }
 
     /**

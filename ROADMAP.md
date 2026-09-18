@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **323/323** (Unit 12 · Feature 295 · Architecture 16) |
+| `php artisan test` | ✅ **329/329** (Unit 12 · Feature 301 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -828,6 +828,39 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
 - **"Gün Geçişi" → "Günlük Kullanım"** (tüm alanlar): hizmet adı + slug (`gunluk-kullanim`), referans veri
   (`services.json`, `site_blocks.json` plan/footer), illüstrasyon anahtarı, üye profili üyelik tipi anahtarı;
   migrasyon `000033` mevcut kayıtları taşır ve `/cozum/gun-gecisi` için 301 yönlendirme kuralı ekler.
+
+### 54. Akıllı URL / yönlendirme yönetimi — 404 karar zinciri, URL geçmişi, benzerlik, bot ✅ (18 Eylül 2026)
+- **Karar zinciri** (yalnız vitrin GET): ayar yönlendirmeleri → **yönlendirme tablosu** `url_redirects` (slug değişimi /
+  silme / manuel / onaylı öneri; zincir çözülmüş hedef, isabet sayacı; `SiteSeoPolicy`) → 404'te `RedirectService::onNotFound`:
+  benzerlik ≥ otomatik eşik (varsayılan %85) → 301 kur + yönlendir · onay eşiği (%60) ile arası → **pending öneri** + 404
+  sayfasında "Belki aradığınız" · eşik altı ve adres **URL geçmişinde gerçekten var olmuşsa** → ayara göre ilgili kategori /
+  `/cozumler` / `/lokasyonlar` ya da ana sayfa (`redirect.fallback`) · rastgele adres → düz 404 (ana sayfaya soft-404 yok).
+  Yayından geçici kaldırılan (taslak) içerik için kalıcı yönlendirme kurulmaz, yalnız öneri; yeniden yayında o yoldan çıkan
+  kayıtlar silinir. Uzantılı bot yolları (.php/.env) günlüğe/yönlendirmeye girmez.
+- **Benzerlik** `App\Seo\RedirectMatcher` (deterministik, dış servis yok): slug (.40, kelime + karakter), başlık (.25),
+  kategori (.10), etiket (.10), ana konu metinde (.10), tür (.05); Türkçe ASCII katlama, gereksiz kelime ve kaba ek soyma.
+  Adaylar: canlı yazı/sayfa, aktif hizmet, yayındaki lokasyon, kategori sayfaları. Kaynak özellikleri: silme anlık görüntüsü
+  → URL geçmişi → çöpteki/yayından kalkmış içerik → yalnız yol. Eşikler ve varsayılan kod ayarlardan
+  (`Gelişmiş SEO › Yönlendirme & 404`: `redirect.auto_threshold`, `review_threshold`, `default_code`, `fallback`, `log_404`).
+- **URL geçmişi** `content_url_history` (içerik/hizmet/lokasyon; slug_change · parent_change · deleted · unpublished ·
+  archived; silinen kaydın başlık/kategori/etiket/özet anlık görüntüsü). Slug ya da üst sayfa değişince eski → yeni **otomatik
+  301** (`UrlHistoryService::recordMove`; alt sayfalar dahil; geri alınan slug döngü üretmez).
+- **Silmeden önce onay** (`/panel/icerik/{id}/sil`, `/panel/hizmetler/{slug}/sil`, `/panel/geo/lokasyon/{slug}/sil`):
+  "Bu URL için yönlendirme oluşturulsun mu?" — Yönlendir (öneri + skor + neden) · Farklı URL seç · Yönlendirme oluşturma.
+- **Zincir/döngü**: `UrlHistoryService::save` hedefi son hedefe düzleştirir (A→B, B→C ⇒ A→C), kaynağa gelenleri yeni hedefe
+  çevirir, A→B→A'yı reddeder; yalnız buradan yazılır (audit `redirect.created/updated/deleted`).
+- **Panel** `/panel/seo/{site}/yonlendirmeler` (menü *Yönlendirmeler & 404*, rozet = bekleyen öneri; seo.view/seo.edit/
+  seo.audit): istatistik kartları (toplam, açık 404, çözülen, bekleyen öneri, chain, loop); sekmeler Yönlendirmeler (Eski URL ·
+  Yeni URL · 301/302/307/308 · Durum · Not; düzenle/sil), Öneriler (onayla/hedef değiştir/reddet), **404 günlüğü**
+  `not_found_logs` (URL, ilk/son görülme, hit, referer, önerilen hedef + skor, durum; hit öncelikli; yönlendir/yok say),
+  URL geçmişi, **Kırık URL / Redirect Botu** (404'ler, yönlendirilmemiş eski adresler, redirect chain/loop, yanlış hedef,
+  ana sayfaya yönlendirme, kırık iç bağlantı, yönlendirme üzerinden iç bağlantı, isteğe bağlı dış bağlantı yoklaması
+  `Gateway::probe` (SSRF korumalı, ≤25), sitemap'te yönlendirilen adres, canonical uyumsuzluğu; Kritik/Uyarı/Öneri/Düzeltildi;
+  tek tıkla yönlendir / düzleştir / sil).
+- **SEO/GEO**: sitemap yönlendirilen adresleri dışlar (silinen zaten çıkar); içerik canonical'ı yönlendirilen yola bakıyorsa
+  hedefe çözülür; 404 sayfası yalnız mevcut içerikleri önerir. Migrasyon `000034_url_redirects`. `RedirectSystemTest` (+6):
+  eşleştirici, slug değişimi/geri alma, silme onayı üç seçenek + geçersiz hedef, hizmet/lokasyon silme, 404 zinciri
+  (otomatik/öneri+onay/üst kategori/düz 404/günlük/yok say), manuel yönetim + zincir + döngü + sitemap + canonical + bot + yetki.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

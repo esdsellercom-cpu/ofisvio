@@ -36,6 +36,7 @@ class SeoService
         private readonly ServiceService $services,
         private readonly EventService $events,
         private readonly SeoSettingsService $settings,
+        private readonly UrlHistoryService $urls,
     ) {}
 
     /**
@@ -119,6 +120,11 @@ class SeoService
         $ogTitle = $content !== null && trim((string) $content->og_title) !== '' ? trim((string) $content->og_title) : ($content === null && $s['meta.og_title'] !== '' ? $s['meta.og_title'] : $title);
         $ogDescription = $content !== null && trim((string) $content->og_description) !== '' ? trim((string) $content->og_description) : ($content === null && $s['meta.og_description'] !== '' ? $s['meta.og_description'] : $description);
         $contentCanonical = $content !== null ? trim((string) ($content->canonical_url ?? '')) : '';
+
+        // Canonical yönlendirilen bir yola bakıyorsa kanonik = yönlendirmenin hedefi (faz 54; zincir izlenir).
+        if ($contentCanonical !== '' && str_starts_with($contentCanonical, '/') && ($hit = $this->urls->resolve($website, $contentCanonical)) !== null && str_starts_with($hit['to'], '/')) {
+            $contentCanonical = $hit['to'];
+        }
 
         return [
             'title' => $title,
@@ -760,15 +766,17 @@ class SeoService
         }
 
         $excluded = array_values(array_filter(array_map('strval', (array) $s['crawl.sitemap_exclude'])));
+        // Yönlendirilen eski adresler sitemap'e girmez (faz 54): canlı listeden gelseler bile (ör. yönlendirilmiş kategori).
+        $redirected = $this->urls->map($website);
 
-        if ($excluded === []) {
+        if ($excluded === [] && $redirected === []) {
             return $entries;
         }
 
-        return array_values(array_filter($entries, function (array $entry) use ($excluded, $base) {
+        return array_values(array_filter($entries, function (array $entry) use ($excluded, $redirected, $base) {
             $path = substr($entry['loc'], strlen($base)) ?: '/';
 
-            return ! self::pathMatches($path, $excluded);
+            return ! isset($redirected[$path]) && ! self::pathMatches($path, $excluded);
         }));
     }
 

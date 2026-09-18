@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Lead;
 use App\Models\NotificationLog;
+use App\Models\UrlRedirect;
 use App\Models\User;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ use InvalidArgumentException;
  */
 class PanelBadgeService
 {
-    public const KEYS = ['unread', 'bookings_pending', 'leads_new', 'notifications_failed', 'kyc_pending', 'subscriptions_expiring', 'invoices_overdue', 'franchise_new'];
+    public const KEYS = ['unread', 'bookings_pending', 'leads_new', 'notifications_failed', 'kyc_pending', 'subscriptions_expiring', 'invoices_overdue', 'franchise_new', 'redirects_pending'];
 
     public function __construct(
         private readonly BookingService $bookings,
@@ -76,6 +77,8 @@ class PanelBadgeService
             'subscriptions_expiring' => $this->subscriptions->expiringQuery()->toBase(),
             'invoices_overdue' => $this->invoices->overdueQuery()->toBase(),
             'franchise_new' => $this->franchise->newQuery()->toBase(),
+            // Onay bekleyen yönlendirme önerileri (faz 54) — tüm siteler.
+            'redirects_pending' => UrlRedirect::query()->where('status', 'pending')->toBase(),
             default => throw new InvalidArgumentException('Bilinmeyen rozet: '.$key),
         };
 

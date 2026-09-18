@@ -47,6 +47,7 @@ use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\OperationsDashboardController;
 use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\PlanController;
+use App\Http\Controllers\Panel\RedirectController;
 use App\Http\Controllers\Panel\ReportController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SearchController;
@@ -233,6 +234,7 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::post('/', [ServiceController::class, 'store'])->middleware('permission:service.manage')->name('store');
             Route::get('/{service}/duzenle', [ServiceController::class, 'edit'])->middleware('permission:service.manage')->name('edit');
             Route::put('/{service}', [ServiceController::class, 'update'])->middleware('permission:service.manage')->name('update');
+            Route::get('/{service}/sil', [ServiceController::class, 'confirmDelete'])->middleware('permission:service.manage')->name('delete');
             Route::delete('/{service}', [ServiceController::class, 'destroy'])->middleware('permission:service.manage')->name('destroy');
         });
 
@@ -345,6 +347,7 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::put('/{content}', [ContentController::class, 'update'])->middleware('permission:content.edit')->name('update');
             Route::put('/{content}/kaydet-ve-yayinla', [ContentController::class, 'savePublish'])->middleware(['permission:content.edit', 'permission:content.publish'])->name('update.publish');
             Route::get('/{content}/onizleme', [ContentController::class, 'preview'])->middleware($canSee)->name('preview');
+            Route::get('/{content}/sil', [ContentController::class, 'confirmDelete'])->middleware('permission:content.archive')->name('delete');
             Route::delete('/{content}', [ContentController::class, 'destroy'])->middleware('permission:content.archive')->name('destroy');
 
             Route::post('/{content}/incelemeye-gonder', [ContentController::class, 'submit'])->middleware('permission:content.edit')->name('submit');
@@ -405,6 +408,17 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
         Route::prefix('seo')->name('seo.')->group(function () {
             Route::get('/', [SeoController::class, 'index'])->middleware('permission:seo.view')->name('index');
             Route::get('/{website}/denetim', [SeoController::class, 'audit'])->middleware('permission:seo.audit')->name('audit');
+
+            // Akıllı URL / yönlendirme merkezi (faz 54): seo.view görür, seo.edit yazar, seo.audit botu çalıştırır.
+            Route::get('/yonlendirmeler', [RedirectController::class, 'home'])->middleware('permission:seo.view')->name('redirects.home');
+            Route::get('/{website}/yonlendirmeler/{sekme?}', [RedirectController::class, 'index'])->middleware('permission:seo.view')->name('redirects.index');
+            Route::post('/{website}/yonlendirmeler', [RedirectController::class, 'store'])->middleware('permission:seo.edit')->name('redirects.store');
+            Route::put('/{website}/yonlendirmeler/{redirect}', [RedirectController::class, 'update'])->where('redirect', '[0-9]+')->middleware('permission:seo.edit')->name('redirects.update');
+            Route::delete('/{website}/yonlendirmeler/{redirect}', [RedirectController::class, 'destroy'])->where('redirect', '[0-9]+')->middleware('permission:seo.edit')->name('redirects.destroy');
+            Route::post('/{website}/yonlendirmeler/{redirect}/onayla', [RedirectController::class, 'approve'])->where('redirect', '[0-9]+')->middleware('permission:seo.edit')->name('redirects.approve');
+            Route::post('/{website}/yonlendirmeler/{redirect}/duzlestir', [RedirectController::class, 'flatten'])->where('redirect', '[0-9]+')->middleware('permission:seo.edit')->name('redirects.flatten');
+            Route::post('/{website}/yonlendirmeler/404/{log}/durum', [RedirectController::class, 'notFoundStatus'])->where('log', '[0-9]+')->middleware('permission:seo.edit')->name('redirects.404.status');
+            Route::post('/{website}/yonlendirmeler/tara', [RedirectController::class, 'scan'])->middleware(['permission:seo.audit', 'throttle:10,1'])->name('redirects.scan');
             Route::put('/{website}/ayarlar', [SeoController::class, 'settings'])
                 ->middleware('permission:seo.settings,,seo_settings,website')->name('settings');
             // {izin}: settings (seo.settings) · integrations (seo.integrations) · entity (geo.settings, geo_entity).
@@ -426,6 +440,7 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/lokasyon-yeni', [GeoController::class, 'create'])->middleware('permission:geo.edit')->name('create');
             Route::post('/lokasyon', [GeoController::class, 'store'])->middleware('permission:geo.edit')->name('store');
             Route::put('/lokasyon/{location}/kunye', [GeoController::class, 'updateBasics'])->middleware('permission:geo.edit')->name('basics');
+            Route::get('/lokasyon/{location}/sil', [GeoController::class, 'confirmDelete'])->middleware('permission:geo.publish')->name('delete');
             Route::delete('/lokasyon/{location}', [GeoController::class, 'destroy'])->middleware('permission:geo.publish')->name('destroy');
             Route::put('/lokasyon/{location}/yayin', [GeoController::class, 'publish'])->middleware('permission:geo.publish')->name('publish');
             // Lokasyon görselleri (faz 3): geo.edit; {link} int, lokasyona süzülür. Yükleme karantina zincirinden geçer.

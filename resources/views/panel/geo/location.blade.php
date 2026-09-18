@@ -41,11 +41,10 @@
 
     @can('geo.publish')
         @unless ($location->is_published)
-            <form method="POST" action="{{ route('panel.geo.destroy', $location) }}" style="margin-bottom:20px" onsubmit="return confirm('Şube kalıcı olarak silinsin mi?')">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn btn--ghost" style="color:var(--danger);border-color:#E9C4BC">Şubeyi sil</button>
-                <span class="small muted" style="margin-left:10px">Yalnız vitrinde olmayan şube silinir; talepler korunur.</span>
-            </form>
+            <div style="margin-bottom:20px">
+                <a href="{{ route('panel.geo.delete', $location) }}" class="btn btn--ghost" style="color:var(--danger);border-color:#E9C4BC">Şubeyi sil…</a>
+                <span class="small muted" style="margin-left:10px">Yalnız vitrinde olmayan şube silinir; talepler korunur. Silmeden önce eski adres için yönlendirme seçilir.</span>
+            </div>
         @endunless
     @endcan
 

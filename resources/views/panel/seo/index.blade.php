@@ -34,6 +34,7 @@
                         @if ($canAudit)
                             <a href="{{ route('panel.seo.audit', $site) }}" class="btn btn--ghost btn--pill">Denetim @if ($row['issues'] > 0)<span class="badge badge--warn" style="margin-left:6px">{{ $row['issues'] }}</span>@endif</a>
                         @endif
+                        <a href="{{ route('panel.seo.redirects.index', $site) }}" class="btn btn--ghost btn--pill">Yönlendirmeler & 404</a>
                         <a href="{{ route('panel.seo.settings.show', $site) }}" class="btn btn--brand btn--pill">Gelişmiş ayarlar</a>
                         <a href="{{ $site->baseUrl() }}/sitemap.xml" class="btn btn--ghost btn--pill" target="_blank" rel="noopener">sitemap.xml ↗</a>
                     </div>

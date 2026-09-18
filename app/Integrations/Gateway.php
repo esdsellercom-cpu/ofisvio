@@ -87,4 +87,48 @@ class Gateway
             ]);
         }
     }
+
+    /**
+     * Dış bağlantı yoklaması (faz 54, kırık bağlantı botu): SSRF korumalı, yönlendirme izlemez, gövde okumaz.
+     * Döner: HTTP durum kodu; bağlantı hatasında null. Yalnız http(s) ve genel (public) ana bilgisayar.
+     */
+    public function probe(string $url, int $timeoutSeconds = 5): ?int
+    {
+        $parts = parse_url($url);
+        $host = (string) ($parts['host'] ?? '');
+
+        if (! is_array($parts) || ! in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true) || $host === '') {
+            throw new RuntimeException('Geçersiz adres: '.$url);
+        }
+
+        $this->guard->assertPublicHost($host);
+        $started = hrtime(true);
+        $status = null;
+        $error = null;
+
+        try {
+            $pending = Http::timeout($timeoutSeconds)->withOptions(['allow_redirects' => false])->withUserAgent('OfisvioLinkCheck/1.0 (+kırık bağlantı denetimi)');
+            $status = $pending->head($url)->status();
+
+            if (in_array($status, [403, 405, 501], true)) {
+                $status = $pending->get($url)->status();
+            }
+
+            return $status;
+        } catch (ConnectionException $e) {
+            $error = 'bağlantı: '.mb_substr($e->getMessage(), 0, 190);
+
+            return null;
+        } finally {
+            IntegrationLog::create([
+                'provider' => 'link_check',
+                'method' => 'HEAD',
+                'path' => mb_substr((string) (strtok($url, '?') ?: $url), 0, 190),
+                'status' => $status,
+                'duration_ms' => (int) ((hrtime(true) - $started) / 1e6),
+                'ok' => $status !== null && $status < 400,
+                'error' => $error,
+            ]);
+        }
+    }
 }

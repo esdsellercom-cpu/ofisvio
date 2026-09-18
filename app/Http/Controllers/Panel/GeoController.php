@@ -11,6 +11,7 @@ use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\GeoService;
 use App\Services\JitAccessService;
+use App\Services\RedirectService;
 use App\Services\ServiceService;
 use App\Services\WebsiteService;
 use DomainException;
@@ -38,6 +39,7 @@ class GeoController extends Controller
         private readonly ContentService $contents,
         private readonly WebsiteService $websites,
         private readonly ContentCache $cache,
+        private readonly RedirectService $redirects,
         private readonly JitAccessService $jit,
         private readonly ServiceService $services,
         private readonly AuthorizationService $authorization,
@@ -125,10 +127,24 @@ class GeoController extends Controller
     }
 
     /** geo.publish: silme — yalnız vitrinde olmayan şube. */
-    public function destroy(Location $location): RedirectResponse
+    /** Silmeden önce (faz 54): /lokasyon/{slug} için yönlendirme seçimi. */
+    public function confirmDelete(Location $location): View
+    {
+        return view('panel.content.delete', [
+            'content' => null,
+            'path' => $location->path(),
+            'wasLive' => $location->is_published,
+            'suggestions' => $this->redirects->suggest($this->contents->defaultWebsite(), $location->path(), RedirectService::snapshotOf($location)),
+            'action' => route('panel.geo.destroy', $location),
+            'cancel' => route('panel.geo.edit', $location),
+            'label' => $location->name,
+        ]);
+    }
+
+    public function destroy(Request $request, Location $location): RedirectResponse
     {
         try {
-            $this->geo->delete($location);
+            $this->geo->delete($location, self::redirectChoice($request));
         } catch (DomainException $e) {
             return back()->withErrors(['status' => $e->getMessage()]);
         }

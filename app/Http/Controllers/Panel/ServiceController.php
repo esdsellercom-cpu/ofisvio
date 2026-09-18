@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\ContentService;
 use App\Services\MediaService;
+use App\Services\RedirectService;
 use App\Services\ServiceService;
 use DomainException;
 use Illuminate\Contracts\View\View;
@@ -24,6 +25,7 @@ class ServiceController extends Controller
         private readonly ServiceService $services,
         private readonly MediaService $media,
         private readonly ContentService $contents,
+        private readonly RedirectService $redirects,
     ) {}
 
     public function index(): View
@@ -63,10 +65,24 @@ class ServiceController extends Controller
         return redirect()->route('panel.services.index')->with('status', $service->name.' güncellendi.');
     }
 
+    /** Silmeden önce (faz 54): /cozum/{slug} için yönlendirme seçimi. */
+    public function confirmDelete(Service $service): View
+    {
+        return view('panel.content.delete', [
+            'content' => null,
+            'path' => $service->path(),
+            'wasLive' => $service->is_active,
+            'suggestions' => $this->redirects->suggest($this->contents->defaultWebsite(), $service->path(), RedirectService::snapshotOf($service)),
+            'action' => route('panel.services.destroy', $service),
+            'cancel' => route('panel.services.index'),
+            'label' => $service->name,
+        ]);
+    }
+
     public function destroy(Request $request, Service $service): RedirectResponse
     {
         try {
-            $this->services->delete($request->user(), $service);
+            $this->services->delete($request->user(), $service, self::redirectChoice($request));
         } catch (DomainException $e) {
             return back()->withErrors(['service' => $e->getMessage()]);
         }

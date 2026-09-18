@@ -111,7 +111,8 @@ class ServiceTest extends TestCase
         $this->actingAs($ops)->delete("/panel/hizmetler/{$depo->slug}")->assertRedirect('/panel/hizmetler')->assertSessionHasNoErrors();
         $home = $this->get('http://localhost/')->assertOk()->getContent();
         $this->assertStringNotContainsString('Yerleşik Depo', $home);
-        $this->get('/cozum/yerlesik-depo')->assertNotFound();
+        // Silinen hizmet adresi (faz 54): yönlendirme seçilmedi → benzer içerik yok → üst liste /cozumler (301), 404 değil.
+        $this->get('/cozum/yerlesik-depo')->assertStatus(301)->assertRedirect('/cozumler');
         $this->post('/talep', ['kind' => 'quote', 'name' => 'Ayşe', 'email' => 'ayse2@ornek.com', 'solution' => 'Yerleşik Depo', 'kvkk' => '1'])->assertSessionHasErrors('solution');
 
         // 4) Pasif hizmet: vitrin/süzgeç/sitemap'ten düşer, panelde kalır; önbellek geçersizlemesi (sürüm arttı).

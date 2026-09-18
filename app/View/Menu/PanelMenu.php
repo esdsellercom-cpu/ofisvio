@@ -91,7 +91,8 @@ class PanelMenu
                 $can('content.edit') ? $this->item('Menü & tema', route('panel.content.menu'), $this->routeIs('panel.content.menu')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Medya kütüphanesi', route('panel.content.media.index'), $this->routeIs('panel.content.media.*')) : null,
                 $can('website.view', 'website.manage') ? $this->item('Websiteler', route('panel.websites.index'), $this->routeIs('panel.websites.*')) : null,
-                $can('seo.view') ? $this->item('SEO & GEO', route('panel.seo.index'), $this->routeIs('panel.seo.*')) : null,
+                $can('seo.view') ? $this->item('SEO & GEO', route('panel.seo.index'), $this->routeIs('panel.seo.*') && ! $this->routeIs('panel.seo.redirects.*')) : null,
+                $can('seo.view') ? $this->item('Yönlendirmeler & 404', route('panel.seo.redirects.home'), $this->routeIs('panel.seo.redirects.*'), $badges['redirects_pending'] ?? 0, 'w') : null,
                 $can('settings.view', 'settings.manage') ? $this->item('Yerelleştirme', route('panel.settings.index', ['grup' => 'general']), $this->routeIs('panel.settings.*') && $this->request->query('grup') === 'general') : null,
             ]],
             ['Sistem', [

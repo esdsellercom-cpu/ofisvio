@@ -27,7 +27,7 @@ use Illuminate\Support\Str;
  */
 class GeoService
 {
-    public function __construct(private readonly SeoSettingsService $seoSettings, private readonly AuditService $audit) {}
+    public function __construct(private readonly SeoSettingsService $seoSettings, private readonly AuditService $audit, private readonly UrlHistoryService $urls) {}
 
     /** @return Collection<int, Location> */
     public function publishedLocations(): Collection
@@ -82,7 +82,8 @@ class GeoService
      * Silme (geo.publish): yalnız vitrinde olmayan şube; talepler (leads.location_id)
      * nullOnDelete ile korunur, kayıt kalıcı silinir.
      */
-    public function delete(Location $location): void
+    /** @param  string|null  $redirectTo  Silinen /lokasyon/{slug} adresi için hedef (faz 54); null = yalnız URL geçmişi. */
+    public function delete(Location $location, ?string $redirectTo = null): void
     {
         if ($location->is_published) {
             throw new DomainException('Vitrindeki şube silinemez; önce vitrinden kaldırın.');
@@ -103,7 +104,14 @@ class GeoService
         }
 
         $this->audit->record(null, 'location.deleted', 'location', $location->id, ['name' => $location->name], []);
+        $snapshot = RedirectService::snapshotOf($location);
         $location->delete();
+
+        $website = Website::query()->default()->first();
+
+        if ($website !== null) {
+            $this->urls->recordDeletion($website, 'location', $location->id, $location->path(), $snapshot, $redirectTo);
+        }
     }
 
     /**

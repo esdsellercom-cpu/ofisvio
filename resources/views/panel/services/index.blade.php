@@ -33,7 +33,7 @@
                                 <a href="{{ route('site.service', $s->slug) }}" target="_blank" rel="noopener" class="btn btn--ghost btn--pill">Vitrin</a>
                                 @can('service.manage')
                                     <a href="{{ route('panel.services.edit', $s) }}" class="btn btn--ghost btn--pill">Düzenle</a>
-                                    <form method="POST" action="{{ route('panel.services.destroy', $s) }}" onsubmit="return confirm('Hizmet silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil</button></form>
+                                    <a href="{{ route('panel.services.delete', $s) }}" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil…</a>
                                 @endcan
                             </div>
                         </td>

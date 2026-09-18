@@ -15,6 +15,7 @@
             <p class="eyebrow">@yield('code')</p>
             <h1 class="h2">@yield('title')</h1>
             <p class="lede" style="margin:18px 0 0">@yield('message')</p>
+            @yield('extra')
             <div style="display:flex;gap:10px;justify-content:center;margin-top:28px;flex-wrap:wrap">
                 <a href="{{ url('/') }}" class="btn btn--brand">Ana sayfa</a>
                 @auth

@@ -10,10 +10,13 @@ use App\Http\Middleware\PerRequestCaches;
 use App\Http\Middleware\PublicCacheHeaders;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SiteSeoPolicy;
+use App\Services\CurrentWebsite;
+use App\Services\RedirectService;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -58,6 +61,39 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->with('context_notice', 'Bu organizasyona erişiminiz sona erdi. Devam etmek için yeniden seçim yapın.'),
                 default => null,
             };
+        });
+
+        // Vitrin 404 (faz 54): URL geçmişi → benzerlik → üst kategori → ana sayfa karar zinciri; yönlendirme yoksa
+        // 404 sayfası "belki aradığınız" önerileriyle. Panel/kimlik/asset yolları ve JSON istekleri dokunulmaz.
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->expectsJson() || ! $request->isMethod('GET')) {
+                return null;
+            }
+
+            $path = '/'.trim($request->getPathInfo(), '/');
+
+            foreach (SiteSeoPolicy::SKIP_PREFIXES as $prefix) {
+                if ($path === rtrim($prefix, '/') || str_starts_with($path.'/', rtrim($prefix, '/').'/')) {
+                    return null;
+                }
+            }
+
+            $site = app(CurrentWebsite::class)->get();
+
+            if ($site === null) {
+                return null;
+            }
+
+            $decision = app(RedirectService::class)->onNotFound($site, $path, $request->headers->get('referer'));
+
+            if ($decision['redirect'] !== null) {
+                $to = $decision['redirect']['to'];
+                $query = $request->getQueryString();
+
+                return redirect()->to(str_starts_with($to, '/') && $query ? $to.'?'.$query : $to, $decision['redirect']['code']);
+            }
+
+            return response()->view('errors.404', ['exception' => $e, 'notFoundSuggestions' => $decision['suggestions']], 404);
         });
 
         // İş kuralı ihlali (DomainException) bir controller'da yakalanmamışsa (faz 52 güvenlik ağı): 500/stack trace

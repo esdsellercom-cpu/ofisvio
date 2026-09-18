@@ -14,6 +14,7 @@ use App\Services\AuthorizationService;
 use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\MediaService;
+use App\Services\RedirectService;
 use App\Services\WebsiteService;
 use Carbon\CarbonImmutable;
 use DomainException;
@@ -49,6 +50,7 @@ class ContentController extends Controller
         private readonly MediaService $media,
         private readonly AuthorizationService $authorization,
         private readonly StudioPresenter $studio,
+        private readonly RedirectService $redirects,
     ) {}
 
     /** ?website=<id> ile seçilen site; yoksa varsayılan (Ofisvio vitrini). */
@@ -275,12 +277,26 @@ class ContentController extends Controller
     }
 
     /** Silme (soft delete, content.archive): yalnız taslak/arşiv. */
+    /** Silmeden önce (faz 54): "Bu adres için yönlendirme oluşturulsun mu?" — benzer içerik önerileriyle. */
+    public function confirmDelete(Content $content): View
+    {
+        return view('panel.content.delete', [
+            'content' => $content,
+            'path' => $content->path(),
+            'wasLive' => $content->published_at !== null,
+            'suggestions' => $this->redirects->suggest($content->website, $content->path(), RedirectService::snapshotOf($content)),
+            'action' => route('panel.content.destroy', $content),
+            'cancel' => route('panel.content.show', $content),
+            'label' => $content->title,
+        ]);
+    }
+
     public function destroy(Request $request, Content $content): RedirectResponse
     {
         $website = $content->website;
 
         try {
-            $this->contents->delete($request->user(), $content);
+            $this->contents->delete($request->user(), $content, self::redirectChoice($request));
         } catch (DomainException $e) {
             return back()->withErrors(['status' => $e->getMessage()]);
         }
