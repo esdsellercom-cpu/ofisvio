@@ -33,6 +33,7 @@ class StoreContentRequest extends FormRequest
             'tags' => ['nullable', 'string', 'max:300'], // virgülle ayrılmış; serviste normalize edilir
             'requires_approval' => ['sometimes', 'boolean'],
             'noindex' => ['sometimes', 'boolean'],
+            'is_featured' => ['sometimes', 'boolean'],
             'meta_title' => ['nullable', 'string', 'max:70'],
             'meta_description' => ['nullable', 'string', 'max:160'],
             // CMS stüdyo (faz 48): SEO / GEO / şema — eski formlar göndermezse dokunulmaz.

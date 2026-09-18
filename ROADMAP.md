@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **332/332** (Unit 12 · Feature 304 · Architecture 16) |
+| `php artisan test` | ✅ **333/333** (Unit 12 · Feature 305 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -911,6 +911,26 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
 - **Kapsama denetimi** `EditorCoverageTest`: kütüphanedeki HER bölüm tipi taslağa eklenir, çerçevede seçilebilirlik ve tanımlı
   her metin/markdown/görsel/madde alanının satır içi işareti doğrulanır; rapor (Component | Frontend | Editor | Düzenlenebilir)
   test çıktısına basılır — 25/25 ✓. Nasıl çalışır: sırala/sil/ekle/görsel/not/CTA → kaydet → önizleme → yayınla → vitrin.
+
+### 58. Blog / İçerikler bölümü + içerik ekosistemi ✅ (18 Eylül 2026)
+- **Ana sayfa bölümü** ([blog.blade.php](resources/views/site/partials/blog.blade.php)): "Güncel İçerikler" + açıklama (metinler
+  `blog_title`/`blog_lede`), gerçek kapaklı kartlar (kategori, başlık, özet, tarih, okuma süresi, Devamını Oku), CTA **Tüm
+  Yazıları Gör**; görünüm `grid` | `spotlight` (ilk yazı büyük). Veri yalnız yayındaki yazılar: `ContentService::homePosts`
+  (öne çıkanlar `contents.is_featured` önce + en yeniler, önbellekli) → yeni yazı yayınlanınca otomatik listelenir.
+- **Editör**: bölüm alanları başlık/açıklama/adet/kategori/kart görünümü/CTA (+ stil sekmesiyle arka plan); kartlar çerçevede
+  seçilebilir (`data-ofv-card`), panelde yayındaki yazı listesi (öne çıkan ★, kapaksız uyarısı) → yazı düzenleme ekranına.
+  Yazı formunda **Öne çıkan yazı** kutusu (taslak beklemeden içeriğe yazılır).
+- **İçerik ekosistemi** `php artisan ofisvio:blog-starter [--draft] [--user=]`: 14 yazı (sanal ofis nedir/avantajları/kimler
+  için, hazır ofis nedir/avantajları, şirket kuruluşunda adres, profesyonel adres, girişimciler, freelancer, toplantı odası
+  avantajları, coworking mi hazır ofis mi + yerel: {city}'da sanal ofis / çalışma alanları / toplantı odası) — her biri meta
+  başlık/açıklama, odak + ilgili anahtar kelimeler, H2/H3, GEO özeti + 3 SSS, Article+FAQPage+Breadcrumb şeması,
+  **marka kapak görseli** (`App\Content\CoverArtist`, GD ile 1200×750 PNG → medya kütüphanesine gerçek `Media`, alt/başlık),
+  iç bağlantılar yalnız var olan sayfalara (hizmet slug'ları, tek şube yolu, diğer yazılar; yoksa üst liste). Yerel yazılar
+  yalnız tek şube yayındaysa kurulur; Konya diğer yazılara zorlanmaz. Yinelenebilir (slug varsa atlar).
+- Veri onarımı `000039`: eski blog bölümlerine yeni varsayılanlar; etkin varsayılana eşit metin ezmeleri temizlenir
+  (`SiteBlockService::defaultTexts` — kaydetme artık şehir bağlamlı varsayılanı ezme olarak saklamaz).
+- `BlogEcosystemTest`: komut → kapak/SEO/GEO → yayın → ana sayfa (öne çıkanlar) → detay (JSON-LD, SSS, kapak) → tüm iç bağlantılar
+  200 → editör ayarları (adet/kategori/spotlight/CTA) vitrine → yeni öne çıkan yazı otomatik listede.
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

@@ -18,7 +18,7 @@ class Content extends Model
 
     protected $fillable = [
         'website_id', 'parent_id', 'parent_slug', 'cover_media_id', 'cover_url', 'kind', 'slug', 'title', 'excerpt', 'body', 'category', 'tags', 'reading_minutes',
-        'requires_approval', 'meta_title', 'meta_description', 'noindex', 'author_id',
+        'requires_approval', 'meta_title', 'meta_description', 'noindex', 'is_featured', 'author_id',
         'focus_keyword', 'related_keywords', 'canonical_url', 'robots', 'og_title', 'og_description', 'og_media_id', 'geo', 'schema_types', 'schema_custom', 'seo_score',
     ];
 
@@ -30,6 +30,7 @@ class Content extends Model
         'status' => ContentStatus::class,
         'requires_approval' => 'boolean',
         'noindex' => 'boolean',
+        'is_featured' => 'boolean',
         'show_in_nav' => 'boolean',
         'tags' => 'array',
         'related_keywords' => 'array',

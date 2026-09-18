@@ -113,7 +113,7 @@ class ContentFlowTest extends TestCase
         $this->assertSame($admin->id, (int) $content->published_by);
 
         // Vitrin: ana sayfa kartı, liste, detay; markdown güvenli render.
-        $this->get('/')->assertOk()->assertSee('Çalışma kültürü günlüğü')->assertSee('Sanal ofis ile şirket kurmak');
+        $this->get('/')->assertOk()->assertSee('Güncel İçerikler')->assertSee('Sanal ofis ile şirket kurmak');
         $this->get('/blog')->assertOk()->assertSee('Sanal ofis ile şirket kurmak');
         $this->get('/blog/'.$content->slug)
             ->assertOk()

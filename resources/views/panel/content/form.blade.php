@@ -265,6 +265,7 @@
                     </label>
                 </div>
                 <label class="checkbox-row"><input type="checkbox" name="noindex" value="1" @checked(old('noindex', $src?->noindex))><span><strong>noindex</strong> — arama motorları bu sayfayı listelemez.</span></label>
+                @if ($kind->value === 'post')<label class="checkbox-row"><input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $content?->is_featured))><span><strong>Öne çıkan yazı</strong> — ana sayfa blog bölümünde önce listelenir.</span></label>@endif
                 <p class="eyebrow" style="margin:8px 0 0">Open Graph</p>
                 <div class="grid-auto" style="--min:200px;--gap:10px">
                     <label class="field"><span class="label">OG başlığı</span><input class="control" type="text" name="og_title" value="{{ old('og_title', $src?->og_title) }}" maxlength="120" data-seo-field="og_title"></label>

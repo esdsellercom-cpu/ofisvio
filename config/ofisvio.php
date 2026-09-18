@@ -65,7 +65,8 @@ return [
         'lead_claim_2' => 'Sözleşme süresi 1 aydan başlar',
         'lead_claim_3' => 'Belge inceleme aynı iş günü içinde',
         'booking_widget_title' => 'Hızlı ön talep',
-        'blog_title' => 'Çalışma kültürü günlüğü',
+        'blog_title' => 'Güncel İçerikler',
+        'blog_lede' => 'İş dünyası, ofis çözümleri ve çalışma hayatına dair faydalı bilgiler.',
         'whatsapp_message' => 'Merhaba, sanal ofis / coworking hakkında bilgi almak istiyorum.',
     ],
 

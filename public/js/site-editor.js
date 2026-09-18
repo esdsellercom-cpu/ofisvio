@@ -299,6 +299,14 @@
         var keys = Object.keys(def.fields);
         if (!keys.length) h += '<p class="small muted">Bu bölümün alanı yok; verisi gerçek kayıtlardan gelir (' + esc(def.source) + ').</p>';
         keys.forEach(function (k) { var f = def.fields[k]; var g = def.texts && def.texts[k] && !s.settings[k] ? '<span class="small muted" style="display:block;margin:-4px 0 6px">Boş: global metin "' + esc(state.texts[def.texts[k]] || '') + '" kullanılır.</span>' : ''; h += fieldControl(k, f, s.settings[k]) + g; });
+        // Blog (faz 58): gösterilen yazılar gerçek CMS kayıtları — buradan yazıya/öne çıkarmaya gidilir; yeni yazı yayınlanınca otomatik listelenir.
+        if (s.type === 'blog') {
+            var posts = cfg.posts || [];
+            h += '<div class="ve-group" style="margin-top:10px"><p class="eyebrow">📰 Yayındaki yazılar <span class="muted" style="font-weight:400">(öne çıkanlar önce · ' + posts.length + ')</span></p>';
+            if (!posts.length) h += '<p class="small muted">Yayında yazı yok; bölüm vitrinde basılmaz. <a href="/panel/icerik?kind=post">Yazı ekleyin</a>.</p>';
+            else { h += '<ul class="stack" style="gap:4px;margin:0;padding:0;list-style:none">'; posts.forEach(function (p) { h += '<li class="small" style="display:flex;gap:6px;align-items:center">' + (p.featured ? '<span title="Öne çıkan">★</span>' : '<span class="muted">·</span>') + '<a href="/panel/icerik/' + p.id + '/duzenle" target="_blank" rel="noopener" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(p.title) + '</a>' + (p.cover ? '' : '<span class="muted" title="Kapak görseli yok">🖼✕</span>') + '</li>'; }); h += '</ul>'; }
+            h += '<p class="small muted" style="margin-top:6px">Kapak, kategori, özet ve "Öne çıkan yazı" bayrağı yazı düzenleme ekranından; kategori süzgeci ve adet yukarıdan.</p></div>';
+        }
         // Vitrin veri listeleri (dahil olanlar, planlar…): site geneli veri, bu bölümde düzenlenir; taslak → yayın.
         (DATA_SECTIONS[s.type] || []).forEach(function (key) {
             var meta = DATA_META[key] || { label: key, fields: [] };

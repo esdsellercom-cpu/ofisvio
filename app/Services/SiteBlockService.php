@@ -65,6 +65,7 @@ class SiteBlockService
         'lead_claim_3' => 'Teklif vaadi 3',
         'booking_widget_title' => 'Ön talep aracı başlığı',
         'blog_title' => 'Yazılar bölümü başlığı',
+        'blog_lede' => 'Yazılar bölümü açıklaması',
         'whatsapp_message' => 'WhatsApp ön yazılı mesaj',
     ];
 
@@ -106,19 +107,29 @@ class SiteBlockService
      */
     public function texts(?Website $website): array
     {
+        $stored = $website === null ? [] : (array) ($this->all($website)['texts'] ?? []);
+
+        return array_merge($this->defaultTexts(), array_intersect_key(array_map('strval', $stored), self::TEXT_KEYS));
+    }
+
+    /**
+     * Etkin varsayılanlar: config + tek lokasyon modunda şehir bağlamlı metinler. Kaydetme de bununla karşılaştırır ki
+     * şehir bağlamlı varsayılan kalıcı "ezme" olarak saklanmasın (şehir değişince eski metin kalmasın).
+     *
+     * @return array<string, string>
+     */
+    public function defaultTexts(): array
+    {
         $defaults = array_map('strval', (array) config('ofisvio.texts'));
         $single = $this->singleLocation();
 
-        // Tek lokasyon: kod varsayılanları şehir bağlamlı okunur; panelde kaydedilen metin yine önceliklidir.
         if ($single !== null) {
             foreach (array_map('strval', (array) config('ofisvio.texts_single')) as $key => $text) {
                 $defaults[$key] = self::withCity($text, $single->city);
             }
         }
 
-        $stored = $website === null ? [] : (array) ($this->all($website)['texts'] ?? []);
-
-        return array_merge($defaults, array_intersect_key(array_map('strval', $stored), self::TEXT_KEYS));
+        return $defaults;
     }
 
     /**
@@ -128,7 +139,7 @@ class SiteBlockService
      */
     public function updateTexts(User $editor, Website $website, array $values): void
     {
-        $defaults = array_map('strval', (array) config('ofisvio.texts'));
+        $defaults = $this->defaultTexts();
         $data = [];
 
         foreach (self::TEXT_KEYS as $key => $label) {

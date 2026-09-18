@@ -109,13 +109,14 @@ class CacheEngineTest extends TestCase
         $this->assertStringContainsString(':s'.ContentCache::SCHEMA.':', $cache->key($this->default, 'posts:3'));
 
         // Ana sayfa yazı bölümü en fazla 6 yazı okur (sayfa kurucu: adet bölüm ayarından).
-        foreach (['posts:6', 'posts:50', 'pages'] as $name) {
+        // Ana sayfa yazı bölümü (faz 58): öne çıkanlar + en yeni 12; blog listesi 50.
+        foreach (['posts:12', 'posts:featured:12', 'posts:50', 'pages'] as $name) {
             Cache::put($cache->key($this->default, $name), new \__PHP_Incomplete_Class, 600);
         }
 
         $this->get('/')->assertOk()->assertSee('Sağlam yazı');
         $this->get('/blog')->assertOk()->assertSee('Sağlam yazı');
-        $this->assertIsArray(Cache::get($cache->key($this->default, 'posts:6')), 'Bozuk kayıt üzerine yazılmalı.');
+        $this->assertIsArray(Cache::get($cache->key($this->default, 'posts:12')), 'Bozuk kayıt üzerine yazılmalı.');
     }
 
     #[Test]

@@ -116,7 +116,7 @@ class HomeController extends Controller
             'services' => $services,
             'bookingBadge' => $this->bookings->confirmationBadge(),
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
-            'homePosts' => $this->contents->livePosts($this->website->get(), 6),
+            'homePosts' => $this->contents->homePosts($this->website->get()),
             // Sayfa kurucu: yayınlanmış bölümler (önizlemede taslak).
             'sections' => $sections,
             'preview' => $preview,

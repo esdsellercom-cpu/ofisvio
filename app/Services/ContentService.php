@@ -81,6 +81,30 @@ class ContentService
         return Website::query()->orderByDesc('is_default')->orderBy('name')->get();
     }
 
+    /**
+     * Ana sayfa yazıları (faz 58): öne çıkanlar (is_featured, en yeni önce) + en yeniler; tekilleştirilmiş. Yeni yazı
+     * yayınlanınca (önbellek sürümü artar) otomatik girer.
+     *
+     * @return Collection<int, Content>
+     */
+    public function homePosts(?Website $website, int $limit = 12): Collection
+    {
+        if ($website === null) {
+            return new Collection;
+        }
+
+        $featured = $this->rememberModels($website, "posts:featured:{$limit}", fn () => Content::query()
+            ->where('website_id', $website->id)
+            ->where('kind', ContentKind::POST->value)
+            ->where('is_featured', true)
+            ->live()
+            ->orderByDesc('published_at')
+            ->limit($limit)
+            ->get());
+
+        return $featured->concat($this->livePosts($website, $limit))->unique('id')->values();
+    }
+
     /** @return Collection<int, Content> */
     public function livePosts(?Website $website, int $limit = 3): Collection
     {
@@ -290,7 +314,7 @@ class ContentService
     }
 
     /**
-     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, cover_media_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{kind: string, title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, cover_media_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool, is_featured?: bool}  $data
      */
     public function create(User $author, Website $website, array $data): Content
     {
@@ -319,6 +343,7 @@ class ContentService
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
                 'noindex' => (bool) ($data['noindex'] ?? false),
+                'is_featured' => (bool) ($data['is_featured'] ?? false),
                 'author_id' => $author->id,
             ]);
             $content->fill($this->studioFields($website, $data));
@@ -387,7 +412,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, cover_media_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, parent_id?: int|string|null, cover_media_id?: int|string|null, requires_approval?: bool, meta_title?: string|null, meta_description?: string|null, noindex?: bool, is_featured?: bool}  $data
      */
     public function update(User $editor, Content $content, array $data): Content
     {
@@ -418,6 +443,7 @@ class ContentService
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
                 'noindex' => (bool) ($data['noindex'] ?? false),
+                'is_featured' => (bool) ($data['is_featured'] ?? false),
             ] + $this->studioFields($content->website, $data));
 
             $cover = $this->coverFor($content->website, $data['cover_media_id'] ?? null);
@@ -972,7 +998,7 @@ class ContentService
     }
 
     /**
-     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, meta_title?: string|null, meta_description?: string|null, noindex?: bool}  $data
+     * @param  array{title: string, slug?: string|null, excerpt?: string|null, body?: string|null, category?: string|null, tags?: string|null, meta_title?: string|null, meta_description?: string|null, noindex?: bool, is_featured?: bool}  $data
      */
     public function updateDraft(User $editor, ContentDraft $draft, array $data): ContentDraft
     {
@@ -998,6 +1024,12 @@ class ContentService
             'author_id' => $editor->id,
         ] + $this->studioFields($content->website, $data));
         $draft->save();
+
+        // Öne çıkan bayrağı yayın gövdesine ait değil (ana sayfa sıralaması): taslak beklemeden içeriğe yazılır (faz 58).
+        if (array_key_exists('is_featured', $data) && (bool) $data['is_featured'] !== (bool) $content->is_featured) {
+            $content->forceFill(['is_featured' => (bool) $data['is_featured']])->save();
+            $this->cache->invalidate($content->website);
+        }
 
         return $draft;
     }

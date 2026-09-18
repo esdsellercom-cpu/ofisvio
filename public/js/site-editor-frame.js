@@ -28,6 +28,7 @@
         '[data-ofv-image].ofv-dropover{outline:3px solid #16a34a!important}',
         '[data-ofv-global-area]{outline:1px dashed transparent;outline-offset:-1px}[data-ofv-global-area]:hover{outline-color:rgba(37,99,235,.35)}',
         '[data-ofv-item]{cursor:text;outline:1px dashed transparent;outline-offset:2px}[data-ofv-item]:hover{outline-color:rgba(37,99,235,.45)}',
+        '[data-ofv-card]{outline:1px dashed transparent;outline-offset:-1px}[data-ofv-card]:hover{outline-color:rgba(37,99,235,.45)}',
         '[data-ofv-global-area].ofv-selected{outline:2px solid #2563eb;outline-offset:-2px}',
         '.ofv-toolbar{position:absolute;top:6px;left:6px;z-index:2147483000;display:flex;gap:2px;background:#111827;color:#fff;border-radius:8px;padding:3px;font:12px/1 sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.25)}',
         '.ofv-toolbar span{padding:5px 8px;opacity:.7;font-weight:600}',
