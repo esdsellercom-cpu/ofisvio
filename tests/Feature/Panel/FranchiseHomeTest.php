@@ -101,6 +101,7 @@ class FranchiseHomeTest extends TestCase
         $this->assertStringContainsString('/lokasyon/konya-merkez', $html);
         // Tek lokasyon tasarımı (faz 55): büyük şehir başlığı, ulaşım, açıklamanın ilk paragrafı, CTA'lar; koordinat yok → yol tarifi gerçek adrese.
         $this->assertStringContainsString('>KONYA</h3>', $html);
+        $this->assertStringContainsString('Konya, köklü ticaret kültürü', $html); // şehir tanıtım metni (texts.locations_blurb, {city})
         $this->assertStringContainsString('Tramvay durağına 3 dk yürüme', $html);
         $this->assertStringContainsString('tek çatı altında.', $html);
         $this->assertStringNotContainsString('İkinci paragraf', $html);

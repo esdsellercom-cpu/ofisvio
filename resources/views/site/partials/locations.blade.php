@@ -34,6 +34,12 @@
                 <h3 class="h1" style="font-size:clamp(40px,5vw,64px);line-height:.95;letter-spacing:-.03em;margin:0">{{ mb_strtoupper($loc->city) }}</h3>
             </div>
 
+            {{-- Şehir tanıtım metni (faz 58b): editörde satır içi düzenlenir; boş bırakılırsa gizlenir. --}}
+            @php($blurb = (string) ($s['blurb'] ?? ($texts['locations_blurb'] ?? '')))
+            @if ($blurb !== '' || ofv_editor())
+                <p style="margin:0;max-width:54ch;font-size:16.5px;line-height:1.6;color:var(--ink-soft)"{!! ofv($s, 'blurb', 'texts.locations_blurb') !!}>{{ $blurb }}</p>
+            @endif
+
             @if ($locSummary !== '')
                 <p class="body-muted" style="margin:0;max-width:52ch;font-size:16px">{{ $locSummary }}</p>
             @endif

@@ -102,7 +102,8 @@ class EditorCoverageTest extends TestCase
 
             foreach ($def['fields'] as $key => $field) {
                 $marker = match ($field['type']) {
-                    'text', 'textarea' => in_array($key, ['limit', 'category', 'embed', 'link', 'address'], true) ? null : 'data-ofv-field="'.$key.'"',
+                    // blurb: yalnız tek şube modunda basılır (FranchiseHomeTest doğrular); limit/category/embed/link/address görsel karşılığı olmayan ayarlar.
+                    'text', 'textarea' => in_array($key, ['limit', 'category', 'embed', 'link', 'address', 'blurb'], true) ? null : 'data-ofv-field="'.$key.'"',
                     'markdown' => 'data-ofv-md="'.$key.'"',
                     'media' => 'data-ofv-image="'.$key.'"',
                     'media_list' => 'data-ofv-image="'.$key.'[]"',

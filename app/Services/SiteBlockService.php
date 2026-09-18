@@ -44,6 +44,7 @@ class SiteBlockService
         'journey_title' => 'Nasıl çalışır başlığı',
         'journey_lede' => 'Nasıl çalışır açıklaması',
         'locations_title' => 'Lokasyonlar başlığı',
+        'locations_blurb' => 'Lokasyon: şehir tanıtım metni (tek şube modu; boş = gizle)',
         'meeting_title' => 'Toplantı başlığı',
         'meeting_lede' => 'Toplantı açıklaması',
         'amenities_title' => 'Dahil olanlar başlığı',
@@ -70,7 +71,7 @@ class SiteBlockService
     ];
 
     /** Boş bırakılınca bölümü gizleyen (varsayılana dönmeyen) metinler. */
-    public const OPTIONAL_TEXT_KEYS = ['topbar_count', 'hero_match', 'lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
+    public const OPTIONAL_TEXT_KEYS = ['topbar_count', 'hero_match', 'locations_blurb', 'lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
 
     public function __construct(private readonly ContentCache $cache, private readonly ServiceService $services) {}
 

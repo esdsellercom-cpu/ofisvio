@@ -880,6 +880,8 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   alt başlık (`texts.locations_title`, tek lokasyon varsayılanı "İşinizin merkezinde, profesyonel çalışma alanınız."), şube
   açıklamasının ilk paragrafı, Adres · Ulaşım · Çalışma saatleri · Telefon (yalnız dolu alanlar), hizmet etiketleri, CTA
   **Lokasyonu İncele** + **Yol Tarifi Al** (koordinat varsa koordinata, yoksa gerçek adrese; ikisi de yoksa düğme yok).
+- Şehir tanıtım metni (58b): büyük şehir adının altında kısa, editörde satır içi düzenlenen metin (bölüm alanı `blurb`, boşsa
+  `texts.locations_blurb`; tek şube varsayılanı `{city}` ile şehrin iş dünyasındaki yerini anlatır, boş bırakılırsa gizlenir).
 - Yeni alan `locations.transport` (Ulaşım bilgisi; panel Lokasyonlar › varlık formu; şube sayfasında da görünür + yol tarifi).
   `Location::fullAddress()/directionsUrl()`. Migrasyon `000036_location_transport`.
 - SEO/GEO: tek lokasyon modunda ana sayfa JSON-LD'ye şubenin **LocalBusiness** düğümü (adres, telefon, saat, koordinat,
