@@ -17,7 +17,8 @@
                 @if ($service->cover)
                     @include('site.partials.picture', ['media' => $service->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block'])
                 @else
-                    <div class="shot" style="aspect-ratio:4/3"><span class="shot__note">{{ $service->slug }}</span></div>
+                    @php($illKey = \App\Site\Illustrations::forService($service->slug, $service->name))
+                    @include('site.partials.illustration', ['key' => $illKey, 'alt' => \App\Site\Illustrations::alt($illKey, $singleLocation->city ?? null, $service->name), 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block'])
                 @endif
                 <div class="card__body">
                     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">

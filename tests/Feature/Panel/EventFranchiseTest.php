@@ -110,8 +110,8 @@ class EventFranchiseTest extends TestCase
         $finance = $this->staff('finance_admin');  // yok
         $acme = $this->organization('Acme');
 
-        $this->get('/franchise')->assertOk()->assertSee('Başvuru formu')->assertSee('KVKK');
-        $form = ['name' => 'Mehmet Kaya', 'email' => 'Mehmet@ornek.com', 'phone' => '0533', 'city' => 'İzmir', 'district' => 'Bornova', 'budget' => '2–3 milyon ₺', 'experience' => '5 yıl perakende', 'message' => 'Alsancak bölgesi', 'kvkk' => '1'];
+        $this->get('/franchise')->assertOk()->assertSee('Franchise başvuru formu')->assertSee('KVKK');
+        $form = ['name' => 'Mehmet Kaya', 'email' => 'Mehmet@ornek.com', 'phone' => '0533', 'city' => 'İzmir', 'district' => 'Bornova', 'budget' => '1m_2m', 'experience' => '5 yıl perakende', 'message' => 'Alsancak bölgesi', 'kvkk' => '1'];
         $this->from('/franchise')->post('/franchise', ['kvkk' => null] + $form)->assertSessionHasErrors('kvkk');
         $this->from('/franchise')->post('/franchise', ['website' => 'bot'] + $form)->assertSessionHasErrors('website');
         $this->from('/franchise')->post('/franchise', ['city' => ''] + $form)->assertSessionHasErrors('city');
@@ -128,7 +128,7 @@ class EventFranchiseTest extends TestCase
         $this->actingAs($finance)->get('/panel/franchise')->assertForbidden();
         $this->actingAs($ops)->get('/panel/franchise')->assertOk()->assertSee('Mehmet Kaya')->assertSee('İzmir / Bornova')->assertSee('Yeni');
         $this->actingAs($ops)->get('/panel/franchise?q=kaya')->assertOk()->assertSee('Mehmet Kaya');
-        $this->actingAs($ops)->get('/panel/franchise?status=approved')->assertOk()->assertDontSee('Mehmet Kaya');
+        $this->actingAs($ops)->get('/panel/franchise?status=positive')->assertOk()->assertDontSee('Mehmet Kaya');
         $this->actingAs($ops)->get("/panel/franchise/{$app->id}")->assertOk()->assertSee('5 yıl perakende')->assertSee('Değerlendirme');
 
         // Değerlendirme: durum + sorumlu + not (audit); rozet düşer; rapor talepler sekmesinde sayım.
@@ -139,6 +139,6 @@ class EventFranchiseTest extends TestCase
         $this->actingAs($ops)->from("/panel/franchise/{$app->id}")->put("/panel/franchise/{$app->id}", ['status' => 'bozuk'])->assertSessionHasErrors('status');
         $html = $this->actingAs($ops)->withContext($acme)->get('/panel/operasyon')->assertOk()->getContent();
         $this->assertDoesNotMatchRegularExpression('~Franchise yönetimi</span>\s*<span class="c a"~', $html);
-        $this->actingAs($ops)->get('/panel/raporlar?sekme=talepler')->assertOk()->assertSee('Franchise başvuruları')->assertSee('Değerlendirmede');
+        $this->actingAs($ops)->get('/panel/raporlar?sekme=talepler')->assertOk()->assertSee('Franchise başvuruları')->assertSee('İnceleniyor');
     }
 }

@@ -67,6 +67,23 @@ return [
         'whatsapp_message' => 'Merhaba, sanal ofis / coworking hakkında bilgi almak istiyorum.',
     ],
 
+    /*
+     * Tek lokasyon modu (faz 53): yayında tek şube varsa vitrin metinleri o şehre göre okunur. {city} = şehir adı,
+     * {city_da} = bulunma hâli ("Konya'da"). Şehir yalnız lokasyon kaydından gelir; panelde ezilen metin yine kazanır.
+     */
+    'texts_single' => [
+        'topbar' => '{city_da} tek sözleşmeyle tüm çözümlere erişim',
+        'hero_eyebrow' => '{city_da} sanal ofis · hazır ofis · coworking',
+        'hero_title' => 'Şirketinizin {city} adresi',
+        'hero_lede' => '{city_da} tescile uygun adres, karşılanan çağrılar ve evraklar, saatlik toplantı odaları. Tek sözleşme, tek merkez, tüm çözümler.',
+        'solutions_title' => '{city_da} ofis çözümleri: çalışma biçiminize göre başlangıç noktası',
+        'solutions_lede' => 'Hepsi aynı merkezde ve aynı altyapıda: resepsiyon, fiber, evrak ve kargo karşılama dahildir.',
+        'locations_title' => '{city_da} işin merkezinde',
+        'meeting_title' => '{city_da} saatlik toplantı odası, aynı gün teyitli',
+        'nav_locations' => 'Lokasyon',
+        'lead_title' => '{city_da} ofisiniz için formu bırakın, aynı iş günü fiyat gelsin',
+    ],
+
     'themes' => [
         'kum' => 'Kum — sıcak zemin, orman yeşili (varsayılan)',
         'gece' => 'Gece — koyu zemin, açık yeşil vurgu',

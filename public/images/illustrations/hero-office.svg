@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" role="img" aria-labelledby="t"><title id="t">Modern ofis cephesi ve çalışma masası</title>
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EAF3ED"/><stop offset="1" stop-color="#F5F1E8"/></linearGradient><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#E3DED2" stroke-width="1"/></pattern></defs>
+<rect width="800" height="1000" fill="url(#sky)"/><rect width="800" height="1000" fill="url(#grid)" opacity=".5"/>
+<circle cx="620" cy="190" r="110" fill="#9ECBB4" opacity=".35"/>
+<!-- bina -->
+<rect x="120" y="180" width="360" height="560" rx="18" fill="#FFFDF8" stroke="#1E1C18" stroke-width="3"/>
+<rect x="120" y="180" width="360" height="70" rx="18" fill="#1F5B45"/>
+<rect x="120" y="230" width="360" height="20" fill="#1F5B45"/>
+<g fill="#EAF3ED" stroke="#1E1C18" stroke-width="2.5">
+<rect x="160" y="290" width="70" height="70" rx="8"/><rect x="265" y="290" width="70" height="70" rx="8"/><rect x="370" y="290" width="70" height="70" rx="8"/>
+<rect x="160" y="400" width="70" height="70" rx="8"/><rect x="265" y="400" width="70" height="70" rx="8" fill="#9ECBB4"/><rect x="370" y="400" width="70" height="70" rx="8"/>
+<rect x="160" y="510" width="70" height="70" rx="8" fill="#9ECBB4"/><rect x="265" y="510" width="70" height="70" rx="8"/><rect x="370" y="510" width="70" height="70" rx="8"/>
+</g>
+<rect x="255" y="630" width="90" height="110" rx="10" fill="#1F5B45"/><rect x="290" y="660" width="20" height="60" rx="4" fill="#9ECBB4"/>
+<!-- yan bina -->
+<rect x="520" y="330" width="180" height="410" rx="14" fill="#EFEAE0" stroke="#1E1C18" stroke-width="3"/>
+<g fill="#FFFDF8" stroke="#1E1C18" stroke-width="2.5"><rect x="550" y="370" width="50" height="50" rx="6"/><rect x="620" y="370" width="50" height="50" rx="6"/><rect x="550" y="450" width="50" height="50" rx="6"/><rect x="620" y="450" width="50" height="50" rx="6" fill="#9ECBB4"/><rect x="550" y="530" width="50" height="50" rx="6"/><rect x="620" y="530" width="50" height="50" rx="6"/><rect x="550" y="610" width="50" height="50" rx="6" fill="#9ECBB4"/><rect x="620" y="610" width="50" height="50" rx="6"/></g>
+<!-- zemin -->
+<line x1="60" y1="740" x2="740" y2="740" stroke="#1E1C18" stroke-width="3"/>
+<!-- masa -->
+<rect x="150" y="800" width="500" height="18" rx="6" fill="#1E1C18"/>
+<rect x="180" y="818" width="16" height="120" fill="#1E1C18"/><rect x="604" y="818" width="16" height="120" fill="#1E1C18"/>
+<rect x="330" y="720" width="140" height="82" rx="8" fill="#FFFDF8" stroke="#1E1C18" stroke-width="3"/><rect x="392" y="802" width="16" height="0" fill="#1E1C18"/>
+<rect x="345" y="735" width="110" height="52" rx="4" fill="#1F5B45"/><rect x="358" y="748" width="60" height="6" rx="3" fill="#9ECBB4"/><rect x="358" y="762" width="40" height="6" rx="3" fill="#EAF3ED"/>
+<rect x="520" y="760" width="70" height="40" rx="6" fill="#C9A24A"/><rect x="540" y="740" width="30" height="20" rx="4" fill="#C9A24A"/>
+<circle cx="230" cy="770" r="26" fill="#9ECBB4"/><rect x="220" y="770" width="20" height="30" fill="#1F5B45"/>
+<!-- rozet -->
+<rect x="480" y="120" width="230" height="56" rx="28" fill="#1E1C18"/><circle cx="512" cy="148" r="10" fill="#9ECBB4"/><rect x="535" y="140" width="150" height="8" rx="4" fill="#FFFDF8" opacity=".9"/><rect x="535" y="154" width="90" height="6" rx="3" fill="#9ECBB4" opacity=".8"/>
+</svg>

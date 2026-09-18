@@ -95,9 +95,10 @@ class MediaLibraryTest extends TestCase
         $this->get('/blog/kapakli-yazi')->assertOk()->assertSee('<meta property="og:image" content="'.$media->url().'">', false)->assertSee('alt="Levent şubesi"', false);
 
         // Hero (website.manage).
-        $this->get('/')->assertOk()->assertSee('lokasyon ana görseli');
+        // Site görseli yokken marka illüstrasyonu (faz 53); görsel yüklenince o basılır, illüstrasyon kalkar.
+        $this->get('/')->assertOk()->assertSee('illustrations/hero-office.svg');
         $this->actingAs($admin)->put("/panel/websiteler/{$this->site->id}/hero", ['hero_media_id' => $media->id])->assertRedirect();
-        $this->get('http://localhost/')->assertOk()->assertDontSee('lokasyon ana görseli')->assertSee('src="'.$media->url().'"', false);
+        $this->get('http://localhost/')->assertOk()->assertDontSee('illustrations/hero-office.svg')->assertSee('src="'.$media->url().'"', false);
 
         // Kullanımdaki görsel silinemez.
         $this->actingAs($admin)->from('/panel/icerik/medya')->delete("/panel/icerik/medya/{$media->id}")->assertSessionHasErrors('file');

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **318/318** (Unit 12 · Feature 290 · Architecture 16) |
+| `php artisan test` | ✅ **322/322** (Unit 12 · Feature 294 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -787,6 +787,40 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   sunucuda (kuruş), negatif/aşan tutar reddi; markdown `html_input=strip`; ham `<head>` kodu yalnız JIT'li
   Geliştirici sekmesi; silme korumaları (alan, demirbaş, plan, hizmet, site, medya); mass assignment `$fillable`.
 - Migrasyon `2026_09_18_000030_audit_indexes`. Testler +6 (PanelSmoke 1, IdorProbe 1, CriticalFlows 2, SystemCenter 2).
+
+### 53. Ana sayfa: boş görseller, tek lokasyon (Konya) modu, franchise / iş ortaklığı ✅ (18 Eylül 2026)
+- **Boş görsel alanları**: medya kütüphanesi boşken hero, hizmet kartları, şube kartı/öne çıkan şube, yazı kapağı ve
+  franchise bölümü marka diline uygun SVG illüstrasyon setiyle dolar (`public/images/illustrations`, palet =
+  tasarım sistemi; `App\Site\Illustrations`: anahtar → dosya/boyut/alt metni, hizmet slug/ad eşlemesi;
+  `site.partials.illustration`). Gerçek görsel (`Media`) varsa o basılır, illüstrasyon kalkar; `shot__note` yer
+  tutucu metinleri vitrinden kalktı (editörde "site görseli yükle" işareti sürüyor). Her görsel `width/height/alt/lazy`.
+- **Tek lokasyon modu** (`SiteBlockService::singleLocation`, istek başına memo `ContentCache::memo`): yayında + aktif
+  tam bir şube varsa — bölge seçimi, "Tüm bölgeler", bölge sekmeleri, boş lokasyon kartları ve lokasyon/şehir/bölge
+  sayımı yok; hero'da şube rozeti, `locations` bölümü **öne çıkan şube** (kapak/illüstrasyon, adres, ilçe/posta kodu,
+  telefon, çalışma saatleri, hizmet etiketleri, fiyat notu, yol tarifi yalnız koordinat varsa, şube sayfası + teklif
+  CTA), istatistikler şubenin verisi (çözüm/oda sayısı), header/footer bölge listesi yerine şube; **hiçbir alan
+  uydurulmaz** (boş alan basılmaz). Metinler şehre göre okunur: `config('ofisvio.texts_single')` `{city}`/`{city_da}`
+  (`App\Support\TurkishSuffix::locative` — ünlü uyumu + sertleşme, kesme işareti), panelde kaydedilen metin yine
+  kazanır; ana sayfa `<title>`/açıklama şehir + DB adresiyle (SiteLayoutComposer). Çoklu lokasyonda görünüm değişmez.
+- **Franchise / İş ortaklığı bölümü** (`SectionLibrary` `franchise`, grup içerik, tekil; alanlar üst etiket/başlık/
+  açıklama/maddeler/CTA; varsayılan "Markamızı birlikte büyütmek ister misiniz?" + **Franchise Başvurusu** → `/franchise`).
+  Varsayılan yerleşimde teklif formundan önce; mevcut sitelere migrasyon `000032` taslağa + yayınlanmış son revizyona
+  yeni revizyon olarak ekler (ayarsız = varsayılan metin, ticari rakam yok). Editörde satır içi düzenlenir.
+- **Franchise sayfası** `/franchise`: H1/H2, breadcrumb, süreç adımları, SSS; alanlar Ad, Soyad, Firma (isteğe bağlı),
+  Telefon, E-posta, Şehir, İlçe, Yatırım bütçesi (**seçim listesi** `FranchiseApplication::BUDGETS`), İşletme
+  deneyimi, Mesaj, KVKK; bal küpü + `throttle:5,1` korundu. Head `SiteLayoutComposer` (`site.franchise`, kanonik
+  `/franchise`), JSON-LD WebPage + BreadcrumbList + FAQPage (yalnız süreç bilgisi; lokasyon uydurulmaz).
+- **Mevcut franchise yapısı genişletildi** (yeniden kurulmadı): `franchise_applications.number` (**FR-YYYY-000001**,
+  yıl bazlı sıra, tekil), `first_name/last_name/company`; durumlar `new İnceleniyor→reviewing meeting positive
+  negative archived` (Yeni · İnceleniyor · Görüşme · Olumlu · Olumsuz · Arşiv; eski approved/rejected migrasyonla
+  positive/negative). `FranchiseService::apply` numara üretir, audit `franchise.applied` yazar, bildirim
+  `franchise.applied` (in_app + e-posta, CRM grubu; konu/gövdede `{{number}}`). Panel `/panel/franchise` liste
+  sütunları Başvuru no · Ad Soyad · Firma · Telefon · E-posta · Şehir · Bütçe · Tarih · Durum; detayda tüm alanlar +
+  sorumlu + iç not; operasyon panosu KPI etiketleri güncellendi.
+- Sorgu bütçesi: vitrin/yazı sayfası +1 (tek lokasyon tespiti, istek başına bir kez); blog kartı kapağı
+  `cover_url` (ilişki sorgusu yok). Migrasyonlar `000031_franchise_number_company_statuses`,
+  `000032_franchise_home_section`. Testler +4 (`FranchiseHomeTest`: Türkçe ek/illüstrasyon birim, tek lokasyon ana
+  sayfa, çoklu lokasyon korunur, başvuru → doğrulama → DB → bildirim → panel liste/detay/durum → hız sınırı).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

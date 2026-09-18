@@ -32,7 +32,7 @@
                 <a href="{{ route('panel.events.index') }}" class="kpi"><span class="k">Yaklaşan etkinlik</span><span class="v">{{ $ops['events']['upcoming'] }}</span><span class="d">{{ $ops['events']['next'] ? $ops['events']['next']->title.' · '.$ops['events']['next']->starts_at->format('d.m H:i') : $ops['events']['registrations_30d'].' kayıt (30g)' }}</span></a>
             @endif
             @if ($ops['franchise'] !== null)
-                <a href="{{ route('panel.franchise.index', ['status' => 'new']) }}" class="kpi {{ $ops['franchise']['new'] > 0 ? 'watch' : '' }}"><span class="k">Franchise başvurusu</span><span class="v">{{ $ops['franchise']['new'] }}</span><span class="d">{{ $ops['franchise']['reviewing'] }} değerlendirmede · {{ $ops['franchise']['approved'] }} onaylı</span></a>
+                <a href="{{ route('panel.franchise.index', ['status' => 'new']) }}" class="kpi {{ $ops['franchise']['new'] > 0 ? 'watch' : '' }}"><span class="k">Franchise başvurusu</span><span class="v">{{ $ops['franchise']['new'] }}</span><span class="d">{{ $ops['franchise']['reviewing'] }} inceleniyor · {{ $ops['franchise']['positive'] }} olumlu</span></a>
             @endif
             @if ($ops['notifications'] !== null)
                 <a href="{{ route('panel.notifications.index', ['sekme' => 'gunluk']) }}" class="kpi {{ $ops['notifications']['failed'] > 0 ? 'alert' : '' }}"><span class="k">Başarısız bildirim</span><span class="v">{{ $ops['notifications']['failed'] }}</span><span class="d">{{ $ops['notifications']['queued'] }} kuyrukta · {{ $ops['notifications']['sent_today'] }} bugün gönderildi</span></a>

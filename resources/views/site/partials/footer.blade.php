@@ -26,7 +26,17 @@
             </div>
         @endforeach
 
-        @isset($regions)
+        @if ($singleLocation ?? null)
+            <div style="min-width:0">
+                <div class="label" style="margin-bottom:16px">Lokasyon</div>
+                <div class="stack" style="gap:9px;font-size:14.5px">
+                    <a href="{{ route('site.location', $singleLocation->slug) }}">{{ $singleLocation->name }}</a>
+                    @if ($singleLocation->address_line)<span style="color:var(--dark-ink-mute)">{{ $singleLocation->address_line }}</span>@endif
+                    <span style="color:var(--dark-ink-mute)">{{ trim(($singleLocation->district ? $singleLocation->district.', ' : '').$singleLocation->city) }}</span>
+                    @if ($singleLocation->phone)<a href="tel:{{ preg_replace('/\s+/', '', $singleLocation->phone) }}" class="mono">{{ $singleLocation->phone }}</a>@endif
+                </div>
+            </div>
+        @elseif (isset($regions))
             <div style="min-width:0">
                 <div class="label" style="margin-bottom:16px">Bölgeler</div>
                 <div class="stack" style="gap:9px;font-size:14.5px">
@@ -35,7 +45,7 @@
                     @endforeach
                 </div>
             </div>
-        @endisset
+        @endif
     </div>
 
     <div class="wrap" style="padding-block:22px 40px;border-top:1px solid var(--dark-line);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font-size:13px;color:var(--dark-ink-mute)">

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-labelledby="t"><title id="t">Franchise ve iş ortaklığı: birlikte büyüyen şube ağı</title>
+<defs><pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#E3DED2" stroke-width="1"/></pattern></defs>
+<rect width="800" height="600" fill="#F5F1E8"/><rect width="800" height="600" fill="url(#g)" opacity=".55"/><circle cx="600" cy="150" r="120" fill="#9ECBB4" opacity=".3"/>
+
+<rect x="110" y="380" width="60" height="120" rx="8" fill="#9ECBB4"/><rect x="200" y="320" width="60" height="180" rx="8" fill="#1F5B45"/><rect x="290" y="250" width="60" height="250" rx="8" fill="#9ECBB4"/><rect x="380" y="170" width="60" height="330" rx="8" fill="#1F5B45"/>
+<path d="M140 350l90-60 90-70 90-80" fill="none" stroke="#1E1C18" stroke-width="4" stroke-linecap="round"/><path d="M382 128l28 12-8 30" fill="none" stroke="#1E1C18" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<line x1="60" y1="500" x2="740" y2="500" stroke="#1E1C18" stroke-width="3"/>
+<g transform="translate(600 300)"><path d="M0-90c-44 0-76 32-76 72 0 54 76 122 76 122s76-68 76-122c0-40-32-72-76-72z" fill="#C9A24A" stroke="#1E1C18" stroke-width="3"/><circle cx="0" cy="-20" r="26" fill="#FFFDF8"/><path d="M-12-20l8 8 16-16" fill="none" stroke="#1F5B45" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g transform="translate(520 120)"><path d="M0 40c-30-30-60-10-60 20s60 60 60 60 60-30 60-60-30-50-60-20z" fill="#EAF3ED" stroke="#1E1C18" stroke-width="3"/></g>
+</svg>

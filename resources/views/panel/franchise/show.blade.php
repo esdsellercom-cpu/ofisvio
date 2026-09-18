@@ -5,9 +5,9 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow"><a href="{{ route('panel.franchise.index') }}">Franchise</a> / #{{ $app->id }}</p>
+            <p class="eyebrow"><a href="{{ route('panel.franchise.index') }}">Franchise</a> / <span class="mono">{{ $app->number ?? '#'.$app->id }}</span></p>
             <h1 class="h2">{{ $app->name }} · {{ $app->city }}</h1>
-            <p><span class="pill {{ ['new' => 'a', 'reviewing' => 'i', 'approved' => 'g', 'rejected' => 'n'][$app->status] }}">{{ $app->statusLabel() }}</span> Başvuru {{ $app->created_at->format('d.m.Y H:i') }}@if ($app->handled_at) · ele alındı {{ $app->handled_at->format('d.m.Y') }}@endif</p>
+            <p><span class="pill {{ \App\Models\FranchiseApplication::STATUS_TONE[$app->status] ?? 'n' }}">{{ $app->statusLabel() }}</span> Başvuru {{ $app->created_at->format('d.m.Y H:i') }}@if ($app->handled_at) · ele alındı {{ $app->handled_at->format('d.m.Y') }}@endif</p>
         </div>
     </div>
 
@@ -16,10 +16,12 @@
             <div class="card__head"><h3>Başvuru</h3><span class="sub">KVKK rızası {{ $app->consented_at->format('d.m.Y H:i') }}{{ $app->consent_ip ? ' · '.$app->consent_ip : '' }}</span></div>
             <div class="card__body">
                 <dl class="kv">
+                    <dt>Ad Soyad</dt><dd>{{ $app->name }}</dd>
+                    <dt>Firma</dt><dd>{{ $app->company ?? '—' }}</dd>
                     <dt>E-posta</dt><dd>{{ $app->email }}</dd>
                     <dt>Telefon</dt><dd>{{ $app->phone ?? '—' }}</dd>
                     <dt>Şehir</dt><dd>{{ $app->city }}{{ $app->district ? ' / '.$app->district : '' }}</dd>
-                    <dt>Bütçe (beyan)</dt><dd>{{ $app->budget ?? '—' }}</dd>
+                    <dt>Bütçe (beyan)</dt><dd>{{ $app->budgetLabel() }}</dd>
                     <dt>Deneyim</dt><dd style="white-space:pre-line">{{ $app->experience ?? '—' }}</dd>
                     <dt>Mesaj</dt><dd style="white-space:pre-line">{{ $app->message ?? '—' }}</dd>
                 </dl>

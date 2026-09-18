@@ -52,7 +52,7 @@ class SiteBuilderTest extends TestCase
 
         $this->actingAs($finance)->get('/panel/icerik/tasarim')->assertForbidden();
         $this->actingAs($ops)->get('/panel/icerik/tasarim')->assertOk()->assertSee('Ana sayfa tasarımı')->assertSee('Çözümler')->assertDontSee('Yayınla</button>', false);
-        $this->assertSame(10, SiteSection::count()); // ilk açılış: varsayılan yerleşim taslağa yazıldı
+        $this->assertSame(11, SiteSection::count()); // ilk açılış: varsayılan yerleşim taslağa yazıldı (faz 53: + franchise)
 
         // Serbest metin + CTA şeridi ekle (content.edit), çözümleri gizle, SSS ekle; taslak vitrine ÇIKMAZ.
         $this->actingAs($ops)->post("/panel/icerik/tasarim/{$this->site->id}/bolum", ['type' => 'rich_text'])->assertRedirect()->assertSessionHasNoErrors();

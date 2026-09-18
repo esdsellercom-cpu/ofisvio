@@ -39,6 +39,7 @@ class SiteLayoutComposer
         $tenant = $this->website->isTenantSite();
 
         $data = $view->getData();
+        $single = $tenant ? null : $this->blocks->singleLocation();
         $content = $data['content'] ?? null;
         $content = $content instanceof Content ? $content : null;
 
@@ -64,7 +65,10 @@ class SiteLayoutComposer
                 // Etiket/kategori sayfaları 'listing': crawl.noindex_listings ayarı bunlara uygulanır (faz 44).
                 str_ends_with($view->name(), 'site.tag') => $this->seo->head($site, null, '/blog/etiket/'.($data['tagSlug'] ?? ''), '#'.($data['tagName'] ?? 'Etiket').' yazıları', null, 'listing'),
                 str_ends_with($view->name(), 'site.category') => $this->seo->head($site, null, '/blog/kategori/'.($data['categorySlug'] ?? ''), ($data['categoryName'] ?? 'Kategori').' yazıları', null, 'listing'),
+                str_ends_with($view->name(), 'site.franchise') => $this->seo->head($site, null, '/franchise', 'Franchise ve iş ortaklığı başvurusu', 'Markamızı birlikte büyütmek ister misiniz? Franchise / iş ortaklığı başvurunuzu bırakın; ekibimiz sizinle iletişime geçsin.'),
                 $tenant => $this->seo->head($site),
+                // Tek lokasyon modu (faz 53): ana sayfa başlığı/açıklaması şubenin şehrine göre (yalnız DB'deki şehir).
+                $single !== null && str_ends_with($view->name(), 'site.home') => $this->seo->head($site, null, '/', SiteBlockService::withCity('{city_da} sanal ofis, hazır ofis ve coworking', $single->city), SiteBlockService::withCity('{city_da} tescile uygun sanal ofis adresi, hazır ofis, coworking ve saatlik toplantı odası. '.($single->address_line ?: ''), $single->city)),
                 default => $this->seo->head($site, null, '/', 'Şirketinizin adresi bugün hazır olsun', 'Sanal ofis, hazır ofis ve coworking. Tescil adresi, çağrı ve kargo karşılama, saatlik toplantı odası.'),
             };
         }
@@ -126,6 +130,7 @@ class SiteLayoutComposer
             'leadOptions' => $this->blocks->solutionOptions($site),
             'siteLayout' => $tenant ? 'layouts.tenant' : 'layouts.site',
             'currentWebsite' => $site,
+            'singleLocation' => $single,
             'tenantNav' => $tenant ? $this->contents->navigation($site) : collect(),
             'tenantHasPosts' => $tenant && $this->contents->livePosts($site, 1)->isNotEmpty(),
             'seo' => $seo,

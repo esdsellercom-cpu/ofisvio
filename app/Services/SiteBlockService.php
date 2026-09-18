@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Location;
 use App\Models\SiteBlock;
 use App\Models\User;
 use App\Models\Website;
+use App\Support\TurkishSuffix;
 use DomainException;
 
 /**
@@ -70,6 +72,32 @@ class SiteBlockService
     public function __construct(private readonly ContentCache $cache, private readonly ServiceService $services) {}
 
     /**
+     * Tek lokasyon modu (faz 53): yayında + aktif tam bir şube varsa o şube; vitrin "lokasyonlarımız / bölge seçimi"
+     * yerine şubeyi öne çıkarır ve metinleri şehre göre okur. Birden çok ya da sıfır şubede null.
+     */
+    public function singleLocation(): ?Location
+    {
+        // İstek içi memo (ContentCache): composer + controller aynı isteğin tek sorgusunu paylaşır.
+        return $this->cache->memo('site.single_location', function (): ?Location {
+            $rows = Location::published()->limit(2)->get();
+
+            return $rows->count() === 1 ? $rows->first() : null;
+        });
+    }
+
+    /**
+     * Metindeki şehir yer tutucularını doldurur ({city}, {city_da}); şehir yoksa yer tutucu ve fazla boşluk temizlenir.
+     */
+    public static function withCity(string $text, ?string $city): string
+    {
+        $city = trim((string) $city);
+        $out = strtr($text, ['{city_da}' => $city === '' ? '' : TurkishSuffix::locative($city), '{city}' => $city]);
+        $out = trim((string) preg_replace('/\s{2,}/u', ' ', $out));
+
+        return $out === '' ? '' : mb_strtoupper(mb_substr($out, 0, 1, 'UTF-8'), 'UTF-8').mb_substr($out, 1, null, 'UTF-8');
+    }
+
+    /**
      * Ana sayfa metinleri: kayıt (texts bloğu) config varsayılanının üstüne.
      *
      * @return array<string, string>
@@ -77,6 +105,15 @@ class SiteBlockService
     public function texts(?Website $website): array
     {
         $defaults = array_map('strval', (array) config('ofisvio.texts'));
+        $single = $this->singleLocation();
+
+        // Tek lokasyon: kod varsayılanları şehir bağlamlı okunur; panelde kaydedilen metin yine önceliklidir.
+        if ($single !== null) {
+            foreach (array_map('strval', (array) config('ofisvio.texts_single')) as $key => $text) {
+                $defaults[$key] = self::withCity($text, $single->city);
+            }
+        }
+
         $stored = $website === null ? [] : (array) ($this->all($website)['texts'] ?? []);
 
         return array_merge($defaults, array_intersect_key(array_map('strval', $stored), self::TEXT_KEYS));

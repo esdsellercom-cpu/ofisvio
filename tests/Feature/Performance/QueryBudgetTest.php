@@ -42,13 +42,13 @@ class QueryBudgetTest extends TestCase
      * başına yetki+tenant memo'su ve toplu KYC özeti ile). Pay ~%20.
      */
     private const BUDGET = [
-        'vitrin' => 12, // booking engine: odalar + lokasyonları (2), onay politikası ayarı (1), hizmetler (1, önbellekli) + lokasyon→hizmet ilişkisi (1) — sahte kart yerine canlı veri
+        'vitrin' => 13, // booking engine: odalar + lokasyonları (2), onay politikası ayarı (1), hizmetler (1, önbellekli) + lokasyon→hizmet ilişkisi (1) — sahte kart yerine canlı veri; +1 tek lokasyon tespiti (faz 53, istek başına bir kez)
         'panel.dashboard' => 15, // +1 bildirim zili (okunmamış sayısı, istek başına bir kez)
         'panel.companies' => 14,
         'panel.kyc' => 18,
         'panel.content' => 9, // +1 bildirim zili
         'panel.calendar' => 13, // +1 bildirim zili
-        'site.post' => 9, // +1 sayfa kurucu: üst menü yayınlanmış bölümlerden (revizyon okuma, önbellekli)
+        'site.post' => 10, // +1 sayfa kurucu: üst menü yayınlanmış bölümlerden (revizyon okuma, önbellekli); +1 tek lokasyon tespiti (faz 53)
     ];
 
     protected function setUp(): void

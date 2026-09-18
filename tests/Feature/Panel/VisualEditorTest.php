@@ -197,7 +197,7 @@ class VisualEditorTest extends TestCase
         $save([['id' => null, 'type' => 'image', 'settings' => ['link' => 'javascript:alert(1)']]])->assertSessionHasErrors('builder');
         $save([['id' => null, 'type' => 'rich_text', 'anchor' => 'Kötü Çapa', 'settings' => []]])->assertSessionHasErrors('builder');
         $this->actingAs($ops)->from('/panel/icerik/tasarim')->put("/panel/icerik/tasarim/{$this->site->id}/taslak", ['payload' => '{bozuk'])->assertSessionHasErrors('builder');
-        $this->assertSame(10, SiteSection::count(), 'Hatalı gönderim hiçbir şey yazmaz.');
+        $this->assertSame(11, SiteSection::count(), 'Hatalı gönderim hiçbir şey yazmaz.');
 
         // Yalnız content.edit; finans erişemez.
         $this->actingAs($this->staff('finance_admin'))->put("/panel/icerik/tasarim/{$this->site->id}/taslak", ['payload' => '{}'])->assertForbidden();

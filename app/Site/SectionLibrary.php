@@ -30,6 +30,18 @@ final class SectionLibrary
         'none' => 'Bağlantı yok',
     ];
 
+    /**
+     * Franchise bölümü varsayılanı (faz 53): ticari rakam yok, yalnız davet metni + başvuru sayfası CTA'sı.
+     * Ayarsız (eski yayın/varsayılan yerleşim) bölüm de bunu basar.
+     */
+    public const FRANCHISE_DEFAULTS = [
+        'eyebrow' => 'Franchise / İş ortaklığı',
+        'title' => 'Markamızı birlikte büyütmek ister misiniz?',
+        'lede' => 'Kendi şehrinizde sanal ofis, hazır ofis ve coworking merkezi açmak isteyen girişimcilerle iş ortaklığı kuruyoruz. Başvurunuzu bırakın; ekibimiz planınızı sizinle birlikte değerlendirsin.',
+        'points' => ['Kanıtlanmış operasyon modeli ve panel altyapısı', 'Marka, pazarlama ve satış desteği', 'Kuruluştan açılışa birlikte planlama'],
+        'cta' => ['action' => 'page', 'target' => 'franchise', 'label' => 'Franchise Başvurusu'],
+    ];
+
     /** Palet grupları (editör sol paneli). */
     public const GROUPS = ['temel' => 'Temel', 'icerik' => 'İçerik', 'yerlesim' => 'Yerleşim', 'veri' => 'Gerçek veri'];
 
@@ -67,6 +79,7 @@ final class SectionLibrary
             'gallery' => ['label' => 'Galeri', 'description' => 'Medya kütüphanesinden görsel ızgarası.', 'source' => 'Medya kütüphanesi', 'group' => 'icerik', 'icon' => '▦', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'media' => ['label' => 'Görseller', 'type' => 'media_list'], 'ratio' => ['label' => 'Oran', 'type' => 'select', 'options' => ['4/3' => '4:3', '1/1' => '1:1', '16/9' => '16:9', '3/4' => '3:4']]]],
             'map' => ['label' => 'Harita', 'description' => 'Google Haritalar gömme (yalnız izinli kaynak).', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '⌖', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'embed' => ['label' => 'Gömme adresi (https://www.google.com/maps/embed?…)', 'type' => 'text'], 'address' => ['label' => 'Adres metni', 'type' => 'text']]],
             'faq' => ['label' => 'Sık sorulanlar', 'description' => 'Soru–cevap listesi (schema.org FAQPage).', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '?', 'fields' => ['title' => ['label' => 'Başlık', 'type' => 'text'], 'items' => ['label' => 'Sorular (her satır: Soru | Cevap)', 'type' => 'lines']]],
+            'franchise' => ['label' => 'Franchise / İş ortaklığı', 'description' => 'Markayı birlikte büyütme daveti + başvuru CTA\'sı (/franchise).', 'source' => 'Bölüm ayarı (statik) + franchise başvuru sayfası', 'group' => 'icerik', 'icon' => '⬡', 'unique' => true, 'fields' => ['eyebrow' => ['label' => 'Üst etiket', 'type' => 'text'], 'title' => ['label' => 'Başlık', 'type' => 'text'], 'lede' => ['label' => 'Açıklama', 'type' => 'textarea'], 'points' => ['label' => 'Öne çıkanlar (her satır bir madde)', 'type' => 'lines'], 'cta' => $cta]],
             'cta_banner' => ['label' => 'CTA şeridi', 'description' => 'Tek mesaj + düğme.', 'source' => 'Bölüm ayarı (statik)', 'group' => 'icerik', 'icon' => '➤', 'fields' => ['title' => ['label' => 'Mesaj', 'type' => 'text'], 'lede' => ['label' => 'Alt metin', 'type' => 'text'], 'cta' => $cta, 'style' => ['label' => 'Görünüm', 'type' => 'select', 'options' => ['dark' => 'Koyu şerit', 'light' => 'Açık kart']]]],
         ];
     }
@@ -106,6 +119,7 @@ final class SectionLibrary
             'testimonials' => ['title' => 'Referanslar', 'items' => ['Ad Soyad | Şirket | Görüş metni']],
             'faq' => ['title' => 'Sık sorulanlar', 'items' => ['Soru? | Cevap']],
             'cta_banner' => ['title' => 'Mesaj', 'cta' => ['action' => 'lead_form', 'target' => '', 'label' => 'Teklif al'], 'style' => 'dark'],
+            'franchise' => self::FRANCHISE_DEFAULTS,
             'image' => ['fit' => 'cover', 'ratio' => 'auto', 'width' => '100'],
             'gallery' => ['ratio' => '4/3'],
             'map' => ['title' => 'Harita'],
@@ -130,6 +144,7 @@ final class SectionLibrary
             ['type' => 'amenities', 'anchor' => 'dahil'],
             ['type' => 'pricing', 'anchor' => 'uyelik'],
             ['type' => 'blog', 'anchor' => 'yazilar'],
+            ['type' => 'franchise', 'anchor' => 'franchise'],
             ['type' => 'lead_form', 'anchor' => 'teklif'],
         ];
     }

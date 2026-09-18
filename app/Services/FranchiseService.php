@@ -8,6 +8,7 @@ use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
 /**
  * Franchise yönetimi (faz 39e, artifact §14): vitrin başvurusu (KVKK rızası + IP) →
@@ -18,13 +19,20 @@ class FranchiseService
     public function __construct(private readonly AuditService $audit, private readonly NotificationService $notifications) {}
 
     /**
-     * @param  array{name: string, email: string, phone?: string|null, city: string, district?: string|null, budget?: string|null, experience?: string|null, message?: string|null}  $data
+     * @param  array{name?: string|null, first_name?: string|null, last_name?: string|null, company?: string|null, email: string, phone?: string|null, city: string, district?: string|null, budget?: string|null, experience?: string|null, message?: string|null}  $data
      * @param  array{ip?: string|null}  $consent
      */
     public function apply(array $data, array $consent): FranchiseApplication
     {
+        $first = trim((string) ($data['first_name'] ?? ''));
+        $last = trim((string) ($data['last_name'] ?? ''));
+        $name = trim((string) ($data['name'] ?? '')) ?: trim($first.' '.$last);
         $application = new FranchiseApplication([
-            'name' => trim($data['name']),
+            'number' => $this->nextNumber(),
+            'name' => $name,
+            'first_name' => $this->blank($first) ?? $this->blank(Str::beforeLast($name, ' ')),
+            'last_name' => $this->blank($last) ?? $this->blank(Str::afterLast($name, ' ')),
+            'company' => $this->blank($data['company'] ?? null),
             'email' => mb_strtolower(trim($data['email'])),
             'phone' => $this->blank($data['phone'] ?? null),
             'city' => trim($data['city']),
@@ -37,7 +45,9 @@ class FranchiseService
             'consent_ip' => $consent['ip'] ?? null,
         ]);
         $application->save();
+        $this->audit->record(null, 'franchise.applied', 'franchise_application', $application->id, [], ['number' => $application->number, 'city' => $application->city]);
         $this->notifications->dispatch('franchise.applied', [
+            'number' => $application->number,
             'name' => $application->name,
             'email' => $application->email,
             'phone' => $application->phone,
@@ -101,6 +111,19 @@ class FranchiseService
         $this->audit->record($actor, 'franchise.updated', 'franchise_application', $application->id, $before, $application->toArray());
 
         return $application;
+    }
+
+    /** Başvuru numarası FR-YYYY-000001 (yıl bazlı sıra; tekillik DB'de). */
+    private function nextNumber(): string
+    {
+        $year = Carbon::now()->format('Y');
+        $last = (int) FranchiseApplication::query()->where('number', 'like', "FR-{$year}-%")->lockForUpdate()->count();
+
+        do {
+            $candidate = sprintf('FR-%s-%06d', $year, ++$last);
+        } while (FranchiseApplication::query()->where('number', $candidate)->exists());
+
+        return $candidate;
     }
 
     private function blank(mixed $value): ?string

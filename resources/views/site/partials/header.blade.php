@@ -36,7 +36,13 @@
                 <a href="{{ $link['href'] }}" class="chip">{{ $link['label'] }}</a>
             @endforeach
         </div>
-        @isset($regions)
+        @if ($singleLocation ?? null)
+            <div class="wrap" style="padding-block:8px 30px">
+                <div class="label" style="color:var(--brand);padding-bottom:12px;border-bottom:1px solid var(--line);margin-bottom:12px">{{ $singleLocation->city }}</div>
+                <a href="{{ route('site.location', $singleLocation->slug) }}" style="font-size:14.5px">{{ $singleLocation->name }}</a>
+                @if ($singleLocation->address_line)<div class="small muted" style="margin-top:4px">{{ $singleLocation->address_line }}</div>@endif
+            </div>
+        @elseif (isset($regions))
             <div class="wrap grid-auto" style="--min:190px;--gap:24px 32px;padding-block:8px 30px">
                 @foreach ($regions as $regionName => $items)
                     <div>
@@ -49,6 +55,6 @@
                     </div>
                 @endforeach
             </div>
-        @endisset
+        @endif
     </div>
 </header>

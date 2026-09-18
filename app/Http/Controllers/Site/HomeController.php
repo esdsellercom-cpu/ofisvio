@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\Location;
+use App\Models\Room;
+use App\Models\Service;
 use App\Services\BookingService;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
@@ -72,7 +74,9 @@ class HomeController extends Controller
             ]);
         }
 
-        $locations = Location::published()->with(['cover', 'services'])->get();
+        // Tek lokasyon modu (faz 53): bölge seçimi/boş kartlar yerine şube öne çıkar; metinler şehre göre. Tek şubede liste = o şube.
+        $single = $this->blocks->singleLocation();
+        $locations = $single !== null ? new Collection([$single->load(['cover', 'services'])]) : Location::published()->with(['cover', 'services'])->get();
         $site = $this->website->get();
         $sections = match (true) {
             $preset !== null => $this->builder->presetForPreview($site, $preset),
@@ -96,16 +100,22 @@ class HomeController extends Controller
             }
         }
 
+        $rooms = $this->bookings->bookableRooms(true);
+        $services = $this->services->active($this->website->get())->load('cover');
+
         return view('site.home', [
             'locations' => $locations,
             'regions' => $locations->groupBy('region'),
-            'stats' => $this->stats($locations, $this->blocks->texts($this->website->get())),
+            'singleLocation' => $single,
+            'stats' => $single !== null
+                ? $this->singleStats($single, $services, $rooms, $this->blocks->texts($site))
+                : $this->stats($locations, $this->blocks->texts($site)),
             'journey' => ActivationJourney::steps(),
             'bookingDays' => $this->bookingDays(),
             // Rezervasyona açık gerçek odalar + onay politikasından türeyen rozet (booking engine v2).
-            'bookableRooms' => $this->bookings->bookableRooms(true),
+            'bookableRooms' => $rooms,
             // Çözüm kartları: Hizmetler modülü (faz 4).
-            'services' => $this->services->active($this->website->get())->load('cover'),
+            'services' => $services,
             'bookingBadge' => $this->bookings->confirmationBadge(),
             // CMS: yayındaki son yazılar; yoksa bölüm gizlenir (uydurma metin yok).
             'homePosts' => $this->contents->livePosts($this->website->get(), 6),
@@ -157,6 +167,27 @@ class HomeController extends Controller
         }
 
         return $days;
+    }
+
+    /**
+     * Tek lokasyon modu: lokasyon/şehir/bölge sayımı anlamsızdır; şubenin gerçek verisi (hizmet, oda) sayılır.
+     *
+     * @param  Collection<int, Service>  $services
+     * @param  Collection<int, Room>  $rooms
+     * @param  array<string, string>  $texts
+     * @return list<array{value: string, label: string}>
+     */
+    private function singleStats(Location $location, Collection $services, Collection $rooms, array $texts): array
+    {
+        $offered = $location->services->where('is_active', true)->count() ?: $services->count();
+        $roomCount = $rooms->where('location_id', $location->id)->count();
+
+        return [
+            ['value' => $offered > 0 ? (string) $offered : '', 'label' => 'Çözüm'],
+            ['value' => $roomCount > 0 ? (string) $roomCount : '', 'label' => 'Toplantı odası'],
+            ['value' => count((array) $location->opening_hours) > 0 ? 'Açık' : '', 'label' => $location->city.' · '.($location->district ?: 'merkez')],
+            ['value' => (string) ($texts['stats_review_time'] ?? ''), 'label' => 'Belge inceleme süresi'],
+        ];
     }
 
     /**

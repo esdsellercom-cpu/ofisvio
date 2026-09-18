@@ -8,7 +8,7 @@
 @endif
 <div class="topbar"{!! ofv_editor() ? ' data-ofv-global-area="topbar"' : '' !!}>
     <div class="wrap" style="display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;padding-block:9px">
-        <span>@isset($locations){{ $locations->count() }} lokasyon · @endisset<span{!! ofv_global('texts.topbar') !!}>{{ $texts['topbar'] }}</span></span>
+        <span>@if (isset($locations) && ! ($singleLocation ?? null)){{ $locations->count() }} lokasyon · @endif<span{!! ofv_global('texts.topbar') !!}>{{ $texts['topbar'] }}</span></span>
         <span class="mono" style="display:flex;gap:18px;align-items:center;font-size:12px">
             @if ($brand['phone'])<a href="{{ $brand['phone_href'] }}">{{ $brand['phone'] }}</a>
             <span style="opacity:.45">|</span>@endif

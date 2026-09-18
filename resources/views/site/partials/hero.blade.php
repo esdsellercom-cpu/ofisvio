@@ -14,6 +14,16 @@
 
         <div class="panel" style="margin-top:38px;border-radius:var(--r-lg);padding:20px">
             <div class="grid-auto" style="--min:150px;--gap:14px">
+                @if ($singleLocation)
+                    {{-- Tek lokasyon (faz 53): şehir seçimi yok; şube bilgisi veritabanından. --}}
+                    <div class="field">
+                        <span class="label">Lokasyon</span>
+                        <a href="{{ route('site.location', $singleLocation->slug) }}" class="control" style="display:flex;align-items:center;gap:8px;text-decoration:none" data-single-location>
+                            <span style="width:8px;height:8px;border-radius:99px;background:var(--brand);flex:none"></span>
+                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $singleLocation->city }}{{ $singleLocation->district ? ' · '.$singleLocation->district : '' }}</span>
+                        </a>
+                    </div>
+                @else
                 <label class="field">
                     <span class="label">Şehir / Bölge</span>
                     <select class="control" data-filter-region>
@@ -23,6 +33,7 @@
                         @endforeach
                     </select>
                 </label>
+                @endif
                 <label class="field">
                     <span class="label">Çözüm</span>
                     <select class="control" data-filter-type>
@@ -43,8 +54,8 @@
                 </label>
                 <a href="#lokasyonlar" class="btn btn--ink" style="margin-top:22px" data-filter-apply>{{ $texts['cta_hero'] }}</a>
             </div>
-            <p class="mono" style="margin:14px 0 0;font-size:13px;color:var(--ink-faint)" data-match-line>
-                {{ $locations->count() }} lokasyon · tüm bölgeler
+            <p class="mono" style="margin:14px 0 0;font-size:13px;color:var(--ink-faint)"@if (! $singleLocation) data-match-line @endif>
+                @if ($singleLocation){{ $singleLocation->name }}{{ $singleLocation->address_line ? ' · '.$singleLocation->address_line : '' }}@else{{ $locations->count() }} lokasyon · tüm bölgeler @endif
             </p>
         </div>
     </div>
@@ -52,9 +63,14 @@
     <div style="min-width:0">
         @if ($currentWebsite?->hero)
             <img src="{{ $currentWebsite->hero->url() }}" alt="{{ $currentWebsite->hero->alt ?? '' }}" style="width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block"{!! ofv_editor() ? ' data-ofv-site-image="hero"' : '' !!}>
+        @elseif ($singleLocation?->cover)
+            {{-- Tek lokasyon: site görseli yoksa şubenin kapağı hero görselidir. --}}
+            @include('site.partials.picture', ['media' => $singleLocation->cover, 'sizes' => '(max-width: 640px) 100vw, 560px', 'eager' => true, 'style' => 'width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block'])
         @else
-            <div class="shot" style="aspect-ratio:4/5;border-radius:20px;border:1px solid var(--line);align-items:flex-end;padding:22px">
-                <span class="shot__note"{!! ofv_editor() ? ' data-ofv-site-image="hero"' : '' !!}>lokasyon ana görseli · 1200×1500</span>
+            {{-- Medya yoksa marka illüstrasyonu (faz 53); editörde tıklanınca site görseli yüklenir. --}}
+            <div style="position:relative">
+                @include('site.partials.illustration', ['key' => 'hero', 'eager' => true, 'alt' => \App\Site\Illustrations::alt('hero', $singleLocation->city ?? null), 'style' => 'width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px;border:1px solid var(--line);display:block'])
+                @if (ofv_editor())<span class="shot__note" style="position:absolute;left:22px;bottom:22px" data-ofv-site-image="hero">site görseli yükle · 1200×1500</span>@endif
             </div>
         @endif
     </div>

@@ -46,16 +46,45 @@ class ContentCache
      */
     private ?array $versions = null;
 
+    /**
+     * İstek içi hesap memo'su (faz 53): sürücüye yazılmayan, yalnız istek boyunca yaşayan değerler (ör. tek lokasyon
+     * tespiti). İstek önbelleği kapalıyken (konsol) her çağrı yeniden hesaplar.
+     *
+     * @var array<string, mixed>
+     */
+    private array $memo = [];
+
     public function __construct(private readonly Repository $cache) {}
 
     public function startRequestCache(): void
     {
         $this->versions = [];
+        $this->memo = [];
     }
 
     public function stopRequestCache(): void
     {
         $this->versions = null;
+        $this->memo = [];
+    }
+
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $compute
+     * @return T
+     */
+    public function memo(string $key, Closure $compute): mixed
+    {
+        if ($this->versions === null) {
+            return $compute();
+        }
+
+        if (! array_key_exists($key, $this->memo)) {
+            $this->memo[$key] = $compute();
+        }
+
+        return $this->memo[$key];
     }
 
     /**

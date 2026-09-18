@@ -17,7 +17,7 @@
     <div class="stack" style="gap:18px">
         <div class="kpis">
             @foreach ($statuses as $k => $label)
-                <a href="{{ route('panel.franchise.index', ['status' => $k]) }}" class="kpi {{ $k === 'new' && $counts[$k] > 0 ? 'watch' : ($k === 'approved' ? 'ok' : '') }}"><span class="k">{{ $label }}</span><span class="v">{{ $counts[$k] }}</span><span class="d">Başvuru</span></a>
+                <a href="{{ route('panel.franchise.index', ['status' => $k]) }}" class="kpi {{ $k === 'new' && $counts[$k] > 0 ? 'watch' : ($k === 'positive' ? 'ok' : '') }}"><span class="k">{{ $label }}</span><span class="v">{{ $counts[$k] }}</span><span class="d">Başvuru</span></a>
             @endforeach
         </div>
 
@@ -38,16 +38,19 @@
             @else
                 <div class="tw">
                     <table class="t">
-                        <thead><tr><th>Başvuran</th><th>Şehir</th><th>Bütçe</th><th>Sorumlu</th><th>Durum</th><th>Tarih</th><th></th></tr></thead>
+                        <thead><tr><th>Başvuru no</th><th>Ad Soyad</th><th>Firma</th><th>Telefon</th><th>E-posta</th><th>Şehir</th><th>Bütçe</th><th>Tarih</th><th>Durum</th><th></th></tr></thead>
                         <tbody>
                             @foreach ($rows as $a)
                                 <tr>
-                                    <td><b>{{ $a->name }}</b><br><span class="mini">{{ $a->email }}{{ $a->phone ? ' · '.$a->phone : '' }}</span></td>
+                                    <td class="mono small">{{ $a->number ?? '#'.$a->id }}</td>
+                                    <td><b>{{ $a->name }}</b>@if ($a->assignee)<br><span class="mini">Sorumlu: {{ $a->assignee->name }}</span>@endif</td>
+                                    <td class="small">{{ $a->company ?? '—' }}</td>
+                                    <td class="small mono">{{ $a->phone ?? '—' }}</td>
+                                    <td class="small">{{ $a->email }}</td>
                                     <td>{{ $a->city }}{{ $a->district ? ' / '.$a->district : '' }}</td>
-                                    <td class="small">{{ $a->budget ?? '—' }}</td>
-                                    <td class="small">{{ $a->assignee?->name ?? '—' }}</td>
-                                    <td><span class="pill {{ ['new' => 'a', 'reviewing' => 'i', 'approved' => 'g', 'rejected' => 'n'][$a->status] }}">{{ $a->statusLabel() }}</span></td>
+                                    <td class="small">{{ $a->budgetLabel() }}</td>
                                     <td class="mono small">{{ $a->created_at->format('d.m.Y') }}</td>
+                                    <td><span class="pill {{ \App\Models\FranchiseApplication::STATUS_TONE[$a->status] ?? 'n' }}">{{ $a->statusLabel() }}</span></td>
                                     <td class="num"><a href="{{ route('panel.franchise.show', $a) }}" class="btn btn--quiet">Aç</a></td>
                                 </tr>
                             @endforeach
