@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Services\CurrentWebsite;
+use App\Services\EntityGraphService;
 use App\Services\GeoService;
+use App\Services\LandingPageService;
 use App\Services\LocationMediaService;
 use Illuminate\Contracts\View\View;
 
@@ -18,6 +20,8 @@ class LocationController extends Controller
         private readonly GeoService $geo,
         private readonly CurrentWebsite $website,
         private readonly LocationMediaService $media,
+        private readonly LandingPageService $landing,
+        private readonly EntityGraphService $entities,
     ) {}
 
     public function index(): View
@@ -35,6 +39,14 @@ class LocationController extends Controller
 
         abort_if($location === null, 404);
 
-        return view('site.location', ['location' => $location->load(['cover', 'services']), 'gallery' => $this->media->gallery($location)]);
+        $website = $this->website->get();
+
+        return view('site.location', [
+            'location' => $location->load(['cover', 'services']),
+            'gallery' => $this->media->gallery($location),
+            // Knowledge Graph (faz 60b): bu şubeye bağlı hizmet × şehir sayfaları ve yazılar.
+            'cityPages' => $website === null ? collect() : $this->landing->live($website, null, $location->id),
+            'articles' => $website === null ? collect() : $this->entities->contentsAbout($website, 'location', $location->id),
+        ]);
     }
 }

@@ -4,13 +4,16 @@ namespace App\Seo;
 
 use App\Integrations\SecretStore;
 use App\Models\Content;
+use App\Models\EntityRelation;
 use App\Models\SeoIssue;
+use App\Models\SeoLandingPage;
 use App\Models\User;
 use App\Models\Website;
 use App\Services\AuditService;
 use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\GeoService;
+use App\Services\LandingPageService;
 use App\Services\RedirectService;
 use App\Services\SeoService;
 use App\Services\SeoSettingsService;
@@ -80,6 +83,7 @@ class HealthCenter
         private readonly SecretStore $secrets,
         private readonly AuditService $audit,
         private readonly ContentCache $cache,
+        private readonly LandingPageService $landing,
     ) {}
 
     /**
@@ -452,6 +456,25 @@ class HealthCenter
 
                 if (trim((string) $service->summary) === '') {
                     $add('thin_content', 'service_summary:'.$service->id, 'medium', 'Hizmet özeti boş: '.$service->name, $service->path(), 'Meta açıklama ve Service şeması özetten beslenir.', 'Hizmet formuna 1–2 cümlelik özet yazın.');
+                }
+            }
+        }
+
+        // Programatik sayfalar (faz 60b): kalite kapısını geçemeyen taslaklar; Knowledge Graph boşlukları.
+        if ($website->is_default) {
+            foreach ($this->landing->all($website) as $landing) {
+                $quality = is_array($landing->quality) ? $landing->quality : null;
+
+                if ($quality !== null && ! ($quality['ok'] ?? false)) {
+                    $add($landing->status === SeoLandingPage::STATUS_PUBLISHED ? 'duplicate_content' : 'thin_content', 'landing:'.$landing->id, 'low', 'Programatik sayfa yayın kapısını geçmiyor: '.$landing->title, $landing->path(), implode(' · ', (array) ($quality['issues'] ?? [])), 'Benzersiz, şehre özgü giriş metni yazın; hizmet açıklamasını kopyalamayın.');
+                }
+            }
+
+            $linked = EntityRelation::query()->where('website_id', $website->id)->where('from_type', 'content')->pluck('from_id')->map(fn ($v) => (int) $v)->all();
+
+            foreach ($this->contents->livePosts($website, 1000) as $post) {
+                if (! in_array($post->id, $linked, true)) {
+                    $add('internal_links', 'unlinked:'.$post->id, 'low', 'Yazı hiçbir hizmet/lokasyona bağlı değil: '.$post->title, $post->path(), 'Knowledge Graph\'ta Article → Service/Location ilişkisi yok; hizmet sayfası bu yazıyı listelemiyor.', 'Entity ekranından yazıyı ilgili hizmet ve şubeye bağlayın.');
                 }
             }
         }

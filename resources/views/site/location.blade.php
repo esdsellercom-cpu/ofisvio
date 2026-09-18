@@ -89,6 +89,12 @@
             </aside>
         </div>
 
+        {{-- Knowledge Graph (faz 60b): bu şubeye bağlı hizmet × şehir sayfaları ve yazılar. --}}
+        @include('site.partials.entity-links', ['groups' => [
+            ['title' => $location->city.' hizmet sayfaları', 'items' => $cityPages ?? [], 'url' => fn ($p) => $p->path(), 'label' => fn ($p) => $p->service->name],
+            ['title' => 'İlgili yazılar', 'items' => $articles ?? [], 'url' => fn ($a) => $a->path(), 'label' => fn ($a) => $a->title],
+        ]])
+
         {{-- Galeri: kategori başına görseller (medya kütüphanesi); boşsa bölüm basılmaz. --}}
         @foreach ($gallery as $category => $items)
             <section style="margin-top:44px">

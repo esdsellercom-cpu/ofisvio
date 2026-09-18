@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Panel;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use App\Seo\GeoAnswers;
 use App\Services\ContentService;
+use App\Services\GeoService;
 use App\Services\MediaService;
 use App\Services\RedirectService;
 use App\Services\ServiceService;
@@ -26,6 +28,7 @@ class ServiceController extends Controller
         private readonly MediaService $media,
         private readonly ContentService $contents,
         private readonly RedirectService $redirects,
+        private readonly GeoService $geo,
     ) {}
 
     public function index(): View
@@ -35,7 +38,7 @@ class ServiceController extends Controller
 
     public function create(): View
     {
-        return view('panel.services.form', ['service' => null, 'kinds' => Service::BOOKING_KINDS, 'mediaOptions' => $this->media->all($this->contents->defaultWebsite())]);
+        return view('panel.services.form', ['service' => null, 'kinds' => Service::BOOKING_KINDS, 'mediaOptions' => $this->media->all($this->contents->defaultWebsite()), 'answerFields' => GeoAnswers::FIELDS, 'faqRows' => GeoAnswers::FAQ_ROWS, 'serviceOptions' => $this->services->all(), 'locationOptions' => $this->geo->allLocations()]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -51,7 +54,7 @@ class ServiceController extends Controller
 
     public function edit(Service $service): View
     {
-        return view('panel.services.form', ['service' => $service->load('locations'), 'kinds' => Service::BOOKING_KINDS, 'mediaOptions' => $this->media->all($this->contents->defaultWebsite())]);
+        return view('panel.services.form', ['service' => $service->load('locations'), 'kinds' => Service::BOOKING_KINDS, 'mediaOptions' => $this->media->all($this->contents->defaultWebsite()), 'answerFields' => GeoAnswers::FIELDS, 'faqRows' => GeoAnswers::FAQ_ROWS, 'serviceOptions' => $this->services->all()->where('id', '!=', $service->id), 'locationOptions' => $this->geo->allLocations()]);
     }
 
     public function update(Request $request, Service $service): RedirectResponse
@@ -103,6 +106,15 @@ class ServiceController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999'],
             'cover_media_id' => ['nullable', 'integer'],
+            // GEO Answer Engine (faz 60b): metin/liste alanları, SSS satırları, ilişkili varlıklar.
+            'answers' => ['nullable', 'array'],
+            'answers.what' => ['nullable', 'string', 'max:2000'], 'answers.who' => ['nullable', 'string', 'max:2000'], 'answers.how' => ['nullable', 'string', 'max:2000'],
+            'answers.where' => ['nullable', 'string', 'max:2000'], 'answers.pricing' => ['nullable', 'string', 'max:2000'],
+            'answers.requirements' => ['nullable', 'string', 'max:4000'], 'answers.documents' => ['nullable', 'string', 'max:4000'], 'answers.process' => ['nullable', 'string', 'max:4000'],
+            'answers.advantages' => ['nullable', 'string', 'max:4000'], 'answers.limitations' => ['nullable', 'string', 'max:4000'],
+            'answers.faq' => ['nullable', 'array', 'max:'.GeoAnswers::FAQ_ROWS], 'answers.faq.*.q' => ['nullable', 'string', 'max:200'], 'answers.faq.*.a' => ['nullable', 'string', 'max:1000'],
+            'answers.related_services' => ['nullable', 'array'], 'answers.related_services.*' => ['integer'],
+            'answers.related_locations' => ['nullable', 'array'], 'answers.related_locations.*' => ['integer'],
         ]);
 
         if (! empty($v['cover_media_id']) && ! $this->media->belongsTo($this->contents->defaultWebsite(), (int) $v['cover_media_id'])) {

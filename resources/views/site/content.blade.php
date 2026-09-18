@@ -66,6 +66,16 @@
         @endif
     </article>
 
+    {{-- Knowledge Graph (faz 60b): Article → Service / Location ilişkileri (Entity ekranından). --}}
+    @if (isset($entities) && ($entities['services']->isNotEmpty() || $entities['locations']->isNotEmpty()))
+        <section class="wrap section" style="padding-top:0;max-width:760px">
+            @include('site.partials.entity-links', ['groups' => [
+                ['title' => 'Bu yazının konusu olan hizmetler', 'items' => $entities['services'], 'url' => fn ($s) => $s->path(), 'label' => fn ($s) => $s->name],
+                ['title' => 'İlgili lokasyonlar', 'items' => $entities['locations'], 'url' => fn ($l) => $l->path(), 'label' => fn ($l) => $l->name],
+            ]])
+        </section>
+    @endif
+
     {{-- İlgili yazılar (faz 23 iç bağlantı): önce aynı kategori, sonra en yeni. --}}
     @if ($isPost && ($showRelated ?? true) && isset($related) && $related->isNotEmpty())
         <section class="wrap section" style="padding-top:0;max-width:760px" aria-labelledby="related-heading">

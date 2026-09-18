@@ -17,9 +17,9 @@ class Service extends Model
 {
     public const BOOKING_KINDS = ['meeting' => 'Toplantı odası', 'event' => 'Etkinlik alanı', 'focus' => 'Odaklanma odası'];
 
-    protected $fillable = ['name', 'slug', 'summary', 'description', 'price_text', 'booking_kind', 'is_flagship', 'is_active', 'sort_order', 'cover_media_id', 'updated_by'];
+    protected $fillable = ['name', 'slug', 'summary', 'description', 'answers', 'price_text', 'booking_kind', 'is_flagship', 'is_active', 'sort_order', 'cover_media_id', 'updated_by'];
 
-    protected $casts = ['is_flagship' => 'boolean', 'is_active' => 'boolean', 'sort_order' => 'integer'];
+    protected $casts = ['is_flagship' => 'boolean', 'is_active' => 'boolean', 'sort_order' => 'integer', 'answers' => 'array'];
 
     /**
      * @param  Builder<Service>  $query
@@ -45,6 +45,25 @@ class Service extends Model
     public function path(): string
     {
         return '/cozum/'.$this->slug; // /hizmet* CMS sayfa slug'larıyla çakışmasın diye
+    }
+
+    /**
+     * Yapılandırılmış SSS (GEO Answer Engine, faz 60): answers.faq satırları.
+     *
+     * @return array<int, array{q: string, a: string}>
+     */
+    public function faqPairs(): array
+    {
+        $answers = is_array($this->answers ?? null) ? $this->answers : [];
+        $rows = [];
+
+        foreach ((array) ($answers['faq'] ?? []) as $row) {
+            if (is_array($row) && trim((string) ($row['q'] ?? '')) !== '' && trim((string) ($row['a'] ?? '')) !== '') {
+                $rows[] = ['q' => trim((string) $row['q']), 'a' => trim((string) $row['a'])];
+            }
+        }
+
+        return $rows;
     }
 
     public function renderedDescription(): string

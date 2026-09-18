@@ -7,6 +7,7 @@ use App\Models\Room;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Website;
+use App\Seo\GeoAnswers;
 use DomainException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -67,6 +68,30 @@ class ServiceService
     }
 
     /**
+     * GEO cevaplarındaki ilişkili hizmetler (yalnız aktif olanlar, sırayla).
+     *
+     * @return Collection<int, Service>
+     */
+    public function related(Service $service): Collection
+    {
+        $ids = array_map('intval', (array) ($service->answers['related_services'] ?? []));
+
+        return $ids === [] ? new Collection : Service::query()->active()->whereIn('id', $ids)->get();
+    }
+
+    /**
+     * GEO cevaplarındaki ilişkili lokasyonlar (yalnız yayındakiler).
+     *
+     * @return Collection<int, Location>
+     */
+    public function relatedLocations(Service $service): Collection
+    {
+        $ids = array_map('intval', (array) ($service->answers['related_locations'] ?? []));
+
+        return $ids === [] ? new Collection : Location::query()->published()->whereIn('id', $ids)->orderBy('name')->get();
+    }
+
+    /**
      * booking_kind dolu hizmet için rezervasyona açık odalar.
      *
      * @return Collection<int, Room>
@@ -87,7 +112,13 @@ class ServiceService
      */
     public function create(User $actor, array $data): Service
     {
-        $service = new Service($this->attributes($data));
+        $attributes = $this->attributes($data);
+
+        if ($attributes['answers'] === null) {
+            unset($attributes['answers']);
+        }
+
+        $service = new Service($attributes);
         $service->slug = $this->uniqueSlug($data['name']);
         $service->updated_by = $actor->id;
         $service->save();
@@ -101,7 +132,13 @@ class ServiceService
     public function update(User $actor, Service $service, array $data): Service
     {
         $before = $service->toArray();
-        $service->fill($this->attributes($data));
+        $attributes = $this->attributes($data + ['self_id' => $service->id]);
+
+        if ($attributes['answers'] === null) {
+            unset($attributes['answers']);
+        }
+
+        $service->fill($attributes);
         $service->updated_by = $actor->id;
         $service->save(); // slug değişmez (dış bağlantılar, sitemap)
         $this->audit->record($actor, 'service.updated', 'service', $service->id, $before, $service->toArray());
@@ -174,7 +211,29 @@ class ServiceService
             'is_active' => (bool) ($data['is_active'] ?? true),
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'cover_media_id' => ! empty($data['cover_media_id']) ? (int) $data['cover_media_id'] : null,
+            'answers' => $this->answers($data),
         ];
+    }
+
+    /**
+     * GEO cevapları (faz 60b): normalize edilir; ilişkili hizmet/lokasyon kimlikleri yalnız var olanlara indirgenir
+     * (hizmetin kendisi hariç). Form göndermediyse (eski istemci) mevcut değer korunur — null döner.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>|null
+     */
+    private function answers(array $data): ?array
+    {
+        if (! array_key_exists('answers', $data) || ! is_array($data['answers'])) {
+            return null;
+        }
+
+        $answers = GeoAnswers::normalize($data['answers']);
+        $self = isset($data['self_id']) ? (int) $data['self_id'] : 0;
+        $answers['related_services'] = Service::query()->whereIn('id', $answers['related_services'])->where('id', '!=', $self)->orderBy('sort_order')->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $answers['related_locations'] = Location::query()->whereIn('id', $answers['related_locations'])->orderBy('name')->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        return $answers;
     }
 
     private function uniqueSlug(string $name): string

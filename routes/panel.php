@@ -28,6 +28,7 @@ use App\Http\Controllers\Panel\ContentController;
 use App\Http\Controllers\Panel\ContentDraftController;
 use App\Http\Controllers\Panel\ContextController;
 use App\Http\Controllers\Panel\DashboardController;
+use App\Http\Controllers\Panel\EntityGraphController;
 use App\Http\Controllers\Panel\EventController;
 use App\Http\Controllers\Panel\FranchiseController;
 use App\Http\Controllers\Panel\GeoController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\Panel\InventoryController;
 use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LandingController;
+use App\Http\Controllers\Panel\LandingPageController;
 use App\Http\Controllers\Panel\LeadController;
 use App\Http\Controllers\Panel\LiveEditController;
 use App\Http\Controllers\Panel\LocationMediaController;
@@ -429,6 +431,27 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::post('/{website}/merkez/duzelt', [SeoCenterController::class, 'fix'])->middleware('permission:seo.edit')->name('center.fix');
             Route::post('/{website}/merkez/duzelt-kritik', [SeoCenterController::class, 'fixCritical'])->middleware('permission:seo.settings,,seo_settings,website')->name('center.fix-critical');
             Route::get('/sema', [SeoCenterController::class, 'schemaHome'])->middleware('permission:seo.view')->name('schema.home');
+
+            // Entity / Knowledge Graph + GEO Manager + Programatik SEO (faz 60b).
+            Route::get('/varliklar', [EntityGraphController::class, 'home'])->middleware('permission:seo.view')->name('entities.home');
+            Route::get('/{website}/varliklar', [EntityGraphController::class, 'graph'])->middleware('permission:seo.view')->name('entities');
+            Route::post('/{website}/varliklar/iliski', [EntityGraphController::class, 'relations'])->middleware('permission:seo.edit')->name('entities.relations');
+            Route::post('/{website}/varliklar/konu', [EntityGraphController::class, 'topic'])->middleware('permission:seo.edit')->name('entities.topic');
+            Route::delete('/{website}/varliklar/{relation}', [EntityGraphController::class, 'unlink'])->where('relation', '[0-9]+')->middleware('permission:seo.edit')->name('entities.unlink');
+            Route::get('/geo-yonetimi', [EntityGraphController::class, 'geoHome'])->middleware('permission:seo.view')->name('geo.home');
+            Route::get('/{website}/geo-yonetimi', [EntityGraphController::class, 'geo'])->middleware('permission:seo.view')->name('geo');
+            Route::get('/programatik', [LandingPageController::class, 'home'])->middleware('permission:seo.view')->name('landing.home');
+            Route::prefix('/{website}/programatik')->name('landing.')->where(['page' => '[0-9]+'])->group(function () {
+                Route::get('/', [LandingPageController::class, 'index'])->middleware('permission:seo.view')->name('index');
+                Route::get('/yeni', [LandingPageController::class, 'create'])->middleware('permission:seo.edit')->name('create');
+                Route::post('/', [LandingPageController::class, 'store'])->middleware('permission:seo.edit')->name('store');
+                Route::get('/{page}', [LandingPageController::class, 'edit'])->middleware('permission:seo.edit')->name('edit');
+                Route::put('/{page}', [LandingPageController::class, 'update'])->middleware('permission:seo.edit')->name('update');
+                Route::post('/{page}/yayinla', [LandingPageController::class, 'publish'])->middleware('permission:seo.publish')->name('publish');
+                Route::post('/{page}/kaldir', [LandingPageController::class, 'unpublish'])->middleware('permission:seo.publish')->name('unpublish');
+                Route::get('/{page}/sil', [LandingPageController::class, 'confirmDelete'])->middleware('permission:seo.publish')->name('delete');
+                Route::delete('/{page}', [LandingPageController::class, 'destroy'])->middleware('permission:seo.publish')->name('destroy');
+            });
             Route::get('/{website}/sema', [SeoCenterController::class, 'schema'])->middleware('permission:seo.view')->name('schema');
 
             // Akıllı URL / yönlendirme merkezi (faz 54): seo.view görür, seo.edit yazar, seo.audit botu çalıştırır.

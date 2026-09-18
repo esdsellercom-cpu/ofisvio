@@ -43,7 +43,7 @@ final class SeoSettingsRegistry
     ];
 
     /** Sitemap'e girebilen sayfa türleri. */
-    public const SITEMAP_TYPES = ['pages' => 'Sayfalar', 'posts' => 'Yazılar', 'categories' => 'Kategoriler', 'tags' => 'Etiketler', 'locations' => 'Lokasyonlar', 'services' => 'Hizmetler', 'events' => 'Etkinlikler'];
+    public const SITEMAP_TYPES = ['pages' => 'Sayfalar', 'posts' => 'Yazılar', 'categories' => 'Kategoriler', 'tags' => 'Etiketler', 'locations' => 'Lokasyonlar', 'services' => 'Hizmetler', 'events' => 'Etkinlikler', 'landing' => 'Hizmet × şehir sayfaları'];
 
     /** JSON-LD türleri: yalnız veri kaynağı olanlar (Product/HowTo/Review için kaynak yok — üretilmez). */
     public const SCHEMA_TYPES = ['Organization' => 'Organization', 'WebSite' => 'WebSite', 'WebPage' => 'WebPage', 'Article' => 'Article (yazılar)', 'BreadcrumbList' => 'BreadcrumbList', 'FAQPage' => 'FAQPage (## Soru? başlıkları + GEO SSS)', 'Service' => 'Service (hizmetler)', 'LocalBusiness' => 'LocalBusiness (lokasyonlar)', 'Event' => 'Event (etkinlikler)'];
@@ -59,7 +59,7 @@ final class SeoSettingsRegistry
         return [
             // --- Tarama & indeksleme ---
             'crawl.sitemap_enabled' => ['tab' => 'tarama', 'label' => 'sitemap.xml üret', 'type' => 'bool', 'default' => true, 'rules' => ['boolean'], 'description' => 'Kapalıysa /sitemap.xml 404 döner ve robots.txt Sitemap satırı taşımaz.'],
-            'crawl.sitemap_types' => ['tab' => 'tarama', 'label' => 'Sitemap\'e dahil sayfa türleri', 'type' => 'multi', 'default' => ['pages', 'posts', 'categories', 'tags', 'locations', 'services', 'events'], 'rules' => ['array'], 'options' => self::SITEMAP_TYPES, 'description' => 'Ana sayfa her zaman girer; işaretsiz tür listeden düşer.'],
+            'crawl.sitemap_types' => ['tab' => 'tarama', 'label' => 'Sitemap\'e dahil sayfa türleri', 'type' => 'multi', 'default' => ['pages', 'posts', 'categories', 'tags', 'locations', 'services', 'events', 'landing'], 'rules' => ['array'], 'options' => self::SITEMAP_TYPES, 'description' => 'Ana sayfa her zaman girer; işaretsiz tür listeden düşer.'],
             'crawl.sitemap_exclude' => ['tab' => 'tarama', 'label' => 'Sitemap\'ten çıkarılacak yollar', 'type' => 'lines', 'default' => [], 'rules' => ['string', 'max:2000'], 'description' => 'Satır başına bir yol: /eski-sayfa ya da /blog/kategori/* (sonek yıldızı ön ek eşler).', 'placeholder' => "/gizli-kampanya\n/blog/etiket/*"],
             'crawl.sitemap_custom' => ['tab' => 'tarama', 'label' => 'Özel sitemap.xml', 'type' => 'text', 'default' => '', 'rules' => ['string', 'max:200000'], 'description' => 'Doluysa otomatik sitemap yerine bu XML olduğu gibi servis edilir (<?xml ile başlamalı).'],
             'crawl.robots_mode' => ['tab' => 'tarama', 'label' => 'robots.txt kaynağı', 'type' => 'select', 'default' => 'auto', 'rules' => ['in:auto,custom'], 'options' => ['auto' => 'Otomatik (bayrak + ek satırlar + AI kuralları)', 'custom' => 'Özel metin (aşağıdaki alan olduğu gibi)'], 'description' => 'Özel metin seçilince ana indeksleme bayrağı kapalıysa yine "Disallow: /" basılır.'],

@@ -13,6 +13,9 @@
                 @endif
                 @if ($service->description)<div class="prose">{!! $service->renderedDescription() !!}</div>@endif
 
+                {{-- GEO Answer Engine (faz 60b): yapılandırılmış cevaplar + SSS (FAQPage şeması head'de). --}}
+                @include('site.partials.geo-answers', ['sections' => $sections, 'faq' => $faq])
+
                 {{-- Hizmet + lokasyon ilişkisi: bu hizmeti sunan yayındaki şubeler --}}
                 <h2 class="label" style="margin:36px 0 14px;color:var(--brand)">Bu hizmeti sunan lokasyonlar ({{ $locations->count() }})</h2>
                 @if ($locations->isEmpty())
@@ -27,6 +30,14 @@
                         @endforeach
                     </div>
                 @endif
+
+                {{-- Knowledge Graph (faz 60b): şehir sayfaları, ilgili hizmet/lokasyon/yazılar — yalnız var olan kayıtlar. --}}
+                @include('site.partials.entity-links', ['groups' => [
+                    ['title' => 'Şehirlere göre', 'items' => $cityPages, 'url' => fn ($p) => $p->path(), 'label' => fn ($p) => $p->location->city],
+                    ['title' => 'İlgili hizmetler', 'items' => $relatedServices, 'url' => fn ($s) => $s->path(), 'label' => fn ($s) => $s->name],
+                    ['title' => 'İlgili lokasyonlar', 'items' => $relatedLocations, 'url' => fn ($l) => $l->path(), 'label' => fn ($l) => $l->name],
+                    ['title' => 'İlgili yazılar', 'items' => $articles, 'url' => fn ($a) => $a->path(), 'label' => fn ($a) => $a->title],
+                ]])
 
                 {{-- Rezervasyona bağlı hizmet: gerçek odalar --}}
                 @if ($rooms->isNotEmpty())

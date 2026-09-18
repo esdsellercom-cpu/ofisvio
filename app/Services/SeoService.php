@@ -7,6 +7,7 @@ use App\Models\Content;
 use App\Models\Event;
 use App\Models\Location;
 use App\Models\Media;
+use App\Models\SeoLandingPage;
 use App\Models\Service;
 use App\Models\Website;
 use App\Seo\SeoSettingsRegistry;
@@ -41,6 +42,7 @@ class SeoService
         private readonly SeoSettingsService $settings,
         private readonly UrlHistoryService $urls,
         private readonly SiteBlockService $blocks,
+        private readonly LandingPageService $landing,
     ) {}
 
     /**
@@ -140,6 +142,60 @@ class SeoService
         }
 
         $head['json_ld'] = $this->finishJsonLd($website, ['@context' => 'https://schema.org', '@graph' => $graph], $service->path());
+
+        return $head;
+    }
+
+    /**
+     * Programatik sayfa head verisi (faz 60b): hizmet × şehir. Service (şubeye özgü areaServed) + LocalBusiness
+     * (şube künyesi) + BreadcrumbList + FAQPage; indekslenmeyecekse noindex. Canonical kendisi.
+     *
+     * @return array<string, mixed>
+     */
+    public function landingHead(Website $website, SeoLandingPage $page): array
+    {
+        $service = $page->service;
+        $location = $page->location;
+        $head = $this->head($website, null, $page->path(), $page->title, $page->meta_description ?: null, 'landing');
+        $base = $website->baseUrl();
+
+        if (! $page->is_indexable) {
+            $head['robots'] = 'noindex, follow';
+        }
+
+        $graph = [
+            [
+                '@type' => 'Service',
+                '@id' => $base.$page->path().'#service',
+                'name' => $page->title,
+                'url' => $base.$page->path(),
+                'serviceType' => $service->name,
+                'provider' => ['@id' => $base.'/#organization'],
+                'areaServed' => ['@type' => 'City', 'name' => $location->city],
+                'availableAtOrFrom' => ['@id' => $base.$location->path().'#localbusiness'],
+            ] + ($page->meta_description ? ['description' => $page->meta_description] : []),
+            $this->geo->localBusinessNode($website, $location->loadMissing('services')),
+            [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => $website->name, 'item' => $base.'/'],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => $service->name, 'item' => $base.$service->path()],
+                    ['@type' => 'ListItem', 'position' => 3, 'name' => $page->title, 'item' => $base.$page->path()],
+                ],
+            ],
+        ];
+
+        $faq = self::faqNodeFromPairs($page->faqPairs());
+
+        if ($faq !== null) {
+            $graph[] = $faq;
+        }
+
+        if ($location->cover_media_id !== null && $location->cover !== null) {
+            $head['og_image'] = $location->cover->absoluteUrlFor(1600);
+        }
+
+        $head['json_ld'] = $this->finishJsonLd($website, ['@context' => 'https://schema.org', '@graph' => $graph], $page->path());
 
         return $head;
     }
@@ -894,6 +950,15 @@ class SeoService
             if ($has('pages')) {
                 $entries[] = ['loc' => $base.'/franchise', 'lastmod' => null, 'changefreq' => 'monthly', 'priority' => '0.5'];
             }
+
+            // Programatik hizmet × şehir sayfaları (faz 60b): yalnız yayında ve indekslenebilir olanlar.
+            if ($has('landing')) {
+                foreach ($this->landing->live($website) as $landing) {
+                    if ($landing->is_indexable) {
+                        $entries[] = ['loc' => $base.$landing->path(), 'lastmod' => $landing->updated_at?->toAtomString(), 'changefreq' => 'monthly', 'priority' => '0.6'];
+                    }
+                }
+            }
         }
 
         $posts = $this->contents->livePosts($website, 1000);
@@ -1034,6 +1099,14 @@ class SeoService
         foreach ($this->services->active($website) as $service) {
             if ($open($service->path())) {
                 $serviceLines[] = '- ['.$service->name.']('.$base.$service->path().')'.($service->summary ? ': '.$service->summary : '');
+                // GEO cevapları (faz 60b): "Nedir?" ve "Kimler için?" alt satır olarak — AI motorları alıntı yapar.
+                $answers = is_array($service->answers) ? $service->answers : [];
+
+                foreach (['what' => 'Nedir', 'who' => 'Kimler için'] as $key => $label) {
+                    if (trim((string) ($answers[$key] ?? '')) !== '') {
+                        $serviceLines[] = '  - '.$label.': '.Str::limit(trim((string) $answers[$key]), 280, '…');
+                    }
+                }
             }
         }
 
@@ -1256,6 +1329,9 @@ class SeoService
             }
             foreach ($this->events->upcoming($website) as $event) {
                 $known[$event->path()] = true;
+            }
+            foreach ($this->landing->live($website) as $landing) {
+                $known[$landing->path()] = true;
             }
         }
 

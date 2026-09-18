@@ -7,6 +7,7 @@ use App\Models\Website;
 use App\Services\ContentService;
 use App\Services\EventService;
 use App\Services\GeoService;
+use App\Services\LandingPageService;
 use App\Services\SeoService;
 use App\Services\ServiceService;
 use Illuminate\Support\Str;
@@ -26,6 +27,7 @@ class SchemaInspector
         private readonly ServiceService $services,
         private readonly EventService $events,
         private readonly SchemaValidator $validator,
+        private readonly LandingPageService $landing,
     ) {}
 
     /**
@@ -57,6 +59,10 @@ class SchemaInspector
             }
 
             $pages[] = ['path' => '/franchise', 'label' => 'Franchise', 'kind' => 'static'];
+
+            foreach ($this->landing->live($website) as $landing) {
+                $pages[] = ['path' => $landing->path(), 'label' => $landing->title, 'kind' => 'landing'];
+            }
         }
 
         foreach ($this->contents->livePages($website) as $page) {
@@ -156,7 +162,13 @@ class SchemaInspector
         if (count($segments) === 2) {
             $page = $this->contents->findLivePage($website, $segments[1], $segments[0]);
 
-            return $page === null ? null : $this->seo->head($website, $page);
+            if ($page !== null) {
+                return $this->seo->head($website, $page);
+            }
+
+            $landing = $this->landing->findLive($website, $segments[0], $segments[1]);
+
+            return $landing === null ? null : $this->seo->landingHead($website, $landing);
         }
 
         return null;
