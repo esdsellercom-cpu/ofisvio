@@ -44,6 +44,8 @@ class PanelMenu
         $gate = $this->gate->forUser($user);
         $can = fn (string ...$perms) => $gate->any($perms);
         $kind = fn (string $k) => $this->routeIs('panel.content.index', 'panel.content.create', 'panel.content.show', 'panel.content.edit') && $this->request->query('kind') === $k;
+        // Gelişmiş SEO sekmesi etkin mi (menü ögeleri sekme gruplarına bölünür).
+        $seoTab = fn (string ...$tabs) => $this->routeIs('panel.seo.settings.show', 'panel.seo.settings.home') && in_array((string) ($this->request->route('sekme') ?? $this->request->query('sekme', 'tarama')), $tabs, true);
         $contentPerms = ['content.view', 'content.edit', 'content.review', 'content.approve', 'content.publish', 'content.schedule', 'content.archive'];
 
         // Lokasyon kapsamlı personel (resepsiyon): yalnız kendi şubesinin masası.
@@ -91,9 +93,26 @@ class PanelMenu
                 $can('content.edit') ? $this->item('Menü & tema', route('panel.content.menu'), $this->routeIs('panel.content.menu')) : null,
                 $can('content.edit', 'content.publish') ? $this->item('Medya kütüphanesi', route('panel.content.media.index'), $this->routeIs('panel.content.media.*')) : null,
                 $can('website.view', 'website.manage') ? $this->item('Websiteler', route('panel.websites.index'), $this->routeIs('panel.websites.*')) : null,
-                $can('seo.view') ? $this->item('SEO & GEO', route('panel.seo.index'), $this->routeIs('panel.seo.*') && ! $this->routeIs('panel.seo.redirects.*')) : null,
-                $can('seo.view') ? $this->item('Yönlendirmeler & 404', route('panel.seo.redirects.home'), $this->routeIs('panel.seo.redirects.*'), $badges['redirects_pending'] ?? 0, 'w') : null,
                 $can('settings.view', 'settings.manage') ? $this->item('Yerelleştirme', route('panel.settings.index', ['grup' => 'general']), $this->routeIs('panel.settings.*') && $this->request->query('grup') === 'general') : null,
+            ]],
+            // SEO & GEO Command Center (faz 60): tek menü altında sağlık merkezi, ayar sekmeleri ve araçlar.
+            ['SEO & GEO', [
+                $can('seo.view') ? $this->item('Command Center', route('panel.seo.center.home'), $this->routeIs('panel.seo.center*')) : null,
+                $can('seo.view') ? $this->item('SEO genel ayarlar', route('panel.seo.index'), $this->routeIs('panel.seo.index', 'panel.seo.audit')) : null,
+                $can('seo.view') ? $this->item('Teknik SEO', route('panel.seo.settings.home', ['sekme' => 'teknik']), $seoTab('teknik', 'guvenlik', 'gelistirici')) : null,
+                $can('seo.view') ? $this->item('Metadata', route('panel.seo.settings.home', ['sekme' => 'meta']), $seoTab('meta')) : null,
+                $can('seo.view') ? $this->item('URL & yönlendirmeler', route('panel.seo.redirects.home'), $this->routeIs('panel.seo.redirects.*'), $badges['redirects_pending'] ?? 0, 'w') : null,
+                $can('seo.view') ? $this->item('Sitemap & robots', route('panel.seo.settings.home', ['sekme' => 'tarama']), $seoTab('tarama')) : null,
+                $can('seo.view') ? $this->item('Canonical & hreflang', route('panel.seo.settings.home', ['sekme' => 'url']), $seoTab('url', 'dil')) : null,
+                $can('seo.view') ? $this->item('Schema Manager', route('panel.seo.schema.home'), $this->routeIs('panel.seo.schema*')) : null,
+                $can('seo.view') ? $this->item('Entity / Knowledge Graph', route('panel.seo.settings.home', ['sekme' => 'varlik']), $seoTab('varlik', 'yerel')) : null,
+                $can('seo.view') ? $this->item('GEO Manager', route('panel.seo.settings.home', ['sekme' => 'geo']), $seoTab('geo')) : null,
+                $can('seo.view') ? $this->item('İç bağlantı ayarları', route('panel.seo.settings.home', ['sekme' => 'baglanti']), $seoTab('baglanti')) : null,
+                $can('seo.view') ? $this->item('Doğrulama & bildirim', route('panel.seo.settings.home', ['sekme' => 'dogrulama']), $seoTab('dogrulama')) : null,
+            ]],
+            ['Performans', [
+                $can('performance.view') ? $this->item('Performans paneli', route('panel.performance.index'), $this->routeIs('panel.performance.*')) : null,
+                $can('cache.view') ? $this->item('Önbellek yöneticisi', route('panel.cache.index'), $this->routeIs('panel.cache.*')) : null,
             ]],
             ['Sistem', [
                 $can('notification.view', 'notification.manage') ? $this->item('Bildirimler & otomasyon', route('panel.notifications.index'), $this->routeIs('panel.notifications.index'), $badges['notifications_failed'] ?? 0, 'c') : null,
@@ -104,8 +123,6 @@ class PanelMenu
                 $can('settings.view', 'settings.manage') ? $this->item('Sistem sağlığı', route('panel.settings.health'), $this->routeIs('panel.settings.health')) : null,
                 $can('settings.view', 'settings.manage') ? $this->item('Site & sistem ayarları', route('panel.settings.index'), $this->routeIs('panel.settings.index', 'panel.settings.update') && $this->request->query('grup') !== 'general') : null,
                 $can('audit.view') ? $this->item('Denetim kaydı', route('panel.audit.index'), $this->routeIs('panel.audit.*')) : null,
-                $can('performance.view') ? $this->item('Performans', route('panel.performance.index'), $this->routeIs('panel.performance.*')) : null,
-                $can('cache.view') ? $this->item('Önbellek', route('panel.cache.index'), $this->routeIs('panel.cache.*')) : null,
             ]],
             ['Hesap', [
                 $this->item('Organizasyonlar', route('panel.context.select'), $this->routeIs('panel.context.*')),

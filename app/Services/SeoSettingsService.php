@@ -171,6 +171,37 @@ class SeoSettingsService
         return $website;
     }
 
+    /**
+     * Tekil ayar yazımı (faz 60, Command Center otomatik düzeltmeleri): yalnız registry'de tanımlı anahtar, değer
+     * tür kuralına göre dönüştürülür; audit + önbellek sürümü. Yetki (edit/critical+JIT) çağıran rotada.
+     *
+     * @param  array<string, mixed>  $values
+     */
+    public function set(User $actor, Website $website, array $values, string $reason): Website
+    {
+        $stored = is_array($website->seo_settings) ? $website->seo_settings : [];
+        $before = [];
+        $after = [];
+
+        foreach ($values as $key => $value) {
+            $def = SeoSettingsRegistry::definition($key);
+            $before[$key] = $stored[$key] ?? $def['default'];
+            $stored[$key] = match ($def['type']) {
+                'bool' => (bool) $value,
+                'int' => (int) $value,
+                'lines', 'multi', 'rows' => array_values((array) $value),
+                default => (string) $value,
+            };
+            $after[$key] = $stored[$key];
+        }
+
+        $website->forceFill(['seo_settings' => $stored])->save();
+        $this->cache->invalidate($website);
+        $this->audit->record($actor, 'seo.settings_updated', 'website', $website->id, ['values' => $before, 'reason' => $reason], ['values' => $after, 'reason' => $reason]);
+
+        return $website;
+    }
+
     /** Form alan adı: nokta form/validator için ayırıcıdır. */
     public static function field(string $key): string
     {

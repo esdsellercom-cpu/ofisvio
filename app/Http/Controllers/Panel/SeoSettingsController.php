@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Website;
 use App\Seo\SeoSettingsRegistry;
 use App\Services\AuthorizationService;
+use App\Services\ContentService;
 use App\Services\JitAccessService;
 use App\Services\SeoService;
 use App\Services\SeoSettingsService;
@@ -26,7 +27,16 @@ class SeoSettingsController extends Controller
         private readonly SeoService $seo,
         private readonly JitAccessService $jit,
         private readonly AuthorizationService $authorization,
+        private readonly ContentService $contents,
     ) {}
+
+    /** Menü girişi (faz 60): varsayılan sitenin istenen sekmesine. */
+    public function home(Request $request): RedirectResponse
+    {
+        $tab = (string) $request->query('sekme', 'tarama');
+
+        return redirect()->route('panel.seo.settings.show', [$this->contents->defaultWebsite(), SeoSettingsRegistry::tabExists($tab) ? $tab : 'tarama']);
+    }
 
     public function show(Request $request, Website $website, string $sekme = 'tarama'): View
     {

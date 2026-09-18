@@ -52,6 +52,7 @@ use App\Http\Controllers\Panel\RedirectController;
 use App\Http\Controllers\Panel\ReportController;
 use App\Http\Controllers\Panel\RoomController;
 use App\Http\Controllers\Panel\SearchController;
+use App\Http\Controllers\Panel\SeoCenterController;
 use App\Http\Controllers\Panel\SeoController;
 use App\Http\Controllers\Panel\SeoSettingsController;
 use App\Http\Controllers\Panel\ServiceController;
@@ -420,6 +421,16 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/', [SeoController::class, 'index'])->middleware('permission:seo.view')->name('index');
             Route::get('/{website}/denetim', [SeoController::class, 'audit'])->middleware('permission:seo.audit')->name('audit');
 
+            // SEO & GEO Command Center (faz 60): sağlık merkezi + Schema Manager. Otomatik düzeltme iki kapı:
+            // edit → seo.edit; critical (canonical/sitemap ayarı) → seo.settings + JIT. Her düzeltme onay kutusu ister.
+            Route::get('/merkez', [SeoCenterController::class, 'home'])->middleware('permission:seo.view')->name('center.home');
+            Route::get('/{website}/merkez', [SeoCenterController::class, 'center'])->middleware('permission:seo.view')->name('center');
+            Route::post('/{website}/merkez/karar', [SeoCenterController::class, 'decide'])->middleware('permission:seo.edit')->name('center.decide');
+            Route::post('/{website}/merkez/duzelt', [SeoCenterController::class, 'fix'])->middleware('permission:seo.edit')->name('center.fix');
+            Route::post('/{website}/merkez/duzelt-kritik', [SeoCenterController::class, 'fixCritical'])->middleware('permission:seo.settings,,seo_settings,website')->name('center.fix-critical');
+            Route::get('/sema', [SeoCenterController::class, 'schemaHome'])->middleware('permission:seo.view')->name('schema.home');
+            Route::get('/{website}/sema', [SeoCenterController::class, 'schema'])->middleware('permission:seo.view')->name('schema');
+
             // Akıllı URL / yönlendirme merkezi (faz 54): seo.view görür, seo.edit yazar, seo.audit botu çalıştırır.
             Route::get('/yonlendirmeler', [RedirectController::class, 'home'])->middleware('permission:seo.view')->name('redirects.home');
             Route::get('/{website}/yonlendirmeler/{sekme?}', [RedirectController::class, 'index'])->middleware('permission:seo.view')->name('redirects.index');
@@ -437,6 +448,7 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
                 ->middleware(['permission:seo.view', 'throttle:jit-request'])->name('jit');
 
             // Gelişmiş ayarlar (faz 44): sekmeli; yazma rotası sekme moduna göre ayrılır (controller modu doğrular).
+            Route::get('/gelismis', [SeoSettingsController::class, 'home'])->middleware('permission:seo.view')->name('settings.home');
             Route::get('/{website}/gelismis/{sekme?}', [SeoSettingsController::class, 'show'])->middleware('permission:seo.view')->name('settings.show');
             Route::put('/{website}/gelismis/duzenle/{sekme}', [SeoSettingsController::class, 'updateEdit'])->middleware('permission:seo.edit')->name('settings.edit');
             Route::put('/{website}/gelismis/kritik/{sekme}', [SeoSettingsController::class, 'updateCritical'])->middleware('permission:seo.settings,,seo_settings,website')->name('settings.critical');

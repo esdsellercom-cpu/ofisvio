@@ -4,8 +4,10 @@ namespace App\Services;
 
 use App\Enums\ContentKind;
 use App\Models\Content;
+use App\Models\Event;
 use App\Models\Location;
 use App\Models\Media;
+use App\Models\Service;
 use App\Models\Website;
 use App\Seo\SeoSettingsRegistry;
 use Illuminate\Support\Str;
@@ -71,6 +73,153 @@ class SeoService
         $head['json_ld'] = $this->finishJsonLd($website, $jsonLd, $location->path());
 
         return $head;
+    }
+
+    /**
+     * Hizmet sayfası head verisi (faz 60): başlık/açıklama hizmetten, Service + BreadcrumbList (+ SSS varsa FAQPage)
+     * şeması, kapak paylaşım görseli. Önceden bu sayfalar ana sayfa başlığı ve canonical'ı taşıyordu (çift içerik).
+     *
+     * @return array<string, mixed>
+     */
+    public function serviceHead(Website $website, Service $service): array
+    {
+        $summary = trim((string) ($service->summary ?? ''));
+        $description = $summary !== '' ? $summary : Str::limit(trim(strip_tags($service->renderedDescription())), self::DESCRIPTION_MAX, '');
+        $head = $this->head($website, null, $service->path(), $service->name, $description !== '' ? $description : null, 'service');
+        $base = $website->baseUrl();
+        $node = [
+            '@type' => 'Service',
+            '@id' => $base.$service->path().'#service',
+            'name' => $service->name,
+            'url' => $base.$service->path(),
+            'serviceType' => $service->name,
+            'provider' => ['@id' => $base.'/#organization'],
+        ];
+
+        if ($summary !== '') {
+            $node['description'] = $summary;
+        }
+
+        if (trim((string) ($service->price_text ?? '')) !== '') {
+            $node['offers'] = ['@type' => 'Offer', 'description' => trim((string) $service->price_text), 'priceCurrency' => 'TRY'];
+        }
+
+        // Sunulduğu şubeler: yalnız yayındaki lokasyonlar (uydurma bölge yok).
+        $areas = [];
+
+        foreach ($this->services->locationsFor($service) as $location) {
+            $areas[] = ['@type' => 'Place', 'name' => $location->name, 'address' => ['@type' => 'PostalAddress', 'addressLocality' => $location->city, 'addressCountry' => 'TR']];
+        }
+
+        if ($areas !== []) {
+            $node['areaServed'] = $areas;
+        }
+
+        if ($service->cover_media_id !== null && $service->cover !== null) {
+            $node['image'] = $service->cover->absoluteUrl();
+            $head['og_image'] = $service->cover->absoluteUrlFor(1600);
+
+            if ($head['twitter'] !== null) {
+                $head['twitter']['image'] = $head['og_image'];
+            }
+        }
+
+        $graph = [$node, [
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => $website->name, 'item' => $base.'/'],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => 'Çözümler', 'item' => $base.'/cozumler'],
+                ['@type' => 'ListItem', 'position' => 3, 'name' => $service->name, 'item' => $base.$service->path()],
+            ],
+        ]];
+
+        $faq = self::faqNodeFromPairs($service->faqPairs());
+
+        if ($faq !== null) {
+            $graph[] = $faq;
+        }
+
+        $head['json_ld'] = $this->finishJsonLd($website, ['@context' => 'https://schema.org', '@graph' => $graph], $service->path());
+
+        return $head;
+    }
+
+    /**
+     * Etkinlik sayfası head verisi (faz 60): Event şeması yalnız var olan alanlarla (fiyat 0/boşsa Offer yok).
+     *
+     * @return array<string, mixed>
+     */
+    public function eventHead(Website $website, Event $event): array
+    {
+        $summary = trim((string) ($event->summary ?? ''));
+        $head = $this->head($website, null, $event->path(), $event->title, $summary !== '' ? $summary : null, 'event');
+        $base = $website->baseUrl();
+        $node = [
+            '@type' => 'Event',
+            '@id' => $base.$event->path().'#event',
+            'name' => $event->title,
+            'url' => $base.$event->path(),
+            'startDate' => $event->starts_at->toIso8601String(),
+            'eventStatus' => 'https://schema.org/EventScheduled',
+            'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+            'organizer' => ['@id' => $base.'/#organization'],
+        ];
+
+        $node['endDate'] = $event->ends_at->toIso8601String();
+
+        if ($summary !== '') {
+            $node['description'] = $summary;
+        }
+
+        if ($event->location !== null) {
+            $node['location'] = [
+                '@type' => 'Place',
+                'name' => $event->location->name,
+                'address' => ['@type' => 'PostalAddress', 'streetAddress' => (string) $event->location->address_line, 'addressLocality' => $event->location->city, 'addressCountry' => 'TR'],
+            ];
+        }
+
+        if ((int) $event->price > 0) {
+            $node['offers'] = ['@type' => 'Offer', 'price' => number_format((int) $event->price / 100, 2, '.', ''), 'priceCurrency' => 'TRY', 'url' => $base.$event->path(), 'availability' => $event->registration_open ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut'];
+        }
+
+        if ($event->cover_media_id !== null && $event->cover !== null) {
+            $node['image'] = $event->cover->absoluteUrl();
+            $head['og_image'] = $event->cover->absoluteUrlFor(1600);
+        }
+
+        $graph = [$node, [
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => [
+                ['@type' => 'ListItem', 'position' => 1, 'name' => $website->name, 'item' => $base.'/'],
+                ['@type' => 'ListItem', 'position' => 2, 'name' => 'Etkinlikler', 'item' => $base.'/etkinlikler'],
+                ['@type' => 'ListItem', 'position' => 3, 'name' => $event->title, 'item' => $base.$event->path()],
+            ],
+        ]];
+
+        $head['json_ld'] = $this->finishJsonLd($website, ['@context' => 'https://schema.org', '@graph' => $graph], $event->path());
+
+        return $head;
+    }
+
+    /**
+     * Soru-cevap çiftlerinden FAQPage (≥ 2 çift; azsa null).
+     *
+     * @param  array<int, array{q: string, a: string}>  $pairs
+     * @return array<string, mixed>|null
+     */
+    public static function faqNodeFromPairs(array $pairs): ?array
+    {
+        $pairs = array_values(array_filter($pairs, fn (array $p) => trim($p['q']) !== '' && trim($p['a']) !== ''));
+
+        if (count($pairs) < 2) {
+            return null;
+        }
+
+        return [
+            '@type' => 'FAQPage',
+            'mainEntity' => array_map(fn (array $p) => ['@type' => 'Question', 'name' => trim($p['q']), 'acceptedAnswer' => ['@type' => 'Answer', 'text' => trim($p['a'])]], $pairs),
+        ];
     }
 
     /**

@@ -3,7 +3,9 @@
 namespace App\View\Composers;
 
 use App\Models\Content;
+use App\Models\Event;
 use App\Models\Location;
+use App\Models\Service;
 use App\Models\Website;
 use App\Services\AuthorizationService;
 use App\Services\ContentService;
@@ -103,6 +105,11 @@ class SiteLayoutComposer
                 str_ends_with($view->name(), 'site.booking') => $this->seo->head($site, null, '/rezervasyon', 'Toplantı odası rezervasyonu', 'Lokasyon ve gün seçin; odaların uygunluğu canlı hesaplanır.'),
                 str_ends_with($view->name(), 'site.booking-status') => ['robots' => 'noindex, nofollow'] + $this->seo->head($site, null, '/rezervasyon', 'Rezervasyon durumu'),
                 $location !== null => $this->seo->locationHead($site, $location),
+                // Hizmet ve etkinlik sayfaları (faz 60): kendi başlık/canonical/şeması — önceden ana sayfa head'i basılıyordu.
+                ($data['service'] ?? null) instanceof Service => $this->seo->serviceHead($site, $data['service']),
+                ($data['event'] ?? null) instanceof Event => $this->seo->eventHead($site, $data['event']),
+                str_ends_with($view->name(), 'site.services') => $this->seo->head($site, null, '/cozumler', 'Çözümler', 'Sanal ofis, hazır ofis, coworking, günlük kullanım, toplantı odası ve etkinlik alanı: ihtiyacınıza uygun çalışma biçimi.'),
+                str_ends_with($view->name(), 'site.events') => $this->seo->head($site, null, '/etkinlikler', 'Etkinlikler', 'Yaklaşan etkinlikler, atölyeler ve topluluk buluşmaları.'),
                 str_ends_with($view->name(), 'site.locations') => $this->seo->head($site, null, '/lokasyonlar', 'Lokasyonlar', 'Ofisvio şubeleri: şehir, bölge ve sunulan çözümlere göre.'),
                 str_ends_with($view->name(), 'site.posts') => $this->seo->head($site, null, '/blog', 'Yazılar'),
                 str_ends_with($view->name(), 'site.sitemap') => $this->seo->head($site, null, '/site-haritasi', 'Site haritası', 'Yayındaki tüm sayfa, yazı, lokasyon ve hizmet bağlantıları.'),
