@@ -33,6 +33,7 @@ return [
      */
     'texts' => [
         'topbar' => 'Tek sözleşmeyle hepsine erişim',
+        'topbar_count' => '{count} lokasyon',
         'hero_eyebrow' => 'Sanal ofis · Hazır ofis · Coworking',
         'hero_title' => 'Şirketinizin adresi',
         'hero_accent' => 'bugün',
@@ -73,6 +74,7 @@ return [
      */
     'texts_single' => [
         'topbar' => '{city_da} tek sözleşmeyle tüm çözümlere erişim',
+        'topbar_count' => '',
         'hero_eyebrow' => '{city_da} sanal ofis · hazır ofis · coworking',
         'hero_title' => 'Şirketinizin {city} adresi',
         'hero_lede' => '{city_da} tescile uygun adres, karşılanan çağrılar ve evraklar, saatlik toplantı odaları. Tek sözleşme, tek merkez, tüm çözümler.',

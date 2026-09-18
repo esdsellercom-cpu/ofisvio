@@ -12,10 +12,12 @@
     var LIB = cfg.library, TEXT_KEYS = cfg.textKeys, MEDIA = cfg.media || [], PRESETS = {};
     (cfg.presets || []).forEach(function (p) { PRESETS[p.id] = p; });
     var DEVICE_KEY = { desktop: 'style', tablet: 'style_tablet', mobile: 'style_mobile' };
-    var AREA_TEXTS = { header: ['nav_solutions', 'nav_journey', 'nav_locations', 'nav_meeting', 'nav_pricing', 'cta_header', 'topbar', 'cta_topbar'], topbar: ['topbar', 'cta_topbar'], footer: [] };
+    var AREA_TEXTS = { header: ['nav_solutions', 'nav_journey', 'nav_locations', 'nav_meeting', 'nav_pricing', 'cta_header', 'topbar_count', 'topbar', 'cta_topbar'], topbar: ['topbar_count', 'topbar', 'cta_topbar'], footer: [] };
+    /* Site iletişim alanları (website ayarı): üst şeritte satır içi ve Header panelinde; kaydedince site ayarına yazılır (website.manage). */
+    var CONTACT_FIELDS = { contact_phone: 'Telefon', whatsapp_number: 'WhatsApp numarası', contact_email: 'E-posta' };
 
     /* ---------- Durum ---------- */
-    var state = { sections: JSON.parse(JSON.stringify(cfg.sections || [])), texts: Object.assign({}, cfg.texts || {}), footerColumns: cfg.footerColumns || '', heroMedia: '', blocks: Object.assign({}, cfg.dataBlocks || {}) };
+    var state = { sections: JSON.parse(JSON.stringify(cfg.sections || [])), texts: Object.assign({}, cfg.texts || {}), footerColumns: cfg.footerColumns || '', heroMedia: '', blocks: Object.assign({}, cfg.dataBlocks || {}), contact: Object.assign({}, cfg.contact || {}) };
     var DATA_SECTIONS = cfg.dataBlockSections || {}, DATA_META = cfg.dataBlockMeta || {};
     var uploads = {}; // token → File
     var history = [], future = [];
@@ -23,7 +25,7 @@
     var frame = $('[data-frame]'), frameWrap = $('[data-frame-wrap]'), rightBody = $('[data-right-body]'), rightHead = $('[data-right-head]'), rightTabs = $('[data-right-tabs]');
     var rightTab = 'content';
 
-    function snapshot() { return JSON.stringify({ sections: state.sections, texts: state.texts, footerColumns: state.footerColumns, heroMedia: state.heroMedia, blocks: state.blocks }); }
+    function snapshot() { return JSON.stringify({ sections: state.sections, texts: state.texts, footerColumns: state.footerColumns, heroMedia: state.heroMedia, blocks: state.blocks, contact: state.contact }); }
     var lastSnapshot = snapshot(); // son onaylı durum; commit öncesi hali yığına gider
     function commit() { history.push(lastSnapshot); lastSnapshot = snapshot(); if (history.length > 80) history.shift(); future = []; setDirty(true); updateUndo(); }
     function updateUndo() { $('[data-undo]').disabled = history.length === 0; $('[data-redo]').disabled = future.length === 0; }
@@ -101,7 +103,16 @@
     }
     function applyGlobalText(key, value) {
         var d = fdoc(); if (!d) return;
-        $$('[data-ofv-global="texts.' + key + '"]', d).forEach(function (t) { if (!t.classList.contains('ofv-editing')) t.textContent = value; });
+        $$('[data-ofv-global="texts.' + key + '"]', d).forEach(function (t) {
+            if (t.classList.contains('ofv-editing')) return;
+            var n = t.getAttribute('data-ofv-count');
+            t.textContent = n !== null ? value.split('{count}').join(n) : value;
+            if (t.hasAttribute('hidden') && value.trim() !== '') t.removeAttribute('hidden');
+        });
+    }
+    function applyContact(key, value) {
+        var d = fdoc(); if (!d) return;
+        $$('[data-ofv-site-field="' + key + '"]', d).forEach(function (t) { if (!t.classList.contains('ofv-editing')) t.textContent = value || (key === 'contact_phone' ? 'Telefon ekle' : ''); });
     }
     function markStale(id) { stale[id] = true; var el = fnode(id); if (el) el.setAttribute('data-ofv-stale', '1'); renderLayers(); }
 
@@ -123,6 +134,7 @@
         fieldInput: function (ref) {
             if (ref.field && ref.section) { var s = sec(ref.section); if (!s) return; if (s.settings[ref.field] === ref.value) return; s.settings[ref.field] = ref.value; commitDebounced(); if (rightTab === 'content') syncPanelInput(ref.field, ref.value); }
             else if (ref.global && ref.global.indexOf('texts.') === 0) { var k = ref.global.substring(6); if (state.texts[k] === ref.value) return; state.texts[k] = ref.value; applyGlobalText(k, ref.value); commitDebounced(); syncPanelInput('texts.' + k, ref.value); }
+            else if (ref.site && CONTACT_FIELDS[ref.site]) { if (!cfg.canSiteSettings) { toast('Site iletişim ayarı için website.manage yetkisi gerekir.'); return; } if (state.contact[ref.site] === ref.value) return; state.contact[ref.site] = ref.value; commitDebounced(); syncPanelInput('contact.' + ref.site, ref.value); }
         },
         fieldStyle: function (ref, key, val) {
             if (!ref.section || !ref.field) { toast('Global metinlerde biçim yok; bölüm metinlerinde kullanın.'); return; }
@@ -332,13 +344,19 @@
             h += '<div class="ve-field"><span class="label">Footer sütunları (her satır: Başlık | Madde = /yol, Madde = #bolum, …)</span><textarea class="control mono" rows="8" data-global="footer_columns">' + esc(state.footerColumns) + '</textarea><span class="small muted">Kaydedince önizlemede, yayınlayınca sitede güncellenir.</span></div>';
             h += '<p class="small muted">Marka adı, slogan, telefon, e-posta, adres, çalışma saatleri: <a href="/panel/websiteler">Site ayarları</a> (website.manage). Alt bilgideki yasal sayfalar yayındaki sayfalardan gelir.</p>';
         } else {
-            h += '<p class="small muted" style="margin:0 0 8px">Menü etiketleri bölüm çapalarına bağlıdır; gizli bölümün bağlantısı basılmaz.</p>';
+            h += '<p class="small muted" style="margin:0 0 8px">Menü etiketleri bölüm çapalarına bağlıdır; gizli bölümün bağlantısı basılmaz. Lokasyon sayısı metninde <code>{count}</code> yayındaki şube sayısıdır; boş bırakınca gizlenir.</p>';
+            h += '<div class="ve-field"><span class="label">İletişim (site ayarı — üst şerit, alt bilgi)</span></div>';
+            Object.keys(CONTACT_FIELDS).forEach(function (k) { h += '<label class="ve-field"><span class="label">' + CONTACT_FIELDS[k] + '</span><input class="control" type="text" maxlength="190" data-contact="' + k + '" value="' + esc(state.contact[k] || '') + '"' + (cfg.canSiteSettings ? '' : ' disabled title="website.manage yetkisi gerekir"') + '></label>'; });
+            if (!cfg.canSiteSettings) h += '<p class="small muted">İletişim bilgisi için website.manage yetkisi gerekir.</p>';
             AREA_TEXTS.header.forEach(function (k) { h += '<label class="ve-field"><span class="label">' + esc(TEXT_KEYS[k] || k) + '</span><input class="control" type="text" maxlength="500" data-global="texts.' + k + '" value="' + esc(state.texts[k] || '') + '"></label>'; });
             h += '<details style="margin-top:8px"><summary class="small" style="cursor:pointer;font-weight:600">Diğer site metinleri (bölüm başlıkları, CTA etiketleri, teklif vaatleri, WhatsApp mesajı)</summary><div style="margin-top:8px">';
             Object.keys(TEXT_KEYS).forEach(function (k) { if (AREA_TEXTS.header.indexOf(k) !== -1) return; h += '<label class="ve-field"><span class="label">' + esc(TEXT_KEYS[k]) + '</span><input class="control" type="text" maxlength="500" data-global="texts.' + k + '" value="' + esc(state.texts[k] || '') + '"></label>'; });
             h += '</div></details><p class="small muted">Logo/marka adı ve duyuru şeridi: <a href="/panel/websiteler">Site ayarları</a>. Hazır bileşenler ve kayıtlı bloklar: <a href="/panel/icerik/bloklar">Blok kütüphanesi</a>.</p>';
         }
         rightBody.innerHTML = h;
+        $$('[data-contact]', rightBody).forEach(function (inp) {
+            inp.addEventListener('input', function () { var k = inp.getAttribute('data-contact'); state.contact[k] = inp.value; applyContact(k, inp.value); commitDebounced(); });
+        });
         $$('[data-global]', rightBody).forEach(function (inp) {
             inp.addEventListener('input', function () {
                 var k = inp.getAttribute('data-global');
@@ -355,7 +373,7 @@
         rightBody.innerHTML = '<p class="small muted">Ana görsel <b>hero_media_id</b> site ayarıdır; buraya bırakılan/seçilen görsel kaydedince site ayarına yazılır (website.manage yetkisi yoksa yalnız önizlenir).</p>' + mediaPicker('__hero', state.heroMedia ? [state.heroMedia] : [], false);
         bindMediaGrids(null);
     }
-    function syncPanelInput(key, value) { var el = rightBody.querySelector('[data-set="' + key + '"], [data-global="' + key + '"]'); if (el && el.value !== value && document.activeElement !== el) el.value = value; }
+    function syncPanelInput(key, value) { var el = rightBody.querySelector('[data-set="' + key + '"], [data-global="' + key + '"]' + (key.indexOf('contact.') === 0 ? ', [data-contact="' + key.substring(8) + '"]' : '')); if (el && el.value !== value && document.activeElement !== el) el.value = value; }
 
     function bindPanel(s) {
         $$('[data-set]', rightBody).forEach(function (inp) {
@@ -540,7 +558,7 @@
     $$('[data-left-tabs] button').forEach(function (b) { b.addEventListener('click', function () { $$('[data-left-tabs] button').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); $$('[data-left-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-left-panel') !== b.getAttribute('data-tab'); }); if (b.getAttribute('data-tab') === 'layers') renderLayers(); }); });
     $$('[data-device]').forEach(function (b) { b.addEventListener('click', function () { device = b.getAttribute('data-device'); $$('[data-device]').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); }); frameWrap.setAttribute('data-device', device); if (selection && rightTab === 'design') renderRight(); }); });
     function restore(json) {
-        var st = JSON.parse(json); state.sections = st.sections; state.texts = st.texts; state.footerColumns = st.footerColumns; state.heroMedia = st.heroMedia; state.blocks = st.blocks || {};
+        var st = JSON.parse(json); state.sections = st.sections; state.texts = st.texts; state.footerColumns = st.footerColumns; state.heroMedia = st.heroMedia; state.blocks = st.blocks || {}; state.contact = st.contact || {};
         resyncFrame(); renderLayers(); renderRight(); setDirty(true); updateUndo(); lastSnapshot = snapshot();
     }
     $('[data-undo]').addEventListener('click', function () { if (!history.length) return; future.push(snapshot()); restore(history.pop()); });
@@ -588,7 +606,7 @@
 
     function save(then) {
         if (api()) api().stopEdit();
-        var payload = { sections: state.sections.map(function (s) { var r = JSON.parse(JSON.stringify(s)); if (String(r.id).indexOf('n') === 0) r.id = null; return r; }), globals: { texts: state.texts, footer_columns: state.footerColumns, hero_media: state.heroMedia || '', blocks: state.blocks } };
+        var payload = { sections: state.sections.map(function (s) { var r = JSON.parse(JSON.stringify(s)); if (String(r.id).indexOf('n') === 0) r.id = null; return r; }), globals: { texts: state.texts, footer_columns: state.footerColumns, hero_media: state.heroMedia || '', blocks: state.blocks, contact: state.contact } };
         var form = $('[data-save-form]');
         $('[data-payload]').value = JSON.stringify(payload);
         $('[data-save-then]').value = then;

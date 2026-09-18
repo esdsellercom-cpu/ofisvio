@@ -13,7 +13,7 @@
     @php($config = [
         'websiteId' => $website->id,
         'library' => $library, 'groups' => $groups, 'defaults' => $defaults, 'ctaActions' => $ctaActions, 'styleKeys' => $styleKeys, 'fieldStyleKeys' => $fieldStyleKeys,
-        'sections' => $sectionRows, 'texts' => $texts, 'textKeys' => $textKeys, 'footerColumns' => $footerColumns,
+        'sections' => $sectionRows, 'texts' => $texts, 'textKeys' => $textKeys, 'footerColumns' => $footerColumns, 'contact' => $contact, 'canSiteSettings' => $canSiteSettings,
         'media' => $mediaOptions, 'presets' => $presets->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'type' => $p->type, 'category' => $p->category, 'global' => $p->is_global, 'settings' => $p->settings ?? []])->values(),
         'dataBlocks' => $dataBlocks, 'dataBlockSections' => $dataBlockSections, 'dataBlockMeta' => $dataBlockMeta, 'add' => $add,
         'canPublish' => auth()->user()->can('content.publish'), 'device' => $device, 'selected' => $selected,

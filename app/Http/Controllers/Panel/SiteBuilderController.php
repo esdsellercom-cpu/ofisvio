@@ -65,6 +65,9 @@ class SiteBuilderController extends Controller
             'revisionPreviewBase' => $website ? URL::temporarySignedRoute('site.preview', now()->addMinutes(SiteBuilderService::PREVIEW_MINUTES), ['website' => $website->id]) : null,
             'texts' => $website ? array_merge($this->blocks->texts($website), $this->builder->globalsDraft($website)['texts']) : [],
             'textKeys' => SiteBlockService::TEXT_KEYS,
+            // Site iletişim ayarı (üst şerit telefonu vb.): editörde satır içi/panelden; kaydedince website'a yazılır (website.manage).
+            'contact' => $website ? ['contact_phone' => (string) ($website->contact_phone ?? ''), 'whatsapp_number' => (string) ($website->whatsapp_number ?? ''), 'contact_email' => (string) ($website->contact_email ?? '')] : [],
+            'canSiteSettings' => $request->user()->can('website.manage'),
             'footerColumns' => $website ? ($this->builder->globalsDraft($website)['footer_columns'] ?: $this->blocks->text($website, 'footer_columns')) : '',
             // Vitrin veri listeleri (faz 50; eski /bloklar formları): ilgili bölüm seçilince sağ panelde, taslak → yayın.
             'dataBlocks' => $website ? collect(SiteBuilderService::DATA_BLOCKS)->mapWithKeys(fn (string $k) => [$k => $this->builder->globalsDraft($website)['blocks'][$k] ?? $this->blocks->text($website, $k)])->all() : [],

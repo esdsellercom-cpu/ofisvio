@@ -84,7 +84,7 @@
         var a = t.closest('a, button[type="submit"], input[type="submit"]');
         if (a && !t.closest('[contenteditable="true"]')) e.preventDefault();
 
-        var field = t.closest('[data-ofv-field], [data-ofv-global]');
+        var field = t.closest('[data-ofv-field], [data-ofv-global], [data-ofv-site-field]');
         var img = t.closest('[data-ofv-image], [data-ofv-site-image]');
         var md = t.closest('[data-ofv-md]');
         var sec = t.closest('[data-ofv-section]');
@@ -93,7 +93,7 @@
         $$('.ofv-selected').forEach(function (s) { s.classList.remove('ofv-selected'); });
         if (sec) sec.classList.add('ofv-selected'); else if (area) area.classList.add('ofv-selected');
 
-        if (field) { startEdit(field); parentApi.select({ kind: 'field', section: sec ? sec.getAttribute('data-ofv-section') : null, field: field.getAttribute('data-ofv-field'), global: field.getAttribute('data-ofv-global'), area: area ? area.getAttribute('data-ofv-global-area') : null }); return; }
+        if (field) { startEdit(field); parentApi.select({ kind: 'field', section: sec ? sec.getAttribute('data-ofv-section') : null, field: field.getAttribute('data-ofv-field'), global: field.getAttribute('data-ofv-global'), site: field.getAttribute('data-ofv-site-field'), area: area ? area.getAttribute('data-ofv-global-area') : null }); return; }
         stopEdit();
         if (img) { parentApi.select({ kind: 'image', section: sec ? sec.getAttribute('data-ofv-section') : null, field: img.getAttribute('data-ofv-image'), site: img.getAttribute('data-ofv-site-image'), mediaId: img.getAttribute('data-ofv-media-id') }); return; }
         if (md) { parentApi.select({ kind: 'markdown', section: sec.getAttribute('data-ofv-section'), field: md.getAttribute('data-ofv-md') }); return; }
@@ -138,8 +138,9 @@
         var r = el.getBoundingClientRect();
         textbar.style.top = Math.max(4, r.top + window.scrollY - 38) + 'px';
         textbar.style.left = (r.left + window.scrollX) + 'px';
-        textbar.hidden = !el.hasAttribute('data-ofv-field') && !el.hasAttribute('data-ofv-global');
-        if (el.hasAttribute('data-ofv-global') && !el.hasAttribute('data-ofv-field')) { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = b.getAttribute('data-ts') !== 'link'; }); } else { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = false; }); }
+        textbar.hidden = !el.hasAttribute('data-ofv-field') && !el.hasAttribute('data-ofv-global') && !el.hasAttribute('data-ofv-site-field');
+        if (el.hasAttribute('data-ofv-site-field')) { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = true; }); }
+        else if (el.hasAttribute('data-ofv-global') && !el.hasAttribute('data-ofv-field')) { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = b.getAttribute('data-ts') !== 'link'; }); } else { $$('[data-ts]', textbar).forEach(function (b) { b.hidden = false; }); }
     }
     function stopEdit() {
         if (!editing) return;
@@ -152,7 +153,7 @@
         var el = e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
         if (!el || el !== editing) return;
         var sec = el.closest('[data-ofv-section]');
-        parentApi.fieldInput({ section: sec ? sec.getAttribute('data-ofv-section') : null, field: el.getAttribute('data-ofv-field'), global: el.getAttribute('data-ofv-global'), value: el.innerText.replace(/\n{2,}/g, '\n').trim() });
+        parentApi.fieldInput({ section: sec ? sec.getAttribute('data-ofv-section') : null, field: el.getAttribute('data-ofv-field'), global: el.getAttribute('data-ofv-global'), site: el.getAttribute('data-ofv-site-field'), value: el.innerText.replace(/\n{2,}/g, '\n').trim() });
     });
     doc.addEventListener('keydown', function (e) {
         if (!editing) return;

@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **322/322** (Unit 12 · Feature 294 · Architecture 16) |
+| `php artisan test` | ✅ **323/323** (Unit 12 · Feature 295 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -821,6 +821,10 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   `cover_url` (ilişki sorgusu yok). Migrasyonlar `000031_franchise_number_company_statuses`,
   `000032_franchise_home_section`. Testler +4 (`FranchiseHomeTest`: Türkçe ek/illüstrasyon birim, tek lokasyon ana
   sayfa, çoklu lokasyon korunur, başvuru → doğrulama → DB → bildirim → panel liste/detay/durum → hız sınırı).
+- **Üst şerit düzenleme (53b)**: lokasyon sayısı metni `texts.topbar_count` (`{count}` = yayındaki şube sayısı, boş =
+  gizli; editörde satır içi + Header paneli), telefon/WhatsApp/e-posta editörden (`globals.contact` → site ayarı,
+  yalnız `website.manage`, audit `website.settings_updated`; üst şeritte telefon satır içi `data-ofv-site-field`).
+  `TopbarGlobalsTest` (+1).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

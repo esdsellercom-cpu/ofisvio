@@ -32,6 +32,7 @@ class SiteBlockService
     /** Ana sayfa metin anahtarları => etiket (faz 29); varsayılan config('ofisvio.texts'). */
     public const TEXT_KEYS = [
         'topbar' => 'Üst şerit mesajı',
+        'topbar_count' => 'Üst şerit: lokasyon sayısı ({count} = yayındaki şube sayısı; boş = gizle)',
         'hero_eyebrow' => 'Hero üst yazı',
         'hero_title' => 'Hero başlık (1. satır)',
         'hero_accent' => 'Hero vurgu kelimesi (serif)',
@@ -67,7 +68,7 @@ class SiteBlockService
     ];
 
     /** Boş bırakılınca bölümü gizleyen (varsayılana dönmeyen) metinler. */
-    public const OPTIONAL_TEXT_KEYS = ['lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
+    public const OPTIONAL_TEXT_KEYS = ['topbar_count', 'lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
 
     public function __construct(private readonly ContentCache $cache, private readonly ServiceService $services) {}
 

@@ -190,7 +190,7 @@ class SiteBuilderService
      *
      * @param  array<string, mixed>  $payload  {sections: [...], globals: {texts: {}, footer_columns: string}}
      * @param  array<string, mixed>  $uploads  token => UploadedFile
-     * @param  bool  $siteImage  globals.hero_media uygulanır mı (website.manage; controller karar verir)
+     * @param  bool  $siteImage  globals.hero_media ve globals.contact (site ayarları) uygulanır mı (website.manage; controller karar verir)
      * @return array{sections: int, created: int, deleted: int, uploaded: int}
      */
     public function applyDraft(User $actor, Website $website, array $payload, array $uploads = [], bool $siteImage = false): array
@@ -321,6 +321,11 @@ class SiteBuilderService
                     $website->forceFill(['hero_media_id' => (int) $hero])->save();
                     $this->cache->invalidate($website);
                 }
+
+                // Site iletişim ayarı (telefon/WhatsApp/e-posta): site ayarı, anında — yalnız yetkili aktör; değişen alan audit'e yazılır.
+                if ($siteImage && is_array($payload['globals']['contact'] ?? null)) {
+                    $this->applyContact($actor, $website, $payload['globals']['contact']);
+                }
             }
         });
 
@@ -382,6 +387,39 @@ class SiteBuilderService
     public const DATA_BLOCK_SECTIONS = ['amenities' => ['amenities'], 'pricing' => ['plans', 'plan_rows', 'pricing_note']];
 
     /** @param  array<string, mixed>  $globals */
+    /** @param  array<string, mixed>  $contact */
+    private function applyContact(User $actor, Website $website, array $contact): void
+    {
+        $limits = ['contact_phone' => 32, 'whatsapp_number' => 32, 'contact_email' => 190];
+        $before = [];
+        $after = [];
+
+        foreach ($limits as $key => $max) {
+            if (! array_key_exists($key, $contact)) {
+                continue;
+            }
+
+            $value = mb_substr(trim((string) $contact[$key]), 0, $max);
+
+            if ($key === 'contact_email' && $value !== '' && filter_var($value, FILTER_VALIDATE_EMAIL) === false) {
+                throw new DomainException('E-posta adresi geçersiz.');
+            }
+
+            if ($value !== (string) ($website->{$key} ?? '')) {
+                $before[$key] = $website->{$key};
+                $after[$key] = $value === '' ? null : $value;
+            }
+        }
+
+        if ($after === []) {
+            return;
+        }
+
+        $website->forceFill($after)->save();
+        $this->cache->invalidate($website);
+        $this->audit->record($actor, 'website.settings_updated', 'website', $website->id, $before, $after);
+    }
+
     private function saveGlobalsDraft(Website $website, array $globals): void
     {
         // Yalnız canlıdan FARKLI değerler taslağa yazılır; taslak boşsa "yayınla eşit" rozeti doğru kalır.
