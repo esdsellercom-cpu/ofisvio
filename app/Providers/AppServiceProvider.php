@@ -2,6 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\Content;
+use App\Models\Location;
+use App\Models\SeoLandingPage;
+use App\Models\Service;
+use App\Models\SiteRevision;
+use App\Models\Website;
+use App\Observers\CacheCascadeObserver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
@@ -24,6 +31,11 @@ class AppServiceProvider extends ServiceProvider
         // Sayfalama: tasarım sistemi (public/css/ofisvio.css) Tailwind taşımaz; kendi görünümümüz.
         Paginator::defaultView('vendor.pagination.ofisvio');
         Paginator::defaultSimpleView('vendor.pagination.ofisvio');
+
+        // Önbellek geçersizleme kaskadı (faz 60f): CMS değişikliği → site sürümü atlar + cache_events izi.
+        foreach ([Service::class, Location::class, Content::class, SeoLandingPage::class, Website::class, SiteRevision::class] as $model) {
+            $model::observe(CacheCascadeObserver::class);
+        }
 
         // Şifre politikası (audit S-3): en az 12 karakter, harf + rakam; üretimde sızmış şifre listesi
         // (HIBP k-anonimlik sorgusu — dış ağ istediği için yalnız üretimde). Fortify eylemleri

@@ -119,8 +119,15 @@ class PanelMenu
                 $can('seo.view') ? $this->item('Doğrulama & bildirim', route('panel.seo.settings.home', ['sekme' => 'dogrulama']), $seoTab('dogrulama')) : null,
             ]],
             ['Performans', [
-                $can('performance.view') ? $this->item('Performans paneli', route('panel.performance.index'), $this->routeIs('panel.performance.*')) : null,
-                $can('cache.view') ? $this->item('Önbellek yöneticisi', route('panel.cache.index'), $this->routeIs('panel.cache.*')) : null,
+                $can('performance.view') ? $this->item('Performance Dashboard', route('panel.performance.center'), $this->routeIs('panel.performance.center', 'panel.performance.index', 'panel.performance.doctor')) : null,
+                $can('cache.view') ? $this->item('Cache Manager', route('panel.cache.index'), $this->routeIs('panel.cache.*')) : null,
+                $can('performance.view', 'cache.view') ? $this->item('Cache politikaları & HTTP cache', route('panel.performance.http-cache'), $this->routeIs('panel.performance.http-cache')) : null,
+                $can('performance.view') ? $this->item('Redis', route('panel.performance.redis'), $this->routeIs('panel.performance.redis')) : null,
+                $can('performance.view') ? $this->item('Sorgu performansı', route('panel.performance.queries'), $this->routeIs('panel.performance.queries')) : null,
+                $can('performance.view') ? $this->item('Yavaş sorgular', route('panel.performance.slow-queries'), $this->routeIs('panel.performance.slow-queries')) : null,
+                $can('performance.view') ? $this->item('Asset optimizasyonu', route('panel.performance.assets'), $this->routeIs('panel.performance.assets')) : null,
+                $can('performance.view') ? $this->item('Core Web Vitals', route('panel.performance.vitals'), $this->routeIs('panel.performance.vitals*')) : null,
+                $can('performance.view') ? $this->item('Performans denetimi', route('panel.performance.audit'), $this->routeIs('panel.performance.audit')) : null,
             ]],
             ['Sistem', [
                 $can('notification.view', 'notification.manage') ? $this->item('Bildirimler & otomasyon', route('panel.notifications.index'), $this->routeIs('panel.notifications.index'), $badges['notifications_failed'] ?? 0, 'c') : null,

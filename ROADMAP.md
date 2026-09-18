@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **337/337** (Unit 12 · Feature 309 · Architecture 16) |
+| `php artisan test` | ✅ **354/354** (Unit 12 · Feature 326 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -968,8 +968,46 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
 - **Doğrulama:** `ofisvio:doctor` → "Medya dosyaları" satırı (public/storage bağlantısı + her kaydın orijinal ve varyant
   dosyası diskte; eksikler örnekle uyarı) — sistem sağlığı ekranında da görünür. Testler +2 → 337/337.
 
-### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
-Temeller hazır; sıra değişmedi.
+### 60. SEO & GEO Command Center + Performance Command Center ✅ (19 Eylül 2026) — eski ⛔ 19–22 · 25–28 kapandı
+Tek ilke: her rakam gerçek veriden; bağlı olmayan sağlayıcı "bağlı değil" der, sahte grafik/istatistik yok. Menü:
+**SEO & GEO** (Command Center, genel ayarlar, teknik, metadata, URL & yönlendirme, sitemap & robots, canonical &
+hreflang, Schema Manager, Entity / Knowledge Graph, GEO Manager, Programatik SEO, Keyword Intelligence, Internal
+Linking, Search Console, Analytics, AI Content, İçerik yenileme, Prompt Registry, API kullanımı & maliyet, doğrulama)
+ve **Performans** (Dashboard, Cache Manager, cache politikaları & HTTP cache, Redis, sorgu performansı, yavaş
+sorgular, asset, Core Web Vitals, denetim, baseline). Vitrin Blade kalır (Inertia/Vue yok); ticari/içerik verisi kodda
+değil DB'de (MockDataDetectionTest).
+- **60a Sağlık merkezi** `App\Seo\HealthCenter`: 16 kategori, her bulgu her açılışta gerçek veriden (içerik denetimi,
+  teknik rapor, canonical öz denetimi, şema doğrulama, performans baseline'ı, GEO kapsamı, varlık sağlığı, yönlendirme
+  istatistikleri, entegrasyon durumu, GSC tıklama düşüşü); Issue/Önem/URL/Neden/Öneri/Auto-fix/Onay/Durum; karar
+  `seo_issues`; otomatik düzeltmeler onaylı, iki kapı (seo.edit / seo.settings+JIT). **Schema Manager**: SchemaValidator
+  (zorunlu/önerilen alan, tarih/URL, breadcrumb sırası, FAQ yapısı, uydurma puan/yorum uyarısı) + SchemaInspector
+  (sayfa → gerçek head/JSON-LD). Gerçek hata düzeltildi: hizmet/etkinlik sayfaları ana sayfa canonical'ı basıyordu.
+- **60b GEO Answer Engine** `services.answers` (13 alan + SSS + ilişkili hizmet/lokasyon) → hizmet sayfası bölümleri,
+  FAQPage, llms.txt; **Knowledge Graph** `entity_relations` (Article→Service/Location, Topic→Entity) vitrinde gerçek
+  bağlantı; **Programatik SEO** `seo_landing_pages` (/{hizmet}/{sehir}; tek tek, toplu üretim yok; kalite kapısı:
+  benzersiz giriş ≥ 400, benzerlik < %50, tekil başlık, meta; Service+LocalBusiness+Breadcrumb+FAQ şeması; sitemap türü).
+- **60c Keyword Intelligence** `seo_keywords` (rol, niyet, küme, hedef; kanibalizasyon, boşluk, sayfa üstü kontrol,
+  kümeler, kelimesiz sayfa; stüdyo odak kelimeleri örtük) · **Internal Linking Engine** `LinkGraphService` (gövde +
+  otomatik kural + menü + yapısal bağlantılar + Knowledge Graph; gelen/giden/yoğunluk/yetim/kırık, tür matrisi,
+  ilgililik puanlı öneri + çapa; manuel kural = links.keywords satırı).
+- **60d Search Console / Analytics / CWV**: servis hesabı RS256 JWT → `google_oauth` (Gateway form gövdesi) → belirteç;
+  SearchConsoleClient / AnalyticsClient (yalnız Organic Search) / PageSpeedClient; `search_performance_daily`,
+  `analytics_daily`, `integration_sync_states`, `web_vitals_samples`; komutlar `ofisvio:search-console-sync`,
+  `analytics-sync`, `web-vitals` (zamanlayıcı); mülk kimlikleri Doğrulama & bildirim sekmesinde; ekranlarda içerik
+  fırsatları, sitemap/indeksleme durumu, hizmet/lokasyon/blog dönüşümü, organik huni.
+- **60e AI Content Engine**: Konu keşfi → Brief → AI taslak (Gateway `ai`, Anthropic; prompt sürümü, token, maliyet
+  yalnız fiyat env'deyse) → Doğruluk (kural + AI iddia listesi) → SEO → GEO → Kopya (≥ %60 geri döner) → İnceleme →
+  Onay (dört göz) → Zamanlama → Yayın (CMS taslak/zamanlanmış; yenileme = çalışma taslağı, yayındaki metin değişmez).
+  `ai_prompts` (sürümlü), `ai_jobs`, kullanım & maliyet; **İçerik yenileme** `content_refresh_candidates`
+  (eskime, eski yıl, kırık bağlantı, GSC düşüşü, dış kaynak yoklaması) + `ofisvio:content-refresh-scan`.
+- **60f Performance Command Center**: `RequestProfiler` (örnekleme, TTFB, sorgu sayısı/süresi, bellek, yanıt boyutu,
+  304 isabeti; yavaş sorgu bağlamsız SQL; terminate'te, hata isteği bozmaz; testte örnekleme kapalı), `CacheCascadeObserver`
+  (hizmet/lokasyon/içerik/landing/site/yayın kaydı → site sürümü atlar + `cache_events` adım izi), anahtar bağlamı
+  `site:{id}:s:v:i{kurulum}:{dil}:{ad}`; ekranlar: dashboard (p50/p95, sorgu, boyut, isabet, DB/Redis/kuyruk gecikmesi,
+  CWV), sorgu performansı, yavaş sorgular, Redis INFO, cache politikaları & kaskad olayları, asset gzip boyutları, CWV
+  ölçüm/dereceler, performans denetimi (config/route/view cache, OPcache, debug, sürücüler). Budama 30 gün.
+- Testler: SeoCommandCenterTest, GeoAnswerEngineTest, KeywordIntelligenceTest, SearchPerformanceTest,
+  AiContentEngineTest, PerformanceCenterTest (+17) → **354/354**.
 
 ---
 
@@ -985,8 +1023,8 @@ Temeller hazır; sıra değişmedi.
 | F5 | Admin KYC inceleme kuyruğu + JIT talep ekranı | ✅ |
 | F6 | Şirket aktivasyon takip ekranı | ✅ şirket detayında (adımlar + geçmiş) |
 | F7 | CMS editörü | ✅ liste/süzgeç, form (markdown), akış eylemleri, revizyonlar |
-| F8 | SEO/GEO Command Center | 🟡 SEO v1 (`/panel/seo`) + GEO v1 (`/panel/geo`) |
-| F9 | Performance + Cache Command Center | ✅ Cache v1 (`/panel/onbellek`) + Performans (`/panel/performans`: baseline, önbellek, zamanlayıcı, doctor) |
+| F8 | SEO/GEO Command Center | ✅ faz 60: `/panel/seo/{site}/merkez` + 20 alt ekran |
+| F9 | Performance + Cache Command Center | ✅ faz 60f: `/panel/performans/merkez` (profil, yavaş sorgu, Redis, cache kaskadı, CWV, denetim) + Cache v1 |
 | F10 | Booking (müşteri + resepsiyon masası) | ✅ v1 (`/panel/sirketler/{company}/rezervasyonlar`, `/panel/rezervasyonlar`, odalar GEO altında) |
 
 ---
@@ -998,10 +1036,8 @@ Temeller hazır; sıra değişmedi.
    https, clamd canlı tarama, önbellek/oturum sürücüsü, e-posta, migrasyon,
    zamanlayıcı kalp atışı, RBAC/site seed, personel hesabı). Kalan: gerçek
    sunucu, alan adı, sertifika, clamd — sen sağlarsın, doctor doğrular.
-2. **Dış servis isteyen kalemler** — faz 19–22 (AI, Search Console, analytics),
-   faz 5 entegrasyon kalemleri (Integration Gateway, Secret Management, SSRF,
-   Webhook Security), Redis etiket / CDN purge: kimlik bilgisi ve altyapı
-   gelince. Kod tarafında 🟡 faz kalmadı.
+2. **Dış servis isteyen kalemler** — kod tarafı hazır (faz 60): Search Console / GA4 servis hesabı, PageSpeed, AI
+   anahtarı env'e girince ekranlar dolar; Redis etiket / CDN purge: altyapı gelince. Kod tarafında 🟡 faz kalmadı.
 3. **İçerik** — editör panelden yazıları, yasal sayfaları ve vitrin bloklarını
    yayınlar.
 

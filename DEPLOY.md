@@ -23,6 +23,12 @@ betiği bunu kapı olarak kullanır.
 | `KYC_SCANNER` | `clamav` | Zorunlu; `none` üretimde açılmaz |
 | `CLAMAV_ADDRESS` | `tcp://clamav:3310` ya da `unix:///var/run/clamav/clamd.ctl` | Doctor canlı tarama yapar |
 | `CLAMAV_TIMEOUT` | `30` | — |
+| `OFISVIO_INSTALLATION_ID` | kuruluma özgü kısa ad | Önbellek anahtarı bağlamı (faz 60f); paylaşılan Redis'te kurulumlar birbirinin anahtarını okuyamaz |
+| `PERF_SAMPLE_RATE` / `PERF_SLOW_QUERY_MS` | `0.05` / `100` | İstek profili örnekleme oranı ve yavaş sorgu eşiği (Performans › Dashboard) |
+| `SEARCH_CONSOLE_ENABLED` + `SEARCH_CONSOLE_SERVICE_ACCOUNT_JSON` | servis hesabı JSON (metin ya da dosya yolu) | Search Console verisi (faz 60d); mülk adresi panelde, servis hesabı mülke eklenmeli |
+| `ANALYTICS_ENABLED` + `ANALYTICS_SERVICE_ACCOUNT_JSON` | servis hesabı JSON | GA4 Data API (faz 60d); mülk kimliği panelde, servis hesabı GA4'te görüntüleyici |
+| `PAGESPEED_ENABLED` (+ `PAGESPEED_API_KEY`) | `true` | Core Web Vitals ölçümü (haftalık zamanlayıcı) |
+| `AI_ENABLED` + `AI_API_KEY` (+ `AI_MODEL`, `AI_PRICE_*`) | Anthropic anahtarı | AI Content Engine (faz 60e); insan onayı zorunlu, AI yayındaki içeriğe dokunmaz |
 
 KYC belgeleri `storage/app/private` altındadır (`private` diski; URL yok,
 public değil). Kalıcı ve yedeklenen bir birim olmalı.

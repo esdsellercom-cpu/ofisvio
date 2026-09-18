@@ -5,7 +5,7 @@
 @section('content')
     <div class="panel-head">
         <div>
-            <p class="eyebrow">Performance Command Center · v1</p>
+            <p class="eyebrow"><a href="{{ route('panel.performance.center') }}">Performance Command Center</a> · baseline</p>
             <h1 class="h2">Performans</h1>
         </div>
         <div class="panel-head__actions">

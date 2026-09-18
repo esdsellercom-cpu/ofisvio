@@ -50,6 +50,7 @@ use App\Http\Controllers\Panel\MembershipController;
 use App\Http\Controllers\Panel\NotificationController;
 use App\Http\Controllers\Panel\OnboardingController;
 use App\Http\Controllers\Panel\OperationsDashboardController;
+use App\Http\Controllers\Panel\PerformanceCenterController;
 use App\Http\Controllers\Panel\PerformanceController;
 use App\Http\Controllers\Panel\PlanController;
 use App\Http\Controllers\Panel\RedirectController;
@@ -201,6 +202,17 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/', [PerformanceController::class, 'index'])->middleware('permission:performance.view')->name('index');
             Route::post('/olc', [PerformanceController::class, 'measure'])->middleware('permission:performance.audit')->name('measure');
             Route::get('/doctor', [PerformanceController::class, 'doctor'])->middleware('permission:performance.audit')->name('doctor');
+
+            // Performance Command Center (faz 60f): gerçek ölçümler; CWV ölçüm tetikleme performance.audit.
+            Route::get('/merkez', [PerformanceCenterController::class, 'dashboard'])->middleware('permission:performance.view')->name('center');
+            Route::get('/sorgular', [PerformanceCenterController::class, 'queries'])->middleware('permission:performance.view')->name('queries');
+            Route::get('/yavas-sorgular', [PerformanceCenterController::class, 'slowQueries'])->middleware('permission:performance.view')->name('slow-queries');
+            Route::get('/redis', [PerformanceCenterController::class, 'redis'])->middleware('permission:performance.view')->name('redis');
+            Route::get('/http-onbellek', [PerformanceCenterController::class, 'httpCache'])->middleware('permission:performance.view|cache.view')->name('http-cache');
+            Route::get('/varliklar', [PerformanceCenterController::class, 'assets'])->middleware('permission:performance.view')->name('assets');
+            Route::get('/web-vitals', [PerformanceCenterController::class, 'vitals'])->middleware('permission:performance.view')->name('vitals');
+            Route::post('/web-vitals/olc', [PerformanceCenterController::class, 'measureVitals'])->middleware(['permission:performance.audit', 'throttle:5,1'])->name('vitals.measure');
+            Route::get('/denetim', [PerformanceCenterController::class, 'audit'])->middleware('permission:performance.view')->name('audit');
         });
 
         // Rezervasyon (booking v1) — personel tarafı, tenant context'siz.

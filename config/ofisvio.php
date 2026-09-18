@@ -97,6 +97,16 @@ return [
         'deniz' => 'Deniz — açık zemin, lacivert vurgu',
     ],
 
+    // Kurulum kimliği (faz 60f): önbellek anahtarı bağlamı — aynı Redis'i paylaşan iki kurulum birbirinin anahtarını okuyamaz.
+    'installation_id' => env('OFISVIO_INSTALLATION_ID', 'default'),
+
+    // Performance Command Center (faz 60f): istek profili — örnekleme oranı ve yavaş sorgu eşiği (teknik sabit).
+    'performance' => [
+        'enabled' => (bool) env('PERF_PROFILER', true),
+        'sample_rate' => (float) env('PERF_SAMPLE_RATE', 0.05),
+        'slow_query_ms' => (int) env('PERF_SLOW_QUERY_MS', 100),
+    ],
+
     'kyc' => [
         'scanner' => env('KYC_SCANNER', 'none'),
         'clamav' => [

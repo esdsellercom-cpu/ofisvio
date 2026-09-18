@@ -259,9 +259,13 @@ class ContentCache
         return $rows;
     }
 
+    /**
+     * Anahtar bağlamı (faz 60f): site + şema + sürüm + kurulum kimliği + dil. Sürüm site başınadır; kurulum kimliği ve
+     * dil, paylaşılan Redis'te ya da çok dilli yayında başka bağlamın anahtarına dokunulmamasını sağlar.
+     */
     public function key(Website $website, string $name): string
     {
-        return "site:{$website->id}:s".self::SCHEMA.":v{$this->version($website)}:{$name}";
+        return "site:{$website->id}:s".self::SCHEMA.":v{$this->version($website)}:i".substr(sha1((string) config('ofisvio.installation_id', 'default')), 0, 8).':'.(string) config('app.locale', 'tr').":{$name}";
     }
 
     /**

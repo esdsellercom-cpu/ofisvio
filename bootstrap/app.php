@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureTenantContext;
 use App\Http\Middleware\NormalizeTotpCode;
 use App\Http\Middleware\PerRequestCaches;
 use App\Http\Middleware\PublicCacheHeaders;
+use App\Http\Middleware\RequestProfiler;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SiteSeoPolicy;
 use App\Services\CurrentWebsite;
@@ -25,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->web(append: [PerRequestCaches::class, SecurityHeaders::class]);
+        $middleware->web(append: [PerRequestCaches::class, SecurityHeaders::class, RequestProfiler::class]); // RequestProfiler (faz 60f): istek profili, terminate'te yazar
         // SiteSeoPolicy (faz 44): vitrin yönlendirme/başlık politikası — GLOBAL, rota eşleşmeden önce çalışır
         // (eski/olmayan adresler de yönlendirilir); panel ve kimlik yolları atlanır.
         $middleware->append(SiteSeoPolicy::class);

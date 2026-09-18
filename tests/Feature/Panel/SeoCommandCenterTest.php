@@ -177,6 +177,6 @@ class SeoCommandCenterTest extends TestCase
         $this->assertGreaterThanOrEqual(2, $after['summary']['resolved']);
 
         // Menü: yeni gruplar.
-        $this->actingAs($admin)->get('/panel/operasyon')->assertOk()->assertSee('Command Center')->assertSee('Schema Manager')->assertSee('Performans paneli');
+        $this->actingAs($admin)->get('/panel/operasyon')->assertOk()->assertSee('Command Center')->assertSee('Schema Manager')->assertSee('Performance Dashboard');
     }
 }
