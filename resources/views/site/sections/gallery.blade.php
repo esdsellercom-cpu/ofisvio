@@ -5,7 +5,7 @@
     <div class="grid-auto sec-grid" style="--min:200px;--gap:12px"{!! ofv_editor() ? ' data-ofv-gallery' : '' !!}>
         @forelse ($ids as $id)
             @if (isset($sectionMedia[$id]))
-                <figure style="margin:0"><img src="{{ $sectionMedia[$id]['url'] }}" alt="{{ $sectionMedia[$id]['alt'] }}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:{{ $s['ratio'] ?? '4/3' }};object-fit:cover;border-radius:var(--sec-radius, 12px);display:block" @if (ofv_editor()) data-ofv-image="media[]" data-ofv-media-id="{{ $id }}" @endif>@if ($sectionMedia[$id]['caption'] !== '')<figcaption class="small muted" style="margin-top:6px">{{ $sectionMedia[$id]['caption'] }}</figcaption>@endif</figure>
+                <figure style="margin:0"><img src="{{ $sectionMedia[$id]['url'] }}" alt="{{ $sectionMedia[$id]['alt'] }}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:{{ $s['ratio'] ?? '4/3' }};object-fit:cover;border-radius:var(--sec-radius, 12px);display:block" @if (ofv_editor()) data-ofv-image="media[]" data-ofv-media-id="{{ $id }}" @endif{!! ofv_le('section', (int) ($secId ?? 0), 'media', $loop->index, 'Galeri → '.($loop->index + 1).'. görsel', $id, (string) ($s['title'] ?? '')) !!}>@if ($sectionMedia[$id]['caption'] !== '')<figcaption class="small muted" style="margin-top:6px">{{ $sectionMedia[$id]['caption'] }}</figcaption>@endif</figure>
             @endif
         @empty
             @if (ofv_editor())<div class="shot" style="aspect-ratio:4/3;border:1px dashed var(--line);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint)" data-ofv-image="media[]">Görsel ekleyin</div>@endif

@@ -24,9 +24,9 @@
             <article class="card card--link" style="min-width:0;{{ $big ? 'grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));' : '' }}"{!! ofv_editor() ? ' data-ofv-card="post:'.$post->id.'"' : '' !!}>
                 <a href="{{ route('site.post', $post->slug) }}" style="display:block;min-width:0" aria-hidden="true" tabindex="-1">
                     @if ($post->cover_url)
-                        <img src="{{ $post->cover_url }}" alt="{{ $post->title }}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:{{ $big ? '4/3' : '16/10' }};height:{{ $big ? '100%' : 'auto' }};object-fit:cover;display:block">
+                        <img src="{{ $post->cover_url }}" alt="{{ $post->title }}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:{{ $big ? '4/3' : '16/10' }};height:{{ $big ? '100%' : 'auto' }};object-fit:cover;display:block"{!! ofv_le('content', $post->id, 'cover', null, 'Blog → '.$post->title.' kapağı', $post->cover_media_id, $post->title) !!}>
                     @else
-                        @include('site.partials.illustration', ['key' => 'blog', 'alt' => $post->title.' — yazı kapağı (illüstrasyon)', 'style' => 'width:100%;aspect-ratio:'.($big ? '4/3' : '16/10').';height:'.($big ? '100%' : 'auto').';object-fit:cover;display:block'])
+                        @include('site.partials.illustration', ['key' => 'blog', 'alt' => $post->title.' — yazı kapağı (illüstrasyon)', 'style' => 'width:100%;aspect-ratio:'.($big ? '4/3' : '16/10').';height:'.($big ? '100%' : 'auto').';object-fit:cover;display:block', 'le' => ofv_le('content', $post->id, 'cover', null, 'Blog → '.$post->title.' kapağı (illüstrasyon)', null, $post->title)])
                     @endif
                 </a>
                 <div class="card__body" style="padding:{{ $big ? '28px' : '18px 18px 20px' }};gap:10px">

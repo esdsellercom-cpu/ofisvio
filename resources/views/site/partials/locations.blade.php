@@ -19,10 +19,10 @@
     <article class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));overflow:hidden;border-radius:var(--r-lg)">
         <figure style="position:relative;margin:0;min-width:0;background:var(--surface-sunk)">
             @if ($loc->cover)
-                @include('site.partials.picture', ['media' => $loc->cover, 'sizes' => '(max-width: 720px) 100vw, 56vw', 'style' => 'width:100%;height:100%;min-height:420px;aspect-ratio:5/4;object-fit:cover;display:block'])
+                @include('site.partials.picture', ['media' => $loc->cover, 'sizes' => '(max-width: 720px) 100vw, 56vw', 'style' => 'width:100%;height:100%;min-height:420px;aspect-ratio:5/4;object-fit:cover;display:block', 'le' => ofv_le('location', $loc->id, 'cover', null, 'Lokasyon → '.$loc->name.' görseli', $loc->cover_media_id, $loc->city.' çalışma alanı')])
             @else
                 {{-- Medya yoksa marka illüstrasyonu; kapak Lokasyonlar › galeriden seçilince (cover_media_id) burası gerçek görsel olur. --}}
-                @include('site.partials.illustration', ['key' => 'location', 'alt' => \App\Site\Illustrations::alt('location', $loc->city, $loc->name.' — '.($locServices->pluck('name')->take(3)->implode(', ') ?: 'ofis ve çalışma alanı')), 'style' => 'width:100%;height:100%;min-height:420px;aspect-ratio:5/4;object-fit:cover;display:block'])
+                @include('site.partials.illustration', ['key' => 'location', 'alt' => \App\Site\Illustrations::alt('location', $loc->city, $loc->name.' — '.($locServices->pluck('name')->take(3)->implode(', ') ?: 'ofis ve çalışma alanı')), 'style' => 'width:100%;height:100%;min-height:420px;aspect-ratio:5/4;object-fit:cover;display:block', 'le' => ofv_le('location', $loc->id, 'cover', null, 'Lokasyon → '.$loc->name.' görseli (illüstrasyon)', null, $loc->city.' çalışma alanı')])
                 @if (ofv_editor())<span class="shot__note" style="position:absolute;left:16px;bottom:16px">Şube görseli: Lokasyonlar › {{ $loc->name }} › galeri kapağı</span>@endif
             @endif
             <span class="mono" style="position:absolute;top:16px;left:16px;font-size:11px;letter-spacing:.08em;color:#3C3A32;background:var(--surface);border-radius:6px;padding:6px 10px">{{ mb_strtoupper($loc->city) }}{{ $loc->district ? ' · '.$loc->district : '' }}</span>
@@ -102,12 +102,12 @@
                      data-tags="{{ implode('|', $loc->serviceNames()) }}">
                 @if ($loc->cover)
                     <div style="position:relative">
-                        @include('site.partials.picture', ['media' => $loc->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
+                        @include('site.partials.picture', ['media' => $loc->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block', 'le' => ofv_le('location', $loc->id, 'cover', null, 'Lokasyon → '.$loc->name.' görseli', $loc->cover_media_id, $loc->city.' çalışma alanı')])
                         <span class="mono" style="position:absolute;top:14px;left:14px;font-size:10.5px;letter-spacing:.08em;color:#3C3A32;background:var(--surface);border-radius:5px;padding:5px 8px">{{ $loc->badge }}</span>
                     </div>
                 @else
                     <div style="position:relative">
-                        @include('site.partials.illustration', ['key' => 'location', 'alt' => \App\Site\Illustrations::alt('location', $loc->city, $loc->name.' ofis binası'), 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
+                        @include('site.partials.illustration', ['key' => 'location', 'alt' => \App\Site\Illustrations::alt('location', $loc->city, $loc->name.' ofis binası'), 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block', 'le' => ofv_le('location', $loc->id, 'cover', null, 'Lokasyon → '.$loc->name.' görseli (illüstrasyon)', null, $loc->city.' çalışma alanı')])
                         @if ($loc->badge)<span class="mono" style="position:absolute;top:14px;left:14px;font-size:10.5px;letter-spacing:.08em;color:#3C3A32;background:var(--surface);border-radius:5px;padding:5px 8px">{{ $loc->badge }}</span>@endif
                     </div>
                 @endif

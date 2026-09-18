@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **333/333** (Unit 12 · Feature 305 · Architecture 16) |
+| `php artisan test` | ✅ **335/335** (Unit 12 · Feature 307 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -933,6 +933,29 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   (`SiteBlockService::defaultTexts` — kaydetme artık şehir bağlamlı varsayılanı ezme olarak saklamaz).
 - `BlogEcosystemTest`: komut → kapak/SEO/GEO → yayın → ana sayfa (öne çıkanlar) → detay (JSON-LD, SSS, kapak) → tüm iç bağlantılar
   200 → editör ayarları (adet/kategori/spotlight/CTA) vitrine → yeni öne çıkan yazı otomatik listede.
+
+### 59. Canlı düzenleme (Admin Live Edit) — görseli yerinde değiştir ✅ (18 Eylül 2026)
+- **Yalnız yetkili oturum**: `SiteLayoutComposer::liveEdit` sunucu tarafında karar verir (website.manage / content.edit /
+  service.manage / geo.edit'ten biri); ziyaretçiye düğme, işaret, CSS/JS **hiç gitmez** (test). Oturum açık yanıt zaten
+  `private, no-store` (PublicCacheHeaders) — işaretli HTML önbelleğe/CDN'e düşmez. Editör çerçevesiyle karışmaz.
+- **`✎ Düzenleme Modu`** düğmesi (sağ alt): oturum bayrağı form POST ile açılır/kapanır; açıkken hedef görseller
+  (`data-le="kind:id:field[:index]"` + etiket + mevcut medya + alt önerisi — `ofv_le()` yardımcısı, `picture`/`illustration`
+  partial'ları `le` alır) kesikli çerçeve + hover etiketi ("Hero → Ana görsel", "Lokasyon → Konya görseli"). Tıkla → modal:
+  kütüphane (arama, önizleme), yükle, sürükle-bırak (sayfadaki görselin üzerine de: onay → modal), **Kaldır**, alt metin /
+  açıklama (öneri içerik bağlamından: şube şehri + "çalışma alanı", hizmet/yazı adı), **Geri al / İptal** (önceki görsele döner;
+  kaydedilmeyen değişiklik yenilemede kalmaz). Seçim sayfada anında görünür; **Kaydet** tek form gönderimidir (JS'ten HTTP
+  yok) → gerçek kayıt → yenilemede kalıcı.
+- **Gerçek veri** (`LiveEditService`, her yazma audit `live.image_replaced`): hero `websites.hero_media_id` · bölüm görselleri
+  taslak + yayınlanmış son revizyon birlikte (diğer taslak değişiklikleri yayınlanmaz; anlık görüntüler artık `id` taşır) ·
+  içerik kapağı (yazı/sayfa; ana sayfa kartı, liste ve sayfa aynı kayıt) · hizmet kapağı · lokasyon kapağı (galeri kuralı:
+  görsel galeriye eklenir, kapak olur). Rotalar `/panel/canli/*` panel zincirinde (auth → account.active → verified →
+  staff.2fa), yetki hedef türüne göre route middleware'ında; dönüş adresi yalnız site içi yol; medya sahipliği (site) serviste.
+- Kapsam: ana sayfa (hero, çözümler, lokasyon, nasıl çalışır adımları, blog kartları, görsel/galeri bölümleri), hizmetler +
+  hizmet sayfası, lokasyonlar + şube sayfası, blog listesi/kategori/etiket + yazı sayfası (boş kapak için "Kapak ekle" yuvası).
+  Header/footer görsel taşımaz (marka metin). Mimari diğer elementlere açık: yeni hedef türü = servis metodu + rota + `ofv_le`.
+- `LiveEditTest` (+2): ziyaretçi sızıntısı yok, yetkisiz düğme/API yok, hero → blog → hizmet (yükleme) → lokasyon (galeri) →
+  bölüm görseli (taslak yayınlanmaz) → kaldır → yenilemede kalıcı; dönüş adresi güvenliği. Sorgu bütçesi: yalnız oturum açık
+  kullanıcıda +2 (yetki kararı).
 
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.

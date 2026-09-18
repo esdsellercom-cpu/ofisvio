@@ -15,10 +15,10 @@
         @foreach ($services as $service)
             <a href="{{ $service->path() }}" class="card card--link" data-solution-pick="{{ $service->name }}">
                 @if ($service->cover)
-                    @include('site.partials.picture', ['media' => $service->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block'])
+                    @include('site.partials.picture', ['media' => $service->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block', 'le' => ofv_le('service', $service->id, 'cover', null, 'Hizmet → '.$service->name.' kapağı', $service->cover_media_id, $service->name)])
                 @else
                     @php($illKey = \App\Site\Illustrations::forService($service->slug, $service->name))
-                    @include('site.partials.illustration', ['key' => $illKey, 'alt' => \App\Site\Illustrations::alt($illKey, $singleLocation->city ?? null, $service->name), 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block'])
+                    @include('site.partials.illustration', ['key' => $illKey, 'alt' => \App\Site\Illustrations::alt($illKey, $singleLocation->city ?? null, $service->name), 'style' => 'width:100%;aspect-ratio:4/3;object-fit:cover;display:block', 'le' => ofv_le('service', $service->id, 'cover', null, 'Hizmet → '.$service->name.' kapağı (illüstrasyon)', null, $service->name)])
                 @endif
                 <div class="card__body">
                     <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">

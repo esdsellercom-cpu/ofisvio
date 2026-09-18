@@ -37,6 +37,7 @@ use App\Http\Controllers\Panel\InvoiceController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LandingController;
 use App\Http\Controllers\Panel\LeadController;
+use App\Http\Controllers\Panel\LiveEditController;
 use App\Http\Controllers\Panel\LocationMediaController;
 use App\Http\Controllers\Panel\LocationSpaceController;
 use App\Http\Controllers\Panel\MediaController;
@@ -258,6 +259,16 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::delete('/alicilar/{recipient}', [NotificationController::class, 'destroyRecipient'])->middleware('permission:notification.manage')->name('recipients.destroy');
             Route::post('/alicilar/{recipient}/durum', [NotificationController::class, 'toggleRecipient'])->middleware('permission:notification.manage')->name('recipients.toggle');
             Route::put('/sablonlar', [NotificationController::class, 'saveTemplate'])->middleware('permission:notification.manage|notification_template.manage')->name('templates');
+        });
+
+        // Canlı düzenleme (faz 59): vitrindeki modal tek form gönderimi; yetki hedef türüne göre. Dönüş yalnız site içi yol.
+        Route::prefix('canli')->name('live.')->group(function () {
+            Route::post('/mod', [LiveEditController::class, 'toggle'])->middleware('permission:website.manage|content.edit|service.manage|geo.edit')->name('toggle');
+            Route::post('/gorsel/site', [LiveEditController::class, 'website'])->middleware(['permission:website.manage', 'throttle:media-upload'])->name('website');
+            Route::post('/gorsel/bolum', [LiveEditController::class, 'section'])->middleware(['permission:content.edit', 'throttle:media-upload'])->name('section');
+            Route::post('/gorsel/icerik/{content}', [LiveEditController::class, 'content'])->where('content', '[0-9]+')->middleware(['permission:content.edit', 'throttle:media-upload'])->name('content');
+            Route::post('/gorsel/hizmet/{service}', [LiveEditController::class, 'service'])->middleware(['permission:service.manage', 'throttle:media-upload'])->name('service');
+            Route::post('/gorsel/lokasyon/{location}', [LiveEditController::class, 'location'])->middleware(['permission:geo.edit', 'throttle:media-upload'])->name('location');
         });
 
         // Denetim kaydı (audit.view; global, salt okunur).

@@ -22,9 +22,9 @@
                 @foreach ($posts as $post)
                     <a href="{{ route('site.post', $post->slug) }}" class="stack" style="gap:14px;min-width:0">
                         @if ($post->cover_url)
-                            <img src="{{ $post->cover_url }}" alt="" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--line)" loading="lazy">
+                            <img src="{{ $post->cover_url }}" alt="{{ $post->title }}" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r-md);border:1px solid var(--line)" loading="lazy"{!! ofv_le('content', $post->id, 'cover', null, 'Blog → '.$post->title.' kapağı', $post->cover_media_id, $post->title) !!}>
                         @else
-                            <div class="shot" style="aspect-ratio:16/10;border-radius:var(--r-md);border:1px solid var(--line)">
+                            <div class="shot" style="aspect-ratio:16/10;border-radius:var(--r-md);border:1px solid var(--line)"{!! ofv_le('content', $post->id, 'cover', null, 'Blog → '.$post->title.' kapağı (boş)', null, $post->title) !!}>
                                 <span class="shot__note">kapak · 800×500</span>
                             </div>
                         @endif

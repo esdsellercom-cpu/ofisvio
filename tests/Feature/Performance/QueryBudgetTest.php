@@ -48,7 +48,7 @@ class QueryBudgetTest extends TestCase
         'panel.kyc' => 18,
         'panel.content' => 9, // +1 bildirim zili
         'panel.calendar' => 13, // +1 bildirim zili
-        'site.post' => 11, // +1 sayfa kurucu: üst menü yayınlanmış bölümlerden (revizyon okuma, önbellekli); +1 tek lokasyon tespiti (faz 53); +1 yönlendirme haritası (faz 54, önbellekli)
+        'site.post' => 13, // +1 sayfa kurucu: üst menü yayınlanmış bölümlerden (revizyon okuma, önbellekli); +1 tek lokasyon tespiti (faz 53); +1 yönlendirme haritası (faz 54, önbellekli); +2 canlı düzenleme yetki kararı (faz 59; yalnız oturum açık kullanıcı — test admin ile ölçer, ziyaretçide yok)
     ];
 
     protected function setUp(): void

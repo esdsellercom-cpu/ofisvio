@@ -34,5 +34,6 @@
     @include('site.partials.whatsapp')
     <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
     @include('site.partials.seo-body-end')
+    @if (! empty($liveEdit['enabled']))@include('site.partials.live-edit')@endif
 </body>
 </html>

@@ -38,7 +38,9 @@
         </p>
 
         @if ($content->cover_url)
-            <img src="{{ $content->cover_url }}" alt="{{ $content->cover?->alt ?? '' }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-lg);margin-top:28px">
+            <img src="{{ $content->cover_url }}" alt="{{ $content->cover?->alt ?? '' }}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-lg);margin-top:28px"{!! ofv_le('content', $content->id, 'cover', null, ($content->kind->value === 'post' ? 'Blog → ' : 'Sayfa → ').$content->title.' kapağı', $content->cover_media_id, $content->title) !!}>
+        @elseif (ofv_live())
+            <div class="shot" style="aspect-ratio:16/9;border:1px dashed var(--line);border-radius:var(--r-lg);margin-top:28px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint)"{!! ofv_le('content', $content->id, 'cover', null, ($content->kind->value === 'post' ? 'Blog → ' : 'Sayfa → ').$content->title.' kapağı (boş)', null, $content->title) !!}>Kapak görseli ekle</div>
         @endif
 
         {{-- renderedBody() markdown'ı süzülmüş HTML'e çevirir (ham HTML strip, güvensiz link yok). --}}

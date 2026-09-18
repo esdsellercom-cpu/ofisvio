@@ -10,11 +10,11 @@
                 {{-- Kapak: medya kütüphanesinden (yoksa boş durum kutusu; ticari içerik değil). --}}
                 @if ($location->cover)
                     <figure style="margin:0 0 24px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line)">
-                        @include('site.partials.picture', ['media' => $location->cover, 'sizes' => '(max-width: 700px) 100vw, 60vw', 'eager' => true, 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
+                        @include('site.partials.picture', ['media' => $location->cover, 'sizes' => '(max-width: 700px) 100vw, 60vw', 'eager' => true, 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block', 'le' => ofv_le('location', $location->id, 'cover', null, 'Lokasyon → '.$location->name.' görseli', $location->cover_media_id, $location->city.' çalışma alanı')])
                         @if ($location->cover->caption)<figcaption class="small muted" style="padding:8px 12px">{{ $location->cover->caption }}</figcaption>@endif
                     </figure>
                 @else
-                    <div class="shot" style="aspect-ratio:16/10;border-radius:var(--r-lg);border:1px solid var(--line);margin-bottom:24px">
+                    <div class="shot" style="aspect-ratio:16/10;border-radius:var(--r-lg);border:1px solid var(--line);margin-bottom:24px"{!! ofv_le('location', $location->id, 'cover', null, 'Lokasyon → '.$location->name.' görseli (boş)', null, $location->city.' çalışma alanı') !!}>
                         <span class="shot__note">{{ $location->badge }}</span>
                     </div>
                 @endif

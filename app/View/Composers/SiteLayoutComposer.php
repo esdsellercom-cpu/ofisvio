@@ -4,9 +4,12 @@ namespace App\View\Composers;
 
 use App\Models\Content;
 use App\Models\Location;
+use App\Models\Website;
+use App\Services\AuthorizationService;
 use App\Services\ContentService;
 use App\Services\CurrentWebsite;
 use App\Services\InternalLinkService;
+use App\Services\LiveEditService;
 use App\Services\SeoService;
 use App\Services\SeoSettingsService;
 use App\Services\SiteBlockService;
@@ -31,7 +34,47 @@ class SiteLayoutComposer
         private readonly SeoSettingsService $seoSettings,
         private readonly InternalLinkService $links,
         private readonly Request $request,
+        private readonly AuthorizationService $authorization,
+        private readonly LiveEditService $live,
     ) {}
+
+    /**
+     * Canlı düzenleme (faz 59): yalnız giriş yapmış + hedef türlerinden en az birine yetkili kullanıcıda düğme; oturum bayrağı
+     * açıkken görünümler işaret basar (istek özniteliği 'ofv.live' + 'ofv.live.can'). Ziyaretçiye hiçbir şey gitmez.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{enabled: bool, on: bool, can: array<string, bool>, library: list<array{id: int, url: string, thumb: string, alt: string, name: string}>}
+     */
+    private function liveEdit(?Website $site, bool $tenant, array $data): array
+    {
+        $none = ['enabled' => false, 'on' => false, 'can' => [], 'library' => []];
+        $user = $this->request->user();
+
+        if ($user === null || $site === null || $tenant || ($data['preview'] ?? false) || $this->request->attributes->get('ofv.editor') === true) {
+            return $none;
+        }
+
+        $on = (bool) $this->request->session()->get('live_edit', false);
+        $can = [];
+
+        // Mod kapalıyken yalnız düğme kararı gerekir: ilk yetkide dur (sorgu tasarrufu); açıkken hedef türü başına harita.
+        foreach (LiveEditService::KINDS as $kind => $permission) {
+            $can[$kind] = $this->authorization->can($user, $permission);
+
+            if (! $on && $can[$kind]) {
+                break;
+            }
+        }
+
+        if (! in_array(true, $can, true)) {
+            return $none;
+        }
+
+        $this->request->attributes->set('ofv.live', $on);
+        $this->request->attributes->set('ofv.live.can', $can);
+
+        return ['enabled' => true, 'on' => $on, 'can' => $can, 'library' => $on ? $this->live->library($site) : []];
+    }
 
     public function compose(View $view): void
     {
@@ -40,6 +83,7 @@ class SiteLayoutComposer
 
         $data = $view->getData();
         $single = $tenant ? null : $this->blocks->singleLocation();
+        $liveEdit = $this->liveEdit($site, $tenant, $data);
         $content = $data['content'] ?? null;
         $content = $content instanceof Content ? $content : null;
 
@@ -131,6 +175,7 @@ class SiteLayoutComposer
             'siteLayout' => $tenant ? 'layouts.tenant' : 'layouts.site',
             'currentWebsite' => $site,
             'singleLocation' => $single,
+            'liveEdit' => $liveEdit,
             'tenantNav' => $tenant ? $this->contents->navigation($site) : collect(),
             'tenantHasPosts' => $tenant && $this->contents->livePosts($site, 1)->isNotEmpty(),
             'seo' => $seo,

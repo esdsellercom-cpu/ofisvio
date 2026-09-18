@@ -34,6 +34,40 @@ if (! function_exists('ofv_editor')) {
     }
 }
 
+if (! function_exists('ofv_live')) {
+    /**
+     * Canlı düzenleme (faz 59) açık mı? Yalnız yetkili oturumda + oturum bayrağı açıkken; SiteLayoutComposer istek
+     * özniteliğine yazar. Ziyaretçide ve editör çerçevesinde daima false — canlıya işaret/JS gitmez.
+     */
+    function ofv_live(): bool
+    {
+        return app()->bound('request') && request()->attributes->get('ofv.live') === true && ! ofv_editor();
+    }
+}
+
+if (! function_exists('ofv_le')) {
+    /**
+     * Canlı düzenlenebilir görsel işareti: data-le="kind:id:field[:index]" + etiket + mevcut medya + alt önerisi.
+     * Yalnız canlı düzenleme açık ve kullanıcı o hedef türü için yetkiliyse basılır (composer 'ofv.live.can').
+     */
+    function ofv_le(string $kind, int $id, string $field, ?int $index, string $label, ?int $mediaId = null, string $altSuggest = ''): HtmlString
+    {
+        if (! ofv_live() || $id <= 0) {
+            return new HtmlString('');
+        }
+
+        $can = (array) request()->attributes->get('ofv.live.can', []);
+
+        if (empty($can[$kind])) {
+            return new HtmlString('');
+        }
+
+        $target = $kind.':'.$id.':'.$field.($index !== null ? ':'.$index : '');
+
+        return new HtmlString(' data-le="'.e($target).'" data-le-label="'.e($label).'" data-le-media="'.e((string) ($mediaId ?? '')).'" data-le-alt="'.e($altSuggest).'"');
+    }
+}
+
 if (! function_exists('ofv')) {
     /**
      * Düzenlenebilir alan işareti + alan biçimi. Editör dışında yalnız biçim (varsa) basılır; canlıya editör

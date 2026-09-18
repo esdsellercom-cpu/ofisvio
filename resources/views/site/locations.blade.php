@@ -11,7 +11,7 @@
                 @foreach ($items as $location)
                     <a href="{{ route('site.location', $location->slug) }}" class="card card--link">
                         @if ($location->cover)
-                            @include('site.partials.picture', ['media' => $location->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])
+                            @include('site.partials.picture', ['media' => $location->cover, 'sizes' => '(max-width: 640px) 100vw, 320px', 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block', 'le' => ofv_le('location', $location->id, 'cover', null, 'Lokasyon → '.$location->name.' görseli', $location->cover_media_id, $location->city.' çalışma alanı')])
                         @endif
                         <div class="card__body">
                             <span class="h3">{{ $location->name }}</span>

@@ -9,4 +9,4 @@
      @if ($media->title) title="{{ $media->title }}" @endif
      loading="{{ $eager ? 'eager' : 'lazy' }}" decoding="async"
      @if ($eager) fetchpriority="high" @endif
-     style="{{ $style ?? 'width:100%;height:auto;display:block' }}">
+     style="{{ $style ?? 'width:100%;height:auto;display:block' }}"{!! $le ?? '' !!}>

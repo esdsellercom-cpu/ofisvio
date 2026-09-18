@@ -18,7 +18,7 @@ class SiteSection extends Model
     public function toSnapshot(): array
     {
         return [
-            'type' => $this->type, 'anchor' => $this->anchor, 'is_visible' => $this->is_visible,
+            'id' => $this->id, 'type' => $this->type, 'anchor' => $this->anchor, 'is_visible' => $this->is_visible,
             'hide_on_mobile' => $this->hide_on_mobile, 'hide_on_desktop' => $this->hide_on_desktop, 'locked' => $this->locked, 'label' => $this->label, 'preset_id' => $this->preset_id,
             'settings' => $this->settings ?? [], 'publish_from' => $this->publish_from?->toIso8601String(), 'publish_until' => $this->publish_until?->toIso8601String(),
         ];

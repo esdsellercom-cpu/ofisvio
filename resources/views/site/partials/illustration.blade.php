@@ -7,4 +7,4 @@
      alt="{{ $alt ?? \App\Site\Illustrations::alt($key, $singleLocation->city ?? null) }}"
      loading="{{ ($eager ?? false) ? 'eager' : 'lazy' }}" decoding="async"
      @if ($eager ?? false) fetchpriority="high" @endif
-     style="height:auto;{{ $style ?? 'width:100%;display:block' }}">
+     style="height:auto;{{ $style ?? 'width:100%;display:block' }}"{!! $le ?? '' !!}>

@@ -9,7 +9,7 @@
         <div class="grid-auto" style="--min:300px;--gap:32px;margin-top:36px;align-items:start">
             <div>
                 @if ($service->cover)
-                    <figure style="margin:0 0 24px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line)">@include('site.partials.picture', ['media' => $service->cover, 'sizes' => '(max-width: 700px) 100vw, 60vw', 'eager' => true, 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block'])</figure>
+                    <figure style="margin:0 0 24px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line)">@include('site.partials.picture', ['media' => $service->cover, 'sizes' => '(max-width: 700px) 100vw, 60vw', 'eager' => true, 'style' => 'width:100%;aspect-ratio:16/10;object-fit:cover;display:block', 'le' => ofv_le('service', $service->id, 'cover', null, 'Hizmet → '.$service->name.' kapağı', $service->cover_media_id, $service->name)])</figure>
                 @endif
                 @if ($service->description)<div class="prose">{!! $service->renderedDescription() !!}</div>@endif
 

@@ -27,9 +27,9 @@
             @php($media = $mediaId !== null ? ($sectionMedia[$mediaId] ?? null) : null)
             <li style="background:var(--surface);padding:24px 22px 26px;display:flex;flex-direction:column;gap:9px" data-journey-step>
                 @if ($media)
-                    <img src="{{ $media['url'] }}" alt="{{ $media['alt'] !== '' ? $media['alt'] : ($p[1] ?? '') }}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r-md);display:block;margin-bottom:6px"{!! ofv_editor() ? ' data-ofv-image="images[]" data-ofv-media-id="'.$mediaId.'"' : '' !!}>
-                @elseif (ofv_editor())
-                    <div class="shot" style="aspect-ratio:16/10;border:1px dashed var(--line);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:13px" data-ofv-image="images[]">Adım görseli ekle</div>
+                    <img src="{{ $media['url'] }}" alt="{{ $media['alt'] !== '' ? $media['alt'] : ($p[1] ?? '') }}" loading="lazy" decoding="async" style="width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:var(--r-md);display:block;margin-bottom:6px"{!! ofv_editor() ? ' data-ofv-image="images[]" data-ofv-media-id="'.$mediaId.'"' : '' !!}{!! ofv_le('section', (int) ($secId ?? 0), 'images', $i, 'Nasıl çalışır → '.($i + 1).'. adım görseli', $mediaId, $p[1] ?? '') !!}>
+                @elseif (ofv_editor() || ofv_live())
+                    <div class="shot" style="aspect-ratio:16/10;border:1px dashed var(--line);border-radius:var(--r-md);display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:13px"{!! ofv_editor() ? ' data-ofv-image="images[]"' : '' !!}{!! ofv_le('section', (int) ($secId ?? 0), 'images', $i, 'Nasıl çalışır → '.($i + 1).'. adım görseli', null, $p[1] ?? '') !!}>Adım görseli ekle</div>
                 @endif
                 <div style="display:flex;align-items:center;gap:10px">
                     <span class="mono" style="font-size:12px;color:var(--brand);letter-spacing:.1em">{{ str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT) }}</span>
