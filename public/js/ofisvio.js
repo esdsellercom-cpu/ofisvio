@@ -41,7 +41,33 @@
     setOpen(false);
   }
 
-  /* ---------- lokasyon filtresi ---------- */
+  /* ---------- hero süzgeci → teklif formu (lokasyon sayısından bağımsız) ----------
+     Tek lokasyon: bölge alanı yok, şube gizli alanda (data-hero-location) — kullanıcıya seçim yaptırılmaz.
+     Çoklu: bölgede tek şube varsa teklif formunun lokasyonu da o olur. Çözüm/Kişi her iki modda forma akar. */
+  function initHeroFilter() {
+    var panel = $('[data-hero-filter]');
+    if (!panel) return;
+    var typeSelect = $('[data-filter-type]', panel);
+    var teamSelect = $('[data-filter-team]', panel);
+    var regionSelect = $('[data-filter-region]', panel);
+    var formSolution = $('[data-form-solution]');
+    var formTeam = $('[data-form-team]');
+    var formLocation = $('[data-form-location]');
+    var single = panel.getAttribute('data-hero-location');
+
+    if (single && formLocation) formLocation.value = single;
+    if (teamSelect && formTeam) teamSelect.addEventListener('change', function () { formTeam.value = teamSelect.value; });
+    if (typeSelect && formSolution) typeSelect.addEventListener('change', function () { if (typeSelect.value !== 'Tümü') formSolution.value = typeSelect.value; });
+    if (regionSelect && formLocation && formLocation.tagName === 'SELECT') {
+      regionSelect.addEventListener('change', function () {
+        var opt = regionSelect.options[regionSelect.selectedIndex];
+        var ids = (opt && opt.getAttribute('data-location-ids') || '').split(',').filter(Boolean);
+        formLocation.value = ids.length === 1 ? ids[0] : '';
+      });
+    }
+  }
+
+  /* ---------- lokasyon filtresi (yalnız çoklu lokasyon: kart listesi varsa) ---------- */
   function initLocations() {
     var grid = $('[data-locations]');
     if (!grid) return;
@@ -100,14 +126,7 @@
       });
     }
 
-    // Ekip büyüklüğü filtrelemez, yalnızca teklif formuna taşınır.
-    if (teamSelect) {
-      teamSelect.addEventListener('change', function () {
-        var hidden = $('[data-form-team]');
-        if (hidden) hidden.value = teamSelect.value;
-      });
-    }
-
+    // Ekip büyüklüğü/çözüm forma aktarımı initHeroFilter'da (her iki modda).
     apply();
   }
 
@@ -250,6 +269,7 @@
   }
   function boot() {
     initNav();
+    initHeroFilter();
     initLocations();
     initBooking();
     initSolutionPrefill();

@@ -12,28 +12,21 @@
         <p class="lede" style="margin:26px 0 0;max-width:50ch"{!! ofv($s, 'lede', 'texts.hero_lede') !!}>{{ $s['lede'] ?? $texts['hero_lede'] }}</p>
         @if ($heroCta)<p style="margin:22px 0 0"><a href="{{ $heroCta['href'] }}" class="btn btn--brand" @if ($heroCta['external']) target="_blank" rel="noopener" @endif>{{ $heroCta['label'] }}</a></p>@endif
 
-        <div class="panel" style="margin-top:38px;border-radius:var(--r-lg);padding:20px">
+        {{-- Lokasyon kuralı (faz 56): yayında + aktif şube sayısı 1 → Şehir/Bölge alanı basılmaz, şube arka planda kullanılır
+             (data-hero-location → teklif formu); 2+ → seçim alanı; seçilen bölge lokasyon kartlarını süzer ve teklif formuna taşınır. --}}
+        <div class="panel" style="margin-top:38px;border-radius:var(--r-lg);padding:20px" data-hero-filter @if ($singleLocation) data-hero-location="{{ $singleLocation->id }}" @endif>
             <div class="grid-auto" style="--min:150px;--gap:14px">
-                @if ($singleLocation)
-                    {{-- Tek lokasyon (faz 53): şehir seçimi yok; şube bilgisi veritabanından. --}}
-                    <div class="field">
-                        <span class="label">Lokasyon</span>
-                        <a href="{{ route('site.location', $singleLocation->slug) }}" class="control" style="display:flex;align-items:center;gap:8px;text-decoration:none" data-single-location>
-                            <span style="width:8px;height:8px;border-radius:99px;background:var(--brand);flex:none"></span>
-                            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ $singleLocation->city }}{{ $singleLocation->district ? ' · '.$singleLocation->district : '' }}</span>
-                        </a>
-                    </div>
-                @else
+                @unless ($singleLocation)
                 <label class="field">
                     <span class="label">Şehir / Bölge</span>
                     <select class="control" data-filter-region>
                         <option value="Tümü">Tüm bölgeler</option>
-                        @foreach ($regions->keys() as $regionName)
-                            <option value="{{ $regionName }}">{{ $regionName }}</option>
+                        @foreach ($regions as $regionName => $items)
+                            <option value="{{ $regionName }}" data-location-ids="{{ $items->pluck('id')->implode(',') }}">{{ $regionName }}</option>
                         @endforeach
                     </select>
                 </label>
-                @endif
+                @endunless
                 <label class="field">
                     <span class="label">Çözüm</span>
                     <select class="control" data-filter-type>
@@ -54,9 +47,11 @@
                 </label>
                 <a href="#lokasyonlar" class="btn btn--ink" style="margin-top:22px" data-filter-apply>{{ $texts['cta_hero'] }}</a>
             </div>
-            <p class="mono" style="margin:14px 0 0;font-size:13px;color:var(--ink-faint)"@if (! $singleLocation) data-match-line @endif>
-                @if ($singleLocation){{ $singleLocation->name }}{{ $singleLocation->address_line ? ' · '.$singleLocation->address_line : '' }}@else{{ $locations->count() }} lokasyon · tüm bölgeler @endif
-            </p>
+            @if ($singleLocation)
+                @if (($texts['hero_match'] ?? '') !== '')<p class="mono" style="margin:14px 0 0;font-size:13px;color:var(--ink-faint)"{!! ofv_global('texts.hero_match') !!}>{{ $texts['hero_match'] }}</p>@endif
+            @else
+                <p class="mono" style="margin:14px 0 0;font-size:13px;color:var(--ink-faint)" data-match-line>{{ $locations->count() }} lokasyon · tüm bölgeler</p>
+            @endif
         </div>
     </div>
 

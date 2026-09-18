@@ -115,7 +115,16 @@ class FranchiseHomeTest extends TestCase
         $this->assertStringContainsString('Konya&#039;da sanal ofis · hazır ofis · coworking', $html);
         $this->assertStringContainsString('<title>Konya&#039;da sanal ofis, hazır ofis ve coworking', $html);
         $this->assertStringContainsString('İşinizin merkezinde, profesyonel çalışma alanınız.', $html);
-        $this->assertStringContainsString('Konya · Selçuklu', $html);
+        // Hero (faz 56): şehir/bölge alanı ve şehir etiketi YOK; şube arka planda (gizli alan) — Çözüm ve Kişi alanları aynen.
+        $this->assertStringNotContainsString('Şehir / Bölge', $html);
+        $this->assertStringNotContainsString('data-filter-region', $html);
+        $this->assertStringNotContainsString('data-single-location>', $html);
+        $this->assertStringContainsString('data-hero-location="'.$konya->id.'"', $html);
+        $this->assertStringContainsString('data-filter-type', $html);
+        $this->assertStringContainsString('data-filter-team', $html);
+        $this->assertStringContainsString('Konya&#039;da ihtiyacınıza uygun çalışma alanını keşfedin.', $html);
+        $this->assertStringContainsString('type="hidden" name="location_id" value="'.$konya->id.'" data-form-location', $html);
+        $this->assertStringNotContainsString('<option value="">Fark etmez</option>', $html);
         $this->assertStringNotContainsString('lokasyon · tüm bölgeler', $html);
 
         // İstatistikler lokasyon/şehir/bölge sayımı değil, şubenin verisi.
@@ -157,6 +166,10 @@ class FranchiseHomeTest extends TestCase
 
         $html = $this->get('http://localhost/')->assertOk()->getContent();
         $this->assertStringContainsString('Tüm bölgeler', $html);
+        $this->assertStringContainsString('data-filter-region', $html);
+        $this->assertMatchesRegularExpression('~<option value="İstanbul Avrupa" data-location-ids="[0-9,]+">~u', $html);
+        $this->assertStringContainsString('<option value="">Fark etmez</option>', $html);
+        $this->assertStringNotContainsString('data-hero-location', $html);
         $this->assertStringContainsString('data-locations>', $html);
         $this->assertStringNotContainsString('data-single-location-spotlight', $html);
         $this->assertStringContainsString('<title>Şirketinizin adresi bugün hazır olsun', $html);

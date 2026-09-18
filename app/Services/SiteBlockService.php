@@ -38,6 +38,7 @@ class SiteBlockService
         'hero_accent' => 'Hero vurgu kelimesi (serif)',
         'hero_title_after' => 'Hero başlık (vurgudan sonra)',
         'hero_lede' => 'Hero açıklama',
+        'hero_match' => 'Hero süzgeç alt satırı (tek lokasyon modu; boş = gizle)',
         'solutions_title' => 'Çözümler başlığı',
         'solutions_lede' => 'Çözümler açıklaması',
         'journey_title' => 'Nasıl çalışır başlığı',
@@ -68,7 +69,7 @@ class SiteBlockService
     ];
 
     /** Boş bırakılınca bölümü gizleyen (varsayılana dönmeyen) metinler. */
-    public const OPTIONAL_TEXT_KEYS = ['topbar_count', 'lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
+    public const OPTIONAL_TEXT_KEYS = ['topbar_count', 'hero_match', 'lead_claim_1', 'lead_claim_2', 'lead_claim_3', 'whatsapp_message'];
 
     public function __construct(private readonly ContentCache $cache, private readonly ServiceService $services) {}
 

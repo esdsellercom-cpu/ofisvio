@@ -885,6 +885,14 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
 - SEO/GEO: tek lokasyon modunda ana sayfa JSON-LD'ye şubenin **LocalBusiness** düğümü (adres, telefon, saat, koordinat,
   hizmet teklifleri) eklenir (`GeoService::localBusinessNode`, şube sayfasıyla ortak). Testler güncellendi (FranchiseHomeTest).
 
+### 56. Hero — lokasyon sayısına göre dinamik süzgeç ✅ (18 Eylül 2026)
+- Kural veritabanından: yayında + aktif şube **1** → Şehir/Bölge alanı ve şehir etiketi basılmaz; şube arka planda kullanılır
+  (`data-hero-location`, teklif formunda gizli `location_id`); alt satır `texts.hero_match` (tek lokasyon varsayılanı
+  "{city_da} ihtiyacınıza uygun çalışma alanını keşfedin.", boş = gizli; editörde düzenlenir). Şube **2+** → Şehir/Bölge seçimi
+  (bölge seçenekleri `data-location-ids`), seçim lokasyon kartlarını süzer, bölgede tek şube varsa teklif formunun lokasyonu
+  da o olur. Frontend'de şehir/sayı sabitlenmedi.
+- Çözüm ve Kişi alanları aynen; forma aktarım artık kart listesinden bağımsız `initHeroFilter` (tek lokasyonda da çalışır).
+
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 

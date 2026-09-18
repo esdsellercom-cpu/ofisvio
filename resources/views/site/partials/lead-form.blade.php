@@ -64,15 +64,20 @@
                     </div>
 
                     <div class="grid-auto" style="--min:150px;--gap:14px">
+                        @if ($singleLocation ?? null)
+                            {{-- Tek lokasyon: seçim yaptırılmaz, şube arka planda talebe yazılır. --}}
+                            <input type="hidden" name="location_id" value="{{ $singleLocation->id }}" data-form-location>
+                        @else
                         <label class="field">
                             <span class="label">Lokasyon</span>
-                            <select class="control" name="location_id">
+                            <select class="control" name="location_id" data-form-location>
                                 <option value="">Fark etmez</option>
                                 @foreach ($locations as $loc)
                                     <option value="{{ $loc->id }}" @selected(old('location_id') == $loc->id)>{{ $loc->name }}</option>
                                 @endforeach
                             </select>
                         </label>
+                        @endif
                         <label class="field">
                             <span class="label">Çözüm</span>
                             <select class="control" name="solution" data-form-solution>
