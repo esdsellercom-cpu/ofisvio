@@ -17,7 +17,7 @@ class Location extends Model
     protected $fillable = [
         'name', 'slug', 'city', 'region', 'address_line', 'badge',
         'price_from', 'is_active', 'is_published', 'sort_order',
-        'latitude', 'longitude', 'district', 'postal_code', 'phone', 'opening_hours',
+        'latitude', 'longitude', 'district', 'postal_code', 'phone', 'opening_hours', 'transport',
         'geo_description', 'geo_meta_description', 'cover_media_id',
         'maintenance_until', 'maintenance_note',
     ];
@@ -71,6 +71,26 @@ class Location extends Model
     public function hasCoordinates(): bool
     {
         return $this->latitude !== null && $this->longitude !== null;
+    }
+
+    /** Tam adres metni (satır + ilçe, şehir posta kodu). */
+    public function fullAddress(): string
+    {
+        return trim(implode(', ', array_filter([(string) $this->address_line, trim(((string) $this->district !== '' ? $this->district.', ' : '').$this->city.((string) $this->postal_code !== '' ? ' '.$this->postal_code : ''))])), ', ');
+    }
+
+    /**
+     * Yol tarifi bağlantısı: koordinat varsa ona, yoksa gerçek adrese; ikisi de yoksa null (uydurma hedef yok).
+     */
+    public function directionsUrl(): ?string
+    {
+        if ($this->hasCoordinates()) {
+            return 'https://www.google.com/maps/dir/?api=1&destination='.$this->latitude.','.$this->longitude;
+        }
+
+        $address = $this->fullAddress();
+
+        return $address === '' ? null : 'https://www.google.com/maps/dir/?api=1&destination='.rawurlencode($address);
     }
 
     /** Sitedeki göreli yol. */

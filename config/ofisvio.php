@@ -80,7 +80,7 @@ return [
         'hero_lede' => '{city_da} tescile uygun adres, karşılanan çağrılar ve evraklar, saatlik toplantı odaları. Tek sözleşme, tek merkez, tüm çözümler.',
         'solutions_title' => '{city_da} ofis çözümleri: çalışma biçiminize göre başlangıç noktası',
         'solutions_lede' => 'Hepsi aynı merkezde ve aynı altyapıda: resepsiyon, fiber, evrak ve kargo karşılama dahildir.',
-        'locations_title' => '{city_da} işin merkezinde',
+        'locations_title' => 'İşinizin merkezinde, profesyonel çalışma alanınız.',
         'meeting_title' => '{city_da} saatlik toplantı odası, aynı gün teyitli',
         'nav_locations' => 'Lokasyon',
         'lead_title' => '{city_da} ofisiniz için formu bırakın, aynı iş günü fiyat gelsin',

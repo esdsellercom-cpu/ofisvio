@@ -872,6 +872,19 @@ Tarama araçları koda test olarak eklendi (her koşuda yeniden denetler):
   migrasyon `000035` mevcut boş franchise bölümlerine (taslak + son yayın) varsayılanı verir. Tarayıcıda 13 satır içi alan +
   panel girdisi + global metin → kaydet → yayınla → vitrin doğrulandı; `EditorSaveIntegrityTest` (+1).
 
+### 55. Ana sayfa Lokasyonlar bölümü — tek lokasyon tasarımı (Konya) ✅ (18 Eylül 2026)
+- Gösterim kuralı veritabanından: yayında + aktif şube sayısı **1** → görsel ağırlıklı tek lokasyon bloğu; **> 1** → mevcut çoklu
+  tasarım (kartlar + bölge sekmeleri). Frontend'de şehir sabitlenmedi; ikinci şube yayına girince otomatik çoklu moda döner.
+- Tek lokasyon bloğu ([locations.blade.php](resources/views/site/partials/locations.blade.php)): büyük şube görseli (galeri kapağı;
+  yoksa marka illüstrasyonu, alt metni şehir + hizmetler), köşede ŞEHİR · ilçe rozeti, büyük ŞEHİR başlığı, editörde düzenlenen
+  alt başlık (`texts.locations_title`, tek lokasyon varsayılanı "İşinizin merkezinde, profesyonel çalışma alanınız."), şube
+  açıklamasının ilk paragrafı, Adres · Ulaşım · Çalışma saatleri · Telefon (yalnız dolu alanlar), hizmet etiketleri, CTA
+  **Lokasyonu İncele** + **Yol Tarifi Al** (koordinat varsa koordinata, yoksa gerçek adrese; ikisi de yoksa düğme yok).
+- Yeni alan `locations.transport` (Ulaşım bilgisi; panel Lokasyonlar › varlık formu; şube sayfasında da görünür + yol tarifi).
+  `Location::fullAddress()/directionsUrl()`. Migrasyon `000036_location_transport`.
+- SEO/GEO: tek lokasyon modunda ana sayfa JSON-LD'ye şubenin **LocalBusiness** düğümü (adres, telefon, saat, koordinat,
+  hizmet teklifleri) eklenir (`GeoService::localBusinessNode`, şube sayfasıyla ortak). Testler güncellendi (FranchiseHomeTest).
+
 ### ⛔ 19–22 · 25–28 (AI, Search Console, Schema, Command Center'lar)
 Temeller hazır; sıra değişmedi.
 

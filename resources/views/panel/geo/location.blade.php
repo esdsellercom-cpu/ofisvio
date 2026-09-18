@@ -76,6 +76,9 @@
             <label class="field"><span class="label">Çalışma saatleri — satır başına, schema.org biçimi</span>
                 <textarea class="control mono" name="opening_hours" style="min-height:80px" placeholder="Mo-Fr 08:30-19:00&#10;Sa 09:00-14:00">{{ old('opening_hours', implode("\n", $location->opening_hours ?? [])) }}</textarea>
             </label>
+            <label class="field"><span class="label">Ulaşım bilgisi (ana sayfa ve şube sayfasında görünür)</span>
+                <input class="control" type="text" name="transport" value="{{ old('transport', $location->transport) }}" maxlength="500" placeholder="Örn. tramvay durağına 3 dk yürüme, bina altı otopark">
+            </label>
         </div>
 
         <div class="stack" style="gap:20px">

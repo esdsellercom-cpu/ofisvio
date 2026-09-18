@@ -44,6 +44,7 @@ class FranchiseHomeTest extends TestCase
         $konya = Location::create([
             'name' => 'Konya Merkez', 'slug' => 'konya-merkez', 'city' => 'Konya', 'region' => 'Konya', 'district' => 'Selçuklu', 'postal_code' => '42060',
             'address_line' => 'Test Cd. No: 1', 'badge' => 'merkez', 'price_from' => '', 'phone' => '0 332 000 00 00', 'opening_hours' => ['Hafta içi 08:30–18:30', 'Cumartesi 09:00–14:00'],
+            'transport' => 'Tramvay durağına 3 dk yürüme', 'geo_description' => "Konya'da tescile uygun adres, toplantı odası ve esnek çalışma alanı tek çatı altında.\n\nİkinci paragraf.",
             'is_active' => true, 'is_published' => true, 'sort_order' => 1,
         ]);
         $konya->services()->sync(Service::query()->pluck('id')->mapWithKeys(fn ($id, $i) => [$id => ['sort_order' => $i + 1]])->all());
@@ -98,13 +99,22 @@ class FranchiseHomeTest extends TestCase
         $this->assertStringContainsString('tel:0332000000', $html);
         $this->assertStringContainsString('Hafta içi 08:30–18:30', $html);
         $this->assertStringContainsString('/lokasyon/konya-merkez', $html);
-        $this->assertStringNotContainsString('Yol tarifi', $html); // koordinat yok → uydurma harita bağlantısı yok
+        // Tek lokasyon tasarımı (faz 55): büyük şehir başlığı, ulaşım, açıklamanın ilk paragrafı, CTA'lar; koordinat yok → yol tarifi gerçek adrese.
+        $this->assertStringContainsString('>KONYA</h3>', $html);
+        $this->assertStringContainsString('Tramvay durağına 3 dk yürüme', $html);
+        $this->assertStringContainsString('tek çatı altında.', $html);
+        $this->assertStringNotContainsString('İkinci paragraf', $html);
+        $this->assertStringContainsString('Lokasyonu İncele', $html);
+        $this->assertStringContainsString('https://www.google.com/maps/dir/?api=1&amp;destination='.rawurlencode('Test Cd. No: 1, Selçuklu, Konya 42060'), $html);
+        $this->assertStringContainsString('Yol Tarifi Al', $html);
+        $this->assertStringContainsString('"@type":"LocalBusiness"', $html); // ana sayfa JSON-LD: şube (adres/telefon/saat)
+        $this->assertStringContainsString('"telephone":"0 332 000 00 00"', $html);
 
         // Şehre özel metinler ve SEO başlığı (yalnız DB'deki şehir adı).
         // Blade kesme işaretini &#039; olarak basar.
         $this->assertStringContainsString('Konya&#039;da sanal ofis · hazır ofis · coworking', $html);
         $this->assertStringContainsString('<title>Konya&#039;da sanal ofis, hazır ofis ve coworking', $html);
-        $this->assertStringContainsString('Konya&#039;da işin merkezinde', $html);
+        $this->assertStringContainsString('İşinizin merkezinde, profesyonel çalışma alanınız.', $html);
         $this->assertStringContainsString('Konya · Selçuklu', $html);
         $this->assertStringNotContainsString('lokasyon · tüm bölgeler', $html);
 
@@ -132,8 +142,11 @@ class FranchiseHomeTest extends TestCase
         $this->assertStringContainsString('href="/franchise" class="btn btn--brand btn--pill"', $html);
         $this->assertStringContainsString('images/illustrations/franchise.svg', $html);
 
-        // Şube sayfası da çalışır.
-        $this->get('http://localhost/lokasyon/konya-merkez')->assertOk()->assertSee('Konya Merkez');
+        // Şube sayfası: ulaşım + yol tarifi. Koordinat girilince yol tarifi koordinata döner.
+        $this->get('http://localhost/lokasyon/konya-merkez')->assertOk()->assertSee('Konya Merkez')->assertSee('Tramvay durağına 3 dk yürüme')->assertSee('Yol Tarifi Al');
+        $konya->forceFill(['latitude' => 37.8746, 'longitude' => 32.4932])->save();
+        $this->assertSame('https://www.google.com/maps/dir/?api=1&destination=37.8746,32.4932', $konya->fresh()->directionsUrl());
+        $this->assertNull(Location::create(['name' => 'Boş', 'slug' => 'bos', 'city' => '', 'is_active' => false, 'is_published' => false])->directionsUrl());
         $this->assertNotNull($konya->fresh());
     }
 

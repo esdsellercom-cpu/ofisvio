@@ -33,6 +33,17 @@
                     <div class="small muted">{{ trim(($location->district ? $location->district.', ' : '').$location->city.($location->postal_code ? ' '.$location->postal_code : '')) }}</div>
                 </div>
 
+                @if ($location->transport)
+                    <div>
+                        <div class="label" style="margin-bottom:6px">Ulaşım</div>
+                        <div class="small">{{ $location->transport }}</div>
+                    </div>
+                @endif
+
+                @if ($location->directionsUrl())
+                    <div><a href="{{ $location->directionsUrl() }}" target="_blank" rel="noopener" class="btn btn--ghost btn--pill">Yol Tarifi Al ↗</a></div>
+                @endif
+
                 @if ($location->phone)
                     <div>
                         <div class="label" style="margin-bottom:6px">Telefon</div>

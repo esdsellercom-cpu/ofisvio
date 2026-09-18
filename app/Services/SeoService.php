@@ -37,6 +37,7 @@ class SeoService
         private readonly EventService $events,
         private readonly SeoSettingsService $settings,
         private readonly UrlHistoryService $urls,
+        private readonly SiteBlockService $blocks,
     ) {}
 
     /**
@@ -291,6 +292,13 @@ class SeoService
                 // Ofisvio ana sayfası: çözümler Service düğümü olarak (faz 17) — veri vitrin bloklarından, uydurma yok.
                 if ($website->is_default) {
                     $graph = array_merge($graph, $this->serviceNodes($website));
+
+                    // Tek lokasyon modu (faz 55): şube ana sayfada öne çıktığı için LocalBusiness (adres, telefon, saat, koordinat) da burada.
+                    $single = $this->blocks->singleLocation();
+
+                    if ($single !== null) {
+                        $graph[] = $this->geo->localBusinessNode($website, $single->loadMissing('services'));
+                    }
                 }
 
                 // GEO SSS (faz 44): panelde tanımlı soru-cevaplar ana sayfada FAQPage (≥ 2 çift).

@@ -180,6 +180,7 @@ class GeoController extends Controller
             'postal_code' => ['nullable', 'string', 'max:16'],
             'phone' => ['nullable', 'string', 'max:32'],
             'opening_hours' => ['nullable', 'string', 'max:500'],
+            'transport' => ['nullable', 'string', 'max:500'],
             'geo_description' => ['nullable', 'string', 'max:20000'],
             'geo_meta_description' => ['nullable', 'string', 'max:160'],
         ]);
@@ -194,6 +195,7 @@ class GeoController extends Controller
             'postal_code' => $validated['postal_code'] ?? null,
             'phone' => $validated['phone'] ?? null,
             'opening_hours' => $hours === [] ? null : $hours,
+            'transport' => $validated['transport'] ?? null,
             'geo_description' => $validated['geo_description'] ?? null,
             'geo_meta_description' => $validated['geo_meta_description'] ?? null,
         ]);

@@ -287,7 +287,13 @@ class GeoService
      *
      * @return array<string, mixed>
      */
-    public function locationJsonLd(Website $website, Location $location): array
+    /**
+     * Şubenin LocalBusiness düğümü: adres, koordinat, telefon, çalışma saatleri, sunulan hizmetler — yalnız dolu alanlar.
+     * Şube sayfası ve tek lokasyon modunda ana sayfa (SeoService) kullanır.
+     *
+     * @return array<string, mixed>
+     */
+    public function localBusinessNode(Website $website, Location $location): array
     {
         $url = $website->baseUrl().$location->path();
 
@@ -327,6 +333,13 @@ class GeoService
             $business['makesOffer'] = $offers;
         }
 
+        return $business;
+    }
+
+    /** @return array<string, mixed> */
+    public function locationJsonLd(Website $website, Location $location): array
+    {
+        $url = $website->baseUrl().$location->path();
         $breadcrumb = [
             '@type' => 'BreadcrumbList',
             'itemListElement' => [
@@ -336,7 +349,7 @@ class GeoService
             ],
         ];
 
-        return ['@context' => 'https://schema.org', '@graph' => [$this->organizationNode($website), $business, $breadcrumb]];
+        return ['@context' => 'https://schema.org', '@graph' => [$this->organizationNode($website), $this->localBusinessNode($website, $location), $breadcrumb]];
     }
 
     /**
