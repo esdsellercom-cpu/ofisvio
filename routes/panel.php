@@ -35,6 +35,7 @@ use App\Http\Controllers\Panel\GeoController;
 use App\Http\Controllers\Panel\IntegrationController;
 use App\Http\Controllers\Panel\InventoryController;
 use App\Http\Controllers\Panel\InvoiceController;
+use App\Http\Controllers\Panel\KeywordController;
 use App\Http\Controllers\Panel\KycController;
 use App\Http\Controllers\Panel\LandingController;
 use App\Http\Controllers\Panel\LandingPageController;
@@ -440,6 +441,15 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::delete('/{website}/varliklar/{relation}', [EntityGraphController::class, 'unlink'])->where('relation', '[0-9]+')->middleware('permission:seo.edit')->name('entities.unlink');
             Route::get('/geo-yonetimi', [EntityGraphController::class, 'geoHome'])->middleware('permission:seo.view')->name('geo.home');
             Route::get('/{website}/geo-yonetimi', [EntityGraphController::class, 'geo'])->middleware('permission:seo.view')->name('geo');
+            // Keyword Intelligence + Internal Linking Engine (faz 60c).
+            Route::get('/anahtar-kelimeler', [KeywordController::class, 'home'])->middleware('permission:seo.view')->name('keywords.home');
+            Route::get('/{website}/anahtar-kelimeler', [KeywordController::class, 'index'])->middleware('permission:seo.view')->name('keywords');
+            Route::post('/{website}/anahtar-kelimeler', [KeywordController::class, 'store'])->middleware('permission:seo.edit')->name('keywords.store');
+            Route::delete('/{website}/anahtar-kelimeler/{keyword}', [KeywordController::class, 'destroy'])->where('keyword', '[0-9]+')->middleware('permission:seo.edit')->name('keywords.destroy');
+            Route::get('/ic-baglantilar', [KeywordController::class, 'linksHome'])->middleware('permission:seo.view')->name('links.home');
+            Route::get('/{website}/ic-baglantilar', [KeywordController::class, 'links'])->middleware('permission:seo.view')->name('links');
+            Route::post('/{website}/ic-baglantilar/kural', [KeywordController::class, 'storeRule'])->middleware('permission:seo.edit')->name('links.rule');
+            Route::delete('/{website}/ic-baglantilar/kural', [KeywordController::class, 'destroyRule'])->middleware('permission:seo.edit')->name('links.rule.destroy');
             Route::get('/programatik', [LandingPageController::class, 'home'])->middleware('permission:seo.view')->name('landing.home');
             Route::prefix('/{website}/programatik')->name('landing.')->where(['page' => '[0-9]+'])->group(function () {
                 Route::get('/', [LandingPageController::class, 'index'])->middleware('permission:seo.view')->name('index');

@@ -108,7 +108,8 @@ class PanelMenu
                 $can('seo.view') ? $this->item('Entity / Knowledge Graph', route('panel.seo.entities.home'), $this->routeIs('panel.seo.entities*') || $seoTab('varlik', 'yerel')) : null,
                 $can('seo.view') ? $this->item('GEO Manager', route('panel.seo.geo.home'), $this->routeIs('panel.seo.geo*') || $seoTab('geo')) : null,
                 $can('seo.view') ? $this->item('Programatik SEO', route('panel.seo.landing.home'), $this->routeIs('panel.seo.landing.*')) : null,
-                $can('seo.view') ? $this->item('İç bağlantı ayarları', route('panel.seo.settings.home', ['sekme' => 'baglanti']), $seoTab('baglanti')) : null,
+                $can('seo.view') ? $this->item('Keyword Intelligence', route('panel.seo.keywords.home'), $this->routeIs('panel.seo.keywords*')) : null,
+                $can('seo.view') ? $this->item('Internal Linking', route('panel.seo.links.home'), $this->routeIs('panel.seo.links*') || $seoTab('baglanti')) : null,
                 $can('seo.view') ? $this->item('Doğrulama & bildirim', route('panel.seo.settings.home', ['sekme' => 'dogrulama']), $seoTab('dogrulama')) : null,
             ]],
             ['Performans', [
