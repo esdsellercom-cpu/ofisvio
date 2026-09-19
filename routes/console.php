@@ -4,6 +4,7 @@ use App\Models\CacheEvent;
 use App\Models\LoginEvent;
 use App\Models\PerformanceSample;
 use App\Models\SlowQuery;
+use App\Models\WebhookDelivery;
 use Illuminate\Support\Facades\Schedule;
 
 // CMS: zamanlanmış içerik yayını. Üretimde cron: * * * * * php artisan schedule:run
@@ -28,4 +29,4 @@ Schedule::command('ofisvio:analytics-sync')->dailyAt('04:20')->withoutOverlappin
 Schedule::command('ofisvio:web-vitals')->weeklyOn(1, '04:40')->withoutOverlapping();
 Schedule::command('ofisvio:content-refresh-scan')->weeklyOn(1, '05:00')->withoutOverlapping(); // yenileme adayları (faz 60e)
 // Giriş geçmişi 180 gün (LoginEvent::prunable).
-Schedule::command('model:prune', ['--model' => [LoginEvent::class, PerformanceSample::class, SlowQuery::class, CacheEvent::class]])->daily(); // performans/önbellek izleri 30 gün (faz 60f)
+Schedule::command('model:prune', ['--model' => [LoginEvent::class, PerformanceSample::class, SlowQuery::class, CacheEvent::class, WebhookDelivery::class]])->daily(); // performans/önbellek izleri ve webhook teslimat logu 30 gün (faz 60f, 61c)

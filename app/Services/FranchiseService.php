@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\FranchiseApplication;
 use App\Models\User;
+use App\Webhooks\WebhookDispatcher;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,7 +17,7 @@ use Illuminate\Support\Str;
  */
 class FranchiseService
 {
-    public function __construct(private readonly AuditService $audit, private readonly NotificationService $notifications) {}
+    public function __construct(private readonly AuditService $audit, private readonly NotificationService $notifications, private readonly WebhookDispatcher $webhooks) {}
 
     /**
      * @param  array{name?: string|null, first_name?: string|null, last_name?: string|null, company?: string|null, email: string, phone?: string|null, city: string, district?: string|null, budget?: string|null, experience?: string|null, message?: string|null}  $data
@@ -46,6 +47,7 @@ class FranchiseService
         ]);
         $application->save();
         $this->audit->record(null, 'franchise.applied', 'franchise_application', $application->id, [], ['number' => $application->number, 'city' => $application->city]);
+        $this->webhooks->emit('franchise.applied', ['application_id' => $application->id, 'number' => $application->number, 'name' => $application->name, 'email' => $application->email, 'phone' => $application->phone, 'company' => $application->company, 'city' => $application->city, 'district' => $application->district, 'budget' => $application->budget, 'status' => $application->status]);
         $this->notifications->dispatch('franchise.applied', [
             'number' => $application->number,
             'name' => $application->name,

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Lead;
+use App\Webhooks\WebhookDispatcher;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -20,7 +21,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class LeadService
 {
-    public function __construct(private readonly NotificationService $notifications) {}
+    public function __construct(private readonly NotificationService $notifications, private readonly WebhookDispatcher $webhooks) {}
 
     /**
      * @param  array{kind: string, name: string, email: string, phone?: ?string,
@@ -56,6 +57,7 @@ class LeadService
             'name' => $lead->name, 'email' => $lead->email, 'phone' => (string) ($lead->phone ?? ''), 'kind' => $lead->kind,
             'solution' => (string) ($lead->solution ?? ''), 'location' => (string) ($lead->location->name ?? ''),
         ], $lead->location_id, 'lead', $lead->id);
+        $this->webhooks->emit('lead.created', ['lead_id' => $lead->id, 'kind' => $lead->kind, 'name' => $lead->name, 'email' => $lead->email, 'phone' => $lead->phone, 'location_id' => $lead->location_id, 'solution' => $lead->solution, 'team_size' => $lead->team_size, 'requested_date' => $lead->requested_date?->toDateString(), 'created_at' => $lead->created_at?->toIso8601String()]);
 
         return $lead;
     }

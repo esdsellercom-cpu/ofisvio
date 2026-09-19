@@ -29,6 +29,9 @@ betiği bunu kapı olarak kullanır.
 | `ANALYTICS_ENABLED` + `ANALYTICS_SERVICE_ACCOUNT_JSON` | servis hesabı JSON | GA4 Data API (faz 60d); mülk kimliği panelde, servis hesabı GA4'te görüntüleyici |
 | `PAGESPEED_ENABLED` (+ `PAGESPEED_API_KEY`) | `true` | Core Web Vitals ölçümü (haftalık zamanlayıcı) |
 | `AI_ENABLED` + `AI_API_KEY` (+ `AI_MODEL`, `AI_PRICE_*`) | Anthropic anahtarı | AI Content Engine (faz 60e); insan onayı zorunlu, AI yayındaki içeriğe dokunmaz |
+| `GOOGLE_MAPS_ENABLED` + `GOOGLE_MAPS_API_KEY` | Maps Platform anahtarı | Harita/konum (faz 61b); tarayıcıya gitmez, yalnız sunucu tarafı |
+
+**Entegrasyon secret'ları (faz 61b):** tüm sağlayıcı anahtarları panelden de girilebilir (`/panel/ayarlar/api`, `secrets.manage`); panel değerleri `integration_secrets` tablosunda **APP_KEY ile şifreli** saklanır ve env'in önüne geçer. `APP_KEY` değişirse panelde saklanan secret'lar çözülemez ve yeniden girilmelidir — anahtar rotasyonundan önce env'e taşıyın. Giden webhook'lar (faz 61c) kuyruk ister (`queue:work`); teslimat logu 30 gün budanır.
 
 KYC belgeleri `storage/app/private` altındadır (`private` diski; URL yok,
 public değil). Kalıcı ve yedeklenen bir birim olmalı.

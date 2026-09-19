@@ -24,6 +24,9 @@ class WebhookReceiver
 
     public const HEADER_EVENT_ID = 'X-Ofisvio-Event-Id';
 
+    /** Gelen gövde üst sınırı (faz 61c): sağlayıcı olayları küçüktür; büyük gövde imza hesabına girmeden reddedilir. */
+    public const MAX_BODY_BYTES = 262144;
+
     public function __construct(private readonly SecretStore $secrets) {}
 
     /** @return array{status: int, event: WebhookEvent|null, reason: string} */
@@ -37,6 +40,10 @@ class WebhookReceiver
 
         if ($secret === null) {
             return ['status' => 404, 'event' => null, 'reason' => 'no-secret'];
+        }
+
+        if (strlen($request->getContent()) > self::MAX_BODY_BYTES) {
+            return ['status' => 413, 'event' => null, 'reason' => 'payload'];
         }
 
         $timestamp = (string) $request->header(self::HEADER_TIMESTAMP, '');

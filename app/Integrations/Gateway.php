@@ -130,4 +130,53 @@ class Gateway
             ]);
         }
     }
+
+    /**
+     * Giden webhook teslimatı (faz 61c): imzalı JSON POST. Yalnız https + genel ana bilgisayar (SSRF), yönlendirme
+     * izlenmez, gövde/başlık loglanmaz (IntegrationLog: webhook_out, ana bilgisayar, durum, süre). Secret yalnız
+     * imza hesabında kullanılır. Döner: durum kodu (bağlantı hatasında null), süre, kısa hata.
+     *
+     * @param  array<string, string>  $headers
+     * @return array{status: int|null, duration_ms: int, error: string|null}
+     */
+    public function deliver(string $url, string $body, array $headers, int $timeoutSeconds): array
+    {
+        $parts = parse_url($url);
+        $host = (string) ($parts['host'] ?? '');
+
+        if (! is_array($parts) || strtolower((string) ($parts['scheme'] ?? '')) !== 'https' || $host === '') {
+            throw new RuntimeException('Webhook adresi https olmalı.');
+        }
+
+        $this->guard->assertPublicHost($host);
+        $started = hrtime(true);
+        $status = null;
+        $error = null;
+
+        try {
+            $status = Http::timeout(max(1, min($timeoutSeconds, 30)))
+                ->withOptions(['allow_redirects' => false])
+                ->withUserAgent('Ofisvio-Webhooks/1.0')
+                ->withHeaders($headers)
+                ->withBody($body, 'application/json')
+                ->post($url)
+                ->status();
+
+            return ['status' => $status, 'duration_ms' => (int) ((hrtime(true) - $started) / 1e6), 'error' => null];
+        } catch (ConnectionException $e) {
+            $error = 'bağlantı: '.mb_substr($e->getMessage(), 0, 190);
+
+            return ['status' => null, 'duration_ms' => (int) ((hrtime(true) - $started) / 1e6), 'error' => $error];
+        } finally {
+            IntegrationLog::create([
+                'provider' => 'webhook_out',
+                'method' => 'POST',
+                'path' => mb_substr($host, 0, 190), // yol/sorgu (token taşıyabilir) loglanmaz
+                'status' => $status,
+                'duration_ms' => (int) ((hrtime(true) - $started) / 1e6),
+                'ok' => $status !== null && $status >= 200 && $status < 300,
+                'error' => $error,
+            ]);
+        }
+    }
 }

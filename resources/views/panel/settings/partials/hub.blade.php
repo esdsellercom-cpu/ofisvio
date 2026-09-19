@@ -8,7 +8,7 @@
     ['Yasal metinler', 'KVKK, gizlilik, çerez, kullanım koşulları — CMS sayfaları', route('panel.content.index', ['kind' => 'page']), true],
     ['Bildirimler', 'Kurallar, alıcılar, kanallar, otomasyon', route('panel.notifications.index'), true],
     ['API & Entegrasyonlar', 'Entegrasyon merkezi: bağlan → test et → aktifleştir', route('panel.settings.api'), true],
-    ['Webhooks', 'Giden webhook uçları, olaylar, teslim logları', route('panel.settings.api'), true],
+    ['Webhooks', 'Giden webhook uçları, olaylar, teslim logları, tekrar gönderim', route('panel.settings.webhooks.index'), true],
     ['Güvenlik', '2FA zorunluluğu, oturum, şifre politikası', route('panel.settings.index', ['grup' => 'security']), true],
     ['Medya', 'Medya kütüphanesi, otomatik boyutlandırma', route('panel.content.media.index'), true],
     ['E-posta', 'SMTP / sağlayıcı bağlantısı ve test', route('panel.settings.api').'#mail', true],

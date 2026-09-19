@@ -7,6 +7,8 @@ use App\Integrations\Google\ServiceAccountAuth;
 use App\Models\IntegrationLog;
 use App\Models\IntegrationSyncState;
 use App\Models\User;
+use App\Models\WebhookDelivery;
+use App\Models\WebhookEndpoint;
 use App\Models\WebhookEvent;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -62,6 +64,10 @@ class IntegrationHub
         $enabled = true;
         $source = 'env';
 
+        if ($key === 'webhook_out') {
+            return $this->outgoingWebhookStatus();
+        }
+
         if ($def['kind'] === 'link') {
             return ['state' => 'link', 'state_label' => self::STATES['link'], 'enabled' => true, 'missing' => [], 'last_ok_at' => null, 'last_error_at' => null, 'last_error' => null, 'last_sync_at' => null, 'source' => '—'];
         }
@@ -111,6 +117,37 @@ class IntegrationHub
             'last_error' => $recentError ? (string) $lastFail->error : null,
             'last_sync_at' => $sync?->last_success_at?->toIso8601String(),
             'source' => $source,
+        ];
+    }
+
+    /**
+     * Giden webhook'lar (faz 61c) link değil gerçek durum taşır: aktif uç yok → yapılandırılmadı; son teslimat hatalıysa → hata.
+     *
+     * @return array{state: string, state_label: string, enabled: bool, missing: list<string>, last_ok_at: string|null, last_error_at: string|null, last_error: string|null, last_sync_at: string|null, source: string}
+     */
+    private function outgoingWebhookStatus(): array
+    {
+        $active = WebhookEndpoint::query()->where('is_active', true)->count();
+        $lastOk = WebhookEndpoint::query()->max('last_success_at');
+        $lastFail = WebhookEndpoint::query()->max('last_failure_at');
+        $lastDelivery = WebhookDelivery::query()->whereIn('status', ['success', 'failed'])->latest('id')->first();
+        $lastError = $lastDelivery !== null && $lastDelivery->status === 'failed' ? (string) $lastDelivery->error : null;
+        $state = match (true) {
+            $active === 0 => 'unconfigured',
+            $lastError !== null => 'error',
+            default => 'connected',
+        };
+
+        return [
+            'state' => $state,
+            'state_label' => self::STATES[$state],
+            'enabled' => $active > 0,
+            'missing' => $active === 0 ? ['aktif uç'] : [],
+            'last_ok_at' => $lastOk !== null ? (string) $lastOk : null,
+            'last_error_at' => $lastFail !== null ? (string) $lastFail : null,
+            'last_error' => $state === 'error' ? $lastError : null,
+            'last_sync_at' => null,
+            'source' => 'panel',
         ];
     }
 

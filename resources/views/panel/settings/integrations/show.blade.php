@@ -25,7 +25,8 @@
         <div class="panel">
             <p style="margin:0 0 12px">Bu entegrasyon başka bir ekranda yönetilir.</p>
             @if (($def['link'] ?? '') === 'webhooks')
-                <a href="{{ route('panel.settings.api') }}" class="btn btn--brand">Webhook merkezi</a>
+                <a href="{{ route('panel.settings.webhooks.index') }}" class="btn btn--brand">Webhook merkezi</a>
+                <a href="{{ route('panel.settings.integrations.health') }}" class="btn btn--ghost">Gelen webhook olayları</a>
             @elseif (($def['link'] ?? '') === 'chrome')
                 <a href="{{ route('panel.settings.chrome.header') }}" class="btn btn--brand">Header & footer (sosyal bağlantılar)</a>
                 <a href="{{ route('panel.seo.settings.home', ['sekme' => 'varlik']) }}" class="btn btn--ghost">GEO varlık (sameAs)</a>

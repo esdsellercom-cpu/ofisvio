@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **354/354** (Unit 12 · Feature 326 · Architecture 16) |
+| `php artisan test` | ✅ **362/362** (Unit 27 · Feature 319 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -1011,6 +1011,34 @@ değil DB'de (MockDataDetectionTest).
 
 ---
 
+### 61. Header & footer global yönetimi + Entegrasyon merkezi + Webhook merkezi ✅ (19 Eylül 2026)
+
+- **61a Header & footer** (`/panel/ayarlar/header`, `/panel/ayarlar/footer`): tek kaynak `websites.header_config` /
+  `footer_config` (yayın) + `builder_globals[header|footer]` (taslak), sürümler `site_chrome_versions` (geri al),
+  yalnız `SiteChromeService` yazar (href allowlist, hex renk, medya sahipliği, audit). Header: logo/mobil logo, menü
+  (dropdown, mega, sürükle-bırak), CTA, telefon/e-posta, sosyal, sticky/statik/şeffaf, renkler, aktif menü; footer:
+  kolonlar (+ Kolon ekle), sosyal, bülten (`POST /bulten` → lead `newsletter`), yasal bağlantılar, copyright. Vitrinde
+  `data-le-area` ile canlı düzenleme köprüsü ("Bu değişiklik tüm sitede uygulanacaktır"). Ayarlar haritası kartları.
+- **61b Entegrasyon merkezi** (`/panel/ayarlar/api`): `IntegrationRegistry` (kategori: ödeme, e-posta, SMS, harita,
+  analytics, CRM, AI, depolama, sosyal, webhook; her servis kendi alan şeması), `IntegrationHub` (durum 🟢 Bağlı /
+  🟡 Yapılandırılmadı / 🔴 Hata / ⚪ Pasif, son bağlantı/senkron/hata, Bağlan → bilgileri gir → test et → aktifleştir,
+  Gelişmiş ayarlar), `IntegrationConfigRepository` (`integration_settings` + `integration_secrets` APP_KEY ile
+  şifreli; panel değeri env'in önüne geçer; audit yalnız alan adı), `SecretStore` birleşik okuma, SMTP/S3 çalışma
+  zamanına uygulanır. Bağlantı testi Gateway üzerinden (AI, Google servis hesabı, S3, SMTP, gateway yoklama),
+  kullanıcı dostu hata. Entegrasyon sağlığı ve API log/izleme ekranları. İzinler `integrations.view/manage`,
+  `secrets.manage`. Eski env/çekirdek ekranı `/panel/ayarlar/api/cekirdek`.
+- **61c Webhook merkezi** (`/panel/ayarlar/webhooks`, `webhooks.manage`): `webhook_endpoints` (URL https + genel
+  ana bilgisayar, secret şifreli ve yalnız üretildiği anda bir kez gösterilir, olaylar, aktif/pasif, retry, timeout),
+  `webhook_deliveries` (durum, deneme, HTTP, süre, hata, sonraki deneme; saklanan payload kişisel veriyi maskeler,
+  gönderilen gövde şifreli kopya). Olay kaydı `App\Webhooks\WebhookEvents` (üye oluşturuldu/güncellendi, ödeme alındı,
+  ödeme gecikti, franchise başvurusu, form gönderildi, içerik yayınlandı, lokasyon oluşturuldu, rezervasyon
+  oluşturuldu), yayım `WebhookDispatcher::emit` (servislerden + dinleyiciler), teslimat `DeliverWebhook` kuyruğu →
+  `Gateway::deliver` (HMAC `X-Ofisvio-Signature: t=…,v1=…`, SSRF, yönlendirme yok, gövde loglanmaz), artan aralıkla
+  yeniden deneme (1 dk → 12 sa), panelden test gönderimi ve başarısızı tekrar gönderme, 30 gün budama. Gelen webhook
+  gövde sınırı 256 KB (413). Entegrasyon sağlığında `webhook_out` gerçek durum taşır.
+- Testler: SiteChromeTest, IntegrationHubTest, WebhookCenterTest (+8) → **362/362**.
+
+---
 ## FRONTEND FAZLARI
 
 | # | Frontend fazı | Durum |

@@ -16,6 +16,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserRole;
 use App\Support\Money;
+use App\Webhooks\WebhookDispatcher;
 use Carbon\CarbonInterface;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
@@ -48,6 +49,7 @@ class MemberCenterService
         private readonly ContentService $contents,
         private readonly AuditService $audit,
         private readonly TenantContext $context,
+        private readonly WebhookDispatcher $webhooks,
     ) {}
 
     // ---- Görünürlük ------------------------------------------------------------------
@@ -156,8 +158,10 @@ class MemberCenterService
         }
 
         $this->audit->record($actor, 'member.created', 'user_role', $member->id, [], ['company_id' => $company->id, 'user_id' => $member->user_id, 'invited' => $result['invited']]);
+        $member->load(['user', 'role', 'company', 'profile']);
+        $this->webhooks->emit('member.created', $this->webhookPayload($member));
 
-        return $member->load(['user', 'role', 'company', 'profile']);
+        return $member;
     }
 
     /** @param  array<string, mixed>  $data */
@@ -180,8 +184,30 @@ class MemberCenterService
 
         $this->saveProfile($actor, $member, $data, $avatar, false);
         $this->audit->record($actor, 'member.updated', 'user_role', $member->id, $before, ['name' => $name, 'status' => $member->fresh()->status]);
+        $member->refresh()->load(['user', 'role', 'company', 'profile']);
+        $this->webhooks->emit('member.updated', $this->webhookPayload($member));
 
-        return $member->refresh()->load(['user', 'role', 'company', 'profile']);
+        return $member;
+    }
+
+    /**
+     * Giden webhook gövdesi (faz 61c): üye kimliği, şirket, rol, durum, iletişim (log kopyasında maskelenir).
+     *
+     * @return array<string, mixed>
+     */
+    private function webhookPayload(UserRole $member): array
+    {
+        return [
+            'member_id' => $member->id,
+            'member_number' => $member->profile?->member_no,
+            'user_id' => $member->user_id,
+            'company_id' => $member->company_id,
+            'organization_id' => $member->organization_id,
+            'role' => $member->role?->name,
+            'status' => $member->status,
+            'name' => $member->user?->name,
+            'email' => $member->user?->email,
+        ];
     }
 
     /** @param  array<string, mixed>  $data */

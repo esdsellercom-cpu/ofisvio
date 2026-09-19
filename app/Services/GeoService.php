@@ -9,6 +9,7 @@ use App\Models\Room;
 use App\Models\Service;
 use App\Models\Space;
 use App\Models\Website;
+use App\Webhooks\WebhookDispatcher;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -27,7 +28,7 @@ use Illuminate\Support\Str;
  */
 class GeoService
 {
-    public function __construct(private readonly SeoSettingsService $seoSettings, private readonly AuditService $audit, private readonly UrlHistoryService $urls) {}
+    public function __construct(private readonly SeoSettingsService $seoSettings, private readonly AuditService $audit, private readonly UrlHistoryService $urls, private readonly WebhookDispatcher $webhooks) {}
 
     /** @return Collection<int, Location> */
     public function publishedLocations(): Collection
@@ -59,6 +60,7 @@ class GeoService
         $location->save();
 
         $this->audit->record(null, 'location.created', 'location', $location->id, [], ['name' => $location->name]);
+        $this->webhooks->emit('location.created', ['location_id' => $location->id, 'name' => $location->name, 'slug' => $location->slug, 'city' => $location->city, 'district' => $location->district, 'is_published' => false]);
 
         return $location;
     }

@@ -47,4 +47,3 @@ subscription.downgrade | Üyelik düşürme akışı
 subscription.override | Üyelik istisna/kampanya (JIT)
 subscription.upgrade | Üyelik yükseltme akışı
 visitor.checkin | Ziyaretçi kaydı (resepsiyon)
-webhooks.manage | Webhook merkezi (faz 61c: giden uçlar, test gönderimi, tekrar gönderim)

@@ -73,6 +73,7 @@ use App\Http\Controllers\Panel\SpaceController;
 use App\Http\Controllers\Panel\SubscriptionController;
 use App\Http\Controllers\Panel\SystemController;
 use App\Http\Controllers\Panel\UserController;
+use App\Http\Controllers\Panel\WebhookCenterController;
 use App\Http\Controllers\Panel\WebsiteController;
 use Illuminate\Support\Facades\Route;
 
@@ -281,6 +282,20 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
         Route::get('/ayarlar/entegrasyonlar/{key}', [IntegrationHubController::class, 'show'])->where('key', '[a-z_]+')->middleware('permission:integrations.view|integrations.manage')->name('settings.integrations.show');
         Route::post('/ayarlar/entegrasyonlar/{key}', [IntegrationHubController::class, 'save'])->where('key', '[a-z_]+')->middleware('permission:integrations.manage')->name('settings.integrations.save');
         Route::post('/ayarlar/entegrasyonlar/{key}/test', [IntegrationHubController::class, 'test'])->where('key', '[a-z_]+')->middleware(['permission:integrations.manage', 'throttle:20,1'])->name('settings.integrations.test');
+        // Faz 61c — Webhook merkezi: uç CRUD, test gönderimi, teslimat logu, tekrar gönderim (webhooks.manage).
+        Route::prefix('/ayarlar/webhooks')->middleware('permission:webhooks.manage')->name('settings.webhooks.')->group(function () {
+            Route::get('/', [WebhookCenterController::class, 'index'])->name('index');
+            Route::get('/yeni', [WebhookCenterController::class, 'create'])->name('create');
+            Route::post('/', [WebhookCenterController::class, 'store'])->name('store');
+            Route::get('/teslimatlar', [WebhookCenterController::class, 'deliveries'])->name('deliveries');
+            Route::post('/teslimatlar/{delivery}/tekrar', [WebhookCenterController::class, 'resend'])->middleware('throttle:20,1')->name('resend');
+            Route::get('/{endpoint}', [WebhookCenterController::class, 'edit'])->whereNumber('endpoint')->name('edit');
+            Route::post('/{endpoint}', [WebhookCenterController::class, 'update'])->whereNumber('endpoint')->name('update');
+            Route::post('/{endpoint}/durum', [WebhookCenterController::class, 'toggle'])->whereNumber('endpoint')->name('toggle');
+            Route::post('/{endpoint}/test', [WebhookCenterController::class, 'test'])->whereNumber('endpoint')->middleware('throttle:20,1')->name('test');
+            Route::post('/{endpoint}/sil', [WebhookCenterController::class, 'destroy'])->whereNumber('endpoint')->name('destroy');
+        });
+
         // Çekirdek bağlantılar (env tabanlı bilgi ekranı; faz 52): DB, önbellek, kuyruk, zamanlayıcı, tarayıcı.
         Route::get('/ayarlar/api/cekirdek', [SystemController::class, 'api'])->middleware('permission:settings.view|settings.manage')->name('settings.api.core');
         Route::post('/ayarlar/api/{key}/test', [SystemController::class, 'test'])->where('key', '[a-z_]+')->middleware(['permission:settings.manage', 'throttle:20,1'])->name('settings.api.test');

@@ -12,6 +12,7 @@ use App\Models\Scopes\TenantScope;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\Money;
+use App\Webhooks\WebhookDispatcher;
 use DomainException;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -44,6 +45,7 @@ class InvoiceService
         private readonly MembershipService $members,
         private readonly CompanyActivationService $activation,
         private readonly BookingService $bookings,
+        private readonly WebhookDispatcher $webhooks,
     ) {}
 
     /**
@@ -359,6 +361,7 @@ class InvoiceService
             $this->audit->record($actor, 'payment.recorded', 'payment', $payment->id, [], $payment->toArray());
             $this->audit->record($actor, $invoice->status === 'paid' ? 'invoice.paid' : 'invoice.partially_paid', 'invoice', $invoice->id, $before, $invoice->toArray());
             $this->syncBookingPayment($invoice, $invoice->status === 'paid' ? 'paid' : 'partial');
+            $this->webhooks->emit('payment.received', ['payment_id' => $payment->id, 'invoice_id' => $invoice->id, 'invoice_number' => $invoice->number, 'company_id' => $invoice->company_id, 'amount' => $amount, 'currency' => (string) $invoice->currency, 'method' => (string) $data['method'], 'paid_on' => (string) $data['paid_on'], 'invoice_status' => $invoice->status, 'outstanding' => $invoice->outstanding()]);
 
             if ($invoice->status === 'paid') {
                 DB::afterCommit(fn () => $this->notify('invoice.paid', $invoice));
@@ -458,6 +461,7 @@ class InvoiceService
             $invoice->fill(['status' => 'overdue'])->save();
             $this->audit->record(null, 'invoice.overdue', 'invoice', $invoice->id, $before, $invoice->toArray());
             $this->notify('invoice.overdue', $invoice);
+            $this->webhooks->emit('invoice.overdue', ['invoice_id' => $invoice->id, 'invoice_number' => $invoice->number, 'company_id' => $invoice->company_id, 'total' => $invoice->total, 'outstanding' => $invoice->outstanding(), 'currency' => (string) $invoice->currency, 'due_on' => $invoice->due_on?->toDateString()]);
             $n++;
         }
 
