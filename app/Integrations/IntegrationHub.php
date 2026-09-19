@@ -30,6 +30,7 @@ class IntegrationHub
         private readonly SecretStore $secrets,
         private readonly ConnectionTester $tester,
         private readonly Gateway $gateway,
+        private readonly IntegrationRuntime $runtime,
     ) {}
 
     /**
@@ -261,7 +262,6 @@ class IntegrationHub
         return $result;
     }
 
-    /** Çekirdek alanların çalışma zamanı uygulaması (mail / S3): boot'ta; DB yoksa sessizce atlar. */
     /**
      * Ayar ekranındaki son istekler: sağlayıcının kendi istekleri + bağlantı testleri.
      *
@@ -305,41 +305,10 @@ class IntegrationHub
         return WebhookEvent::query()->latest('id')->limit(10)->get();
     }
 
+    /** Çekirdek (mail/S3) alanlarını çalışma zamanı config'ine uygular — boot'ta IntegrationRuntime çağrılır. */
     public function applyRuntime(): void
     {
-        try {
-            $mail = $this->repository->for('mail');
-            $map = ['host' => 'mail.mailers.smtp.host', 'port' => 'mail.mailers.smtp.port', 'username' => 'mail.mailers.smtp.username', 'encryption' => 'mail.mailers.smtp.encryption', 'from_name' => 'mail.from.name', 'from_address' => 'mail.from.address'];
-
-            foreach ($map as $field => $configKey) {
-                if (isset($mail['config'][$field]) && trim((string) $mail['config'][$field]) !== '') {
-                    config([$configKey => $field === 'port' ? (int) $mail['config'][$field] : ($field === 'encryption' && $mail['config'][$field] === 'none' ? null : $mail['config'][$field])]);
-                }
-            }
-
-            if (isset($mail['secrets']['password'])) {
-                config(['mail.mailers.smtp.password' => $mail['secrets']['password']]);
-            }
-
-            if ($mail['config'] !== [] && in_array((string) config('mail.default'), ['log', 'array'], true) && isset($mail['config']['host'])) {
-                config(['mail.default' => 'smtp']); // panelden SMTP girildiyse log sürücüsü yerine gerçek gönderim
-            }
-
-            $storage = $this->repository->for('storage');
-            $s3 = ['key' => 'filesystems.disks.s3.key', 'bucket' => 'filesystems.disks.s3.bucket', 'region' => 'filesystems.disks.s3.region', 'endpoint' => 'filesystems.disks.s3.endpoint', 'url' => 'filesystems.disks.s3.url'];
-
-            foreach ($s3 as $field => $configKey) {
-                if (isset($storage['config'][$field]) && trim((string) $storage['config'][$field]) !== '') {
-                    config([$configKey => $storage['config'][$field]]);
-                }
-            }
-
-            if (isset($storage['secrets']['secret'])) {
-                config(['filesystems.disks.s3.secret' => $storage['secrets']['secret']]);
-            }
-        } catch (Throwable) {
-            // Boot sırasında DB/anahtar sorunu uygulamayı düşürmez; panel durumu "yapılandırılmadı" gösterir.
-        }
+        $this->runtime->apply();
     }
 
     // ---- yardımcılar ----------------------------------------------------------------------------

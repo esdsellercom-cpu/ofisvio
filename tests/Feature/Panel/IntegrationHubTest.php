@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Panel;
 
+use App\Integrations\ConnectionTester;
 use App\Integrations\IntegrationConfigRepository;
 use App\Integrations\IntegrationHub;
 use App\Integrations\SecretStore;
@@ -133,6 +134,11 @@ class IntegrationHubTest extends TestCase
     #[Test]
     public function smtp_ayari_calisma_zamani_configine_uygulanir_ve_secret_yetkisi_ayridir(): void
     {
+        // Boot (AppServiceProvider) yalnız IntegrationRuntime çözer: ConnectionTester → MalwareScanner zinciri .env'siz composer
+        // `package:discover` (production varsayımı, KYC_SCANNER denetimi) sırasında tetiklenmemeli — CI kırılmıştı (faz 61c).
+        $this->assertFalse($this->app->resolved(ConnectionTester::class));
+        $this->assertFalse($this->app->resolved(IntegrationHub::class));
+
         $admin = $this->staff('system_admin');
         $base = '/panel/ayarlar/entegrasyonlar/mail';
 
