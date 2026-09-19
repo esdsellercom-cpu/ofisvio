@@ -107,7 +107,9 @@ class PerformanceCenterTest extends TestCase
         $this->actingAs($admin)->get('/panel/performans/merkez')->assertOk()->assertSee('Performans dashboard')->assertSee('Vitrin TTFB p50 / p95')->assertSee('40 / 120 ms')->assertSee('%50')->assertSee('DB gecikmesi');
         $this->actingAs($admin)->get('/panel/performans/sorgular')->assertOk()->assertSee('site.home')->assertSee('7');
         $this->actingAs($admin)->get('/panel/performans/yavas-sorgular')->assertOk()->assertSee('select * from contents where website_id = ?')->assertSee('240 ms');
-        $this->actingAs($admin)->get('/panel/performans/redis')->assertOk()->assertSee('Redis yapılandırılmamış');
+        // Yerelde CACHE_STORE=array → "yapılandırılmamış"; CI Redis ile koşar (quality-gate.yml) → gerçek INFO özeti ve "bağlı".
+        $redis = $this->actingAs($admin)->get('/panel/performans/redis')->assertOk();
+        config('cache.default') === 'redis' ? $redis->assertSee('bağlı')->assertSee('İsabet oranı') : $redis->assertSee('Redis yapılandırılmamış');
         $this->actingAs($admin)->get('/panel/performans/http-onbellek')->assertOk()->assertSee('Geçersizleme kaskadı')->assertSee('max-age');
         $this->actingAs($admin)->get('/panel/performans/varliklar')->assertOk()->assertSee('css/ofisvio.css')->assertSee('gzip');
         $this->actingAs($admin)->get('/panel/performans/denetim')->assertOk()->assertSee('Config önbelleği')->assertSee('OPcache')->assertSee('APP_DEBUG');
