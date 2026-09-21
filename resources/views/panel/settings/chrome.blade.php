@@ -216,5 +216,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset_v('js/chrome-editor.js') }}" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/chrome-editor.js') }}" defer></script>
 @endpush

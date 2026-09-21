@@ -37,8 +37,9 @@ class SecurityHeaders
 
         $csp = [
             "default-src 'self'",
-            // audit F-11: satır içi script yalnız nonce ile; 'strict-dynamic' nonce'lu scriptin yüklediklerine (GTM) izin verir, 'self' + host listesi eski tarayıcılar için kalır.
-            "script-src 'self' 'nonce-".$nonce."' 'strict-dynamic'".$analytics,
+            // audit F-11: satır içi script yalnız nonce ile; dış script 'self' + analitik host listesi (strict-dynamic YOK — host allowlist'i
+            // devre dışı bırakıp nonce'suz <script src> etiketlerini engelliyordu; tarayıcıda görüldü). Her <script src> yine nonce taşır.
+            "script-src 'self' 'nonce-".$nonce."'".$analytics,
             "style-src 'self' 'unsafe-inline' ".implode(' ', (array) ($cfg['style_src'] ?? [])),
             "font-src 'self' data: ".implode(' ', (array) ($cfg['font_src'] ?? [])),
             "img-src 'self' data: https:",

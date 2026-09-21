@@ -87,6 +87,6 @@
         </form>
     </div>
 </div>
-<script src="{{ asset_v('js/live-edit.js') }}" defer></script>
+<script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/live-edit.js') }}" defer></script>
 @endif
 <link rel="stylesheet" href="{{ asset_v('css/live-edit.css') }}">

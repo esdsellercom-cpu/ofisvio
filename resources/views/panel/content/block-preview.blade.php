@@ -26,5 +26,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset_v('js/cms.js') }}" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/cms.js') }}" defer></script>
 @endpush

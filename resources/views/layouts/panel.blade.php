@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
     <link rel="stylesheet" href="{{ asset_v('css/ofisvio.css') }}">
     <link rel="stylesheet" href="{{ asset_v('css/panel.css') }}">
-    <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
-    <script src="{{ asset_v('js/panel.js') }}" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/ofisvio.js') }}" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/panel.js') }}" defer></script>
     @stack('scripts')
 </head>
 <body class="panel-body">

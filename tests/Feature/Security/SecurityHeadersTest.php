@@ -54,11 +54,13 @@ class SecurityHeadersTest extends TestCase
 
         $site = $this->get('http://localhost/')->assertOk();
         $csp = (string) $site->headers->get('Content-Security-Policy');
-        $this->assertMatchesRegularExpression("/script-src 'self' 'nonce-([A-Za-z0-9]{24})' 'strict-dynamic'/", $csp);
+        $this->assertMatchesRegularExpression("/script-src 'self' 'nonce-([A-Za-z0-9]{24})'(?! 'strict-dynamic')/", $csp); // strict-dynamic YOK: 'self' dış scriptleri için gerekli
         preg_match("/'nonce-([A-Za-z0-9]{24})'/", $csp, $m);
         $this->assertStringNotContainsString("script-src 'self' 'unsafe-inline'", $csp);
         $html = $site->getContent();
-        $this->assertDoesNotMatchRegularExpression('/<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)(?![^>]*type="application\/ld\+json")[^>]*>/', $html, 'nonce\'suz satır içi script');
+        $this->assertDoesNotMatchRegularExpression('/<script(?![^>]*\bnonce=)(?![^>]*type="application\/ld\+json")[^>]*>/', $html, 'nonce\x27suz script (satır içi ya da dış)'); // dış scriptler de nonce taşır (tarayıcıda ofisvio.js engellenmişti)
+        $login = $this->get('http://localhost/login')->assertOk()->getContent();
+        $this->assertDoesNotMatchRegularExpression('/<script(?![^>]*\bnonce=)(?![^>]*type="application\/ld\+json")[^>]*>/', $login, 'panel/giriş: nonce\x27suz script');
         $this->assertDoesNotMatchRegularExpression('/\son(click|submit|change|load|input)=/i', $html, 'satır içi olay özniteliği');
 
         // İkinci istek farklı nonce üretir (tahmin edilemez).

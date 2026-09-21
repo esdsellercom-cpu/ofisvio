@@ -213,5 +213,5 @@
 @endsection
 
 @push('scripts')
-    <script src="{{ asset_v('js/site-editor.js') }}" defer></script>
+    <script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/site-editor.js') }}" defer></script>
 @endpush
