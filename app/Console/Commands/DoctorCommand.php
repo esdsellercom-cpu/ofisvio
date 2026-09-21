@@ -363,6 +363,12 @@ class DoctorCommand extends Command
                 : $this->strict($production, 'Saat (DB ↔ uygulama)', $drift.' sn sapma — NTP/chrony ayarlayın (webhook, JIT, 2FA, imzalı URL etkilenir)');
         }
 
+        if (! (bool) config('ofisvio.ops.ntp_check', true)) {
+            $this->add('NTP senkronu', $production ? 'warn' : 'ok', 'Denetim kapalı (OFISVIO_NTP_CHECK=false) — yalnız test/CI konteyneri için; üretimde açık tutun');
+
+            return;
+        }
+
         if (PHP_OS_FAMILY !== 'Linux') {
             $this->add('NTP senkronu', $production ? 'warn' : 'ok', 'Yalnız Linux üzerinde denetlenir (timedatectl/chronyc)');
 

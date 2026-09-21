@@ -126,6 +126,11 @@ return [
      * Güvenlik başlıkları (SecurityHeaders middleware). Dış kaynak listesi burada;
      * yeni bir CDN/gömme eklenirse önce buraya yazılır. HSTS yalnız HTTPS yanıtlarında.
      */
+    // İşletim denetimleri (audit F-04): NTP senkron denetimi yalnız CI/test konteynerinde kapatılır.
+    'ops' => [
+        'ntp_check' => (bool) env('OFISVIO_NTP_CHECK', true),
+    ],
+
     // Yedekleme (audit F-03): yol, retention, şifreleme anahtarı (base64:32 bayt ya da parola).
     'backup' => [
         'path' => env('BACKUP_PATH', storage_path('app/backups')),
