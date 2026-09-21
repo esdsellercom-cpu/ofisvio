@@ -15,7 +15,7 @@
         @error('name')<div class="notice notice--error" role="alert"><span class="notice__dot" aria-hidden="true"></span><div>{{ $message }}</div></div>@enderror
         <div class="grid-auto" style="--min:220px;--gap:12px">
             <label class="field"><span class="label">Ad</span><input class="control" type="text" name="name" value="{{ old('name', $service?->name) }}" required minlength="2" maxlength="80"></label>
-            <label class="field"><span class="label">Fiyat metni (boş: gösterilmez)</span><input class="control mono" type="text" name="price_text" value="{{ old('price_text', $service?->price_text) }}" maxlength="60" placeholder="₺790/ay'dan"></label>
+            <label class="field"><span class="label">Fiyat metni (boş: gösterilmez)</span><input class="control mono" type="text" name="price_text" value="{{ old('price_text', $service?->price_text) }}" maxlength="60" placeholder="örn. {{ money_symbol() }}790/ay başlayan"></label>
             <label class="field"><span class="label">Rezervasyon türü (odalarla bağ)</span>
                 <select class="control" name="booking_kind"><option value="">— rezervasyonsuz —</option>@foreach ($kinds as $k => $l)<option value="{{ $k }}" @selected(old('booking_kind', $service?->booking_kind) === $k)>{{ $l }}</option>@endforeach</select>
             </label>

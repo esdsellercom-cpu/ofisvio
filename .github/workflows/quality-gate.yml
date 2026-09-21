@@ -86,7 +86,13 @@ jobs:
         env:
           CACHE_STORE: redis
           REDIS_HOST: 127.0.0.1
-        run: php artisan test
+        # JUnit raporu → başarısız testler GitHub ek açıklaması olarak görünür (log oturumu gerekmez); çıkış kodu korunur.
+        run: |
+          set +e
+          php artisan test --log-junit=storage/logs/junit.xml
+          code=$?
+          php tests/Support/junit-annotations.php storage/logs/junit.xml
+          exit $code
 
       # Faz 11: süre/bellek/sorgu baseline'ı — kapı değil, karşılaştırma artefaktı.
       - name: Performans baseline

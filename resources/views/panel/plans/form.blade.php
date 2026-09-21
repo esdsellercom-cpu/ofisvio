@@ -18,7 +18,7 @@
                 <label class="field"><span class="label">Ad</span><input class="control" type="text" name="name" value="{{ old('name', $plan?->name) }}" required maxlength="80" @error('name') aria-invalid="true" @enderror>@error('name')<span class="field-error">{{ $message }}</span>@enderror</label>
                 <label class="field"><span class="label">Özet</span><input class="control" type="text" name="summary" value="{{ old('summary', $plan?->summary) }}" maxlength="300"></label>
                 <div class="grid g3">
-                    <label class="field"><span class="label">Fiyat (₺)</span><input class="control" type="number" step="0.01" name="price" value="{{ old('price', \App\Support\Money::major($plan?->price ?? 0)) }}" min="0" required></label>
+                    <label class="field"><span class="label">Fiyat ({{ money_symbol() }})</span><input class="control" type="number" step="0.01" name="price" value="{{ old('price', \App\Support\Money::major($plan?->price ?? 0)) }}" min="0" required></label>
                     <label class="field"><span class="label">Dönem</span>
                         <select class="control" name="period">
                             @foreach ($periods as $k => $label)<option value="{{ $k }}" @selected(old('period', $plan?->period ?? 'monthly') === $k)>{{ $label }}</option>@endforeach

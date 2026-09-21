@@ -13,6 +13,14 @@ if (! function_exists('money')) {
     }
 }
 
+if (! function_exists('money_symbol')) {
+    /** Para birimi simgesi (ayardan) — form etiketleri: Tutar ({{ money_symbol() }}) */
+    function money_symbol(): string
+    {
+        return Money::symbol();
+    }
+}
+
 if (! function_exists('csp_nonce')) {
     /** CSP nonce (audit F-11): satır içi <script nonce="{{ csp_nonce() }}">; SecurityHeaders aynı değeri başlığa yazar. */
     function csp_nonce(): string

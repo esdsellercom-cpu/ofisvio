@@ -19,7 +19,7 @@
         <input class="control" type="text" name="badge" value="{{ old('badge', $loc?->badge) }}" maxlength="120" placeholder="amiral kat · 14. kat terası">
     </label>
     <label class="field"><span class="label">Fiyat metni</span>
-        <input class="control mono" type="text" name="price_from" value="{{ old('price_from', $loc?->price_from) }}" maxlength="48" placeholder="Masa ₺4.900/ay">
+        <input class="control mono" type="text" name="price_from" value="{{ old('price_from', $loc?->price_from) }}" maxlength="48" placeholder="örn. Masa {{ money_symbol() }}4.900/ay">
     </label>
     <label class="field"><span class="label">Sıra</span>
         <input class="control mono" type="number" name="sort_order" value="{{ old('sort_order', $loc?->sort_order ?? 0) }}" min="0" max="9999">

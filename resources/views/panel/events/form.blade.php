@@ -28,7 +28,7 @@
                         <select class="control" name="room_id"><option value="">—</option>@foreach ($rooms as $r)<option value="{{ $r->id }}" @selected((int) old('room_id', $event?->room_id) === $r->id)>{{ $r->location->name }} · {{ $r->name }}</option>@endforeach</select>
                     </label>
                     <label class="field"><span class="label">Kontenjan (boş = sınırsız)</span><input class="control" type="number" name="capacity" value="{{ old('capacity', $event?->capacity) }}" min="1" max="5000"></label>
-                    <label class="field"><span class="label">Ücret (₺, 0 = ücretsiz)</span><input class="control" type="number" step="0.01" name="price" value="{{ old('price', \App\Support\Money::major($event?->price ?? 0)) }}" min="0"></label>
+                    <label class="field"><span class="label">Ücret ({{ money_symbol() }}, 0 = ücretsiz)</span><input class="control" type="number" step="0.01" name="price" value="{{ old('price', \App\Support\Money::major($event?->price ?? 0)) }}" min="0"></label>
                 </div>
                 <label class="field"><span class="label">Kapak görseli (medya kütüphanesi)</span>
                     <select class="control" name="cover_media_id"><option value="">— yok —</option>@foreach ($mediaOptions as $m)<option value="{{ $m->id }}" @selected((string) old('cover_media_id', $event?->cover_media_id) === (string) $m->id)>{{ $m->original_name }} ({{ $m->width }}×{{ $m->height }})</option>@endforeach</select>

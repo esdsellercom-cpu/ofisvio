@@ -155,6 +155,13 @@ class MockDataDetectionTest extends TestCase
             }
         }
 
+        // Audit F-21: para birimi simgesi görünümde sabit yazılmaz — money()/money_symbol() ayardan (general.currency) üretir.
+        foreach (self::files('resources/views', '/\.blade\.php$/') as $path) {
+            if (str_contains((string) file_get_contents($path), '₺')) {
+                $offenders[] = str_replace(dirname(__DIR__, 2).DIRECTORY_SEPARATOR, '', $path).': sabit para simgesi ₺ (money_symbol() kullanın)';
+            }
+        }
+
         $offenders = array_values(array_unique($offenders));
         $this->assertSame([], $offenders, "Kaynak kodda sabit ticari veri:\n".implode("\n", $offenders));
     }

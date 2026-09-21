@@ -73,6 +73,14 @@ final class Money
         return (int) round($minor * $rate / 100);
     }
 
+    /** Ayardaki para biriminin simgesi (₺/€/$; tanımsızsa kod) — panel form etiketleri için (audit F-21). */
+    public static function symbol(?string $currency = null): string
+    {
+        $currency = strtoupper($currency ?? self::currency());
+
+        return self::SYMBOLS[$currency] ?? $currency;
+    }
+
     public static function currency(): string
     {
         return self::$currency ??= app(SettingsService::class)->string('general.currency');

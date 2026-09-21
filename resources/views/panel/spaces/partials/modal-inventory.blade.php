@@ -40,7 +40,7 @@
                 <label class="field"><span class="label">Kat</span><input class="control" type="text" name="floor" value="{{ old('floor') }}" maxlength="30" placeholder="2"></label>
                 <label class="field"><span class="label">Alan / bölüm</span><input class="control" type="text" name="zone" value="{{ old('zone') }}" maxlength="60" placeholder="Pencere kenarı"></label>
                 <label class="field"><span class="label">Kapasite</span><input class="control mono" type="number" name="capacity" value="{{ old('capacity', 1) }}" min="1" max="500"></label>
-                <label class="field"><span class="label">Aylık ücret (₺)</span><input class="control mono" type="number" step="0.01" name="monthly_price" value="{{ old('monthly_price', 0) }}" min="0"></label>
+                <label class="field"><span class="label">Aylık ücret ({{ money_symbol() }})</span><input class="control mono" type="number" step="0.01" name="monthly_price" value="{{ old('monthly_price', 0) }}" min="0"></label>
                 <label class="field"><span class="label">Durum</span>
                     <select class="control" name="status">
                         <option value="active" @selected(old('status', 'active') === 'active')>Aktif</option>
@@ -59,7 +59,7 @@
             {{-- Oda alanları --}}
             <div class="grid-auto" style="--min:150px;--gap:10px" data-when="kind:{{ implode(',', array_keys($roomKinds)) }}">
                 <label class="field"><span class="label">Kapasite (kişi)</span><input class="control mono" type="number" name="capacity" value="{{ old('capacity', 4) }}" min="1" max="500"></label>
-                <label class="field"><span class="label">Saatlik ücret (₺)</span><input class="control mono" type="number" step="0.01" name="hourly_rate" value="{{ old('hourly_rate', 0) }}" min="0"></label>
+                <label class="field"><span class="label">Saatlik ücret ({{ money_symbol() }})</span><input class="control mono" type="number" step="0.01" name="hourly_rate" value="{{ old('hourly_rate', 0) }}" min="0"></label>
                 <label class="field"><span class="label">Açılış</span><input class="control mono" type="time" name="open_from" value="{{ old('open_from', '09:00') }}"></label>
                 <label class="field"><span class="label">Kapanış</span><input class="control mono" type="time" name="open_until" value="{{ old('open_until', '18:00') }}"></label>
                 <label class="field"><span class="label">Slot (dk)</span>

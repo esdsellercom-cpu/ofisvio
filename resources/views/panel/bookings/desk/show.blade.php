@@ -130,7 +130,7 @@
                         <details>
                             <summary class="small" style="cursor:pointer">İndirim uygula</summary>
                             <form method="POST" action="{{ route('panel.bookings.discount', [$location, $b->id]) }}" class="stack" style="gap:8px;margin-top:8px">@csrf @method('PUT')
-                                <input class="control mono" type="number" name="discount" value="{{ \App\Support\Money::major($b->discount_amount) }}" min="0" step="0.01" placeholder="₺ (brüt {{ money($b->subtotal()) }})" required>
+                                <input class="control mono" type="number" name="discount" value="{{ \App\Support\Money::major($b->discount_amount) }}" min="0" step="0.01" placeholder="{{ money_symbol() }} (brüt {{ money($b->subtotal()) }})" required>
                                 <input class="control" type="text" name="reason" value="{{ $b->discount_reason }}" minlength="3" maxlength="200" placeholder="Gerekçe (üye indirimi, iyi niyet…)" required>
                                 <button type="submit" class="btn btn--ghost btn--block">İndirimi kaydet</button>
                             </form>
