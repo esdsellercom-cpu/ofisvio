@@ -37,13 +37,13 @@ foreach ($xml->xpath('//testcase') as $case) {
                         continue;
                     }
 
-                    if (str_contains($line, '| ✗ |') || str_contains($line, 'kontrol ·') || str_contains($line, 'Failed asserting') || str_contains($line, 'does not contain') || str_starts_with($line, 'Tests\\') || str_starts_with($line, '-') || str_starts_with($line, '+')) {
+                    if (str_contains($line, '| ✗ |') || str_contains($line, '| ! |') || str_contains($line, 'Yedek') || str_contains($line, 'kontrol ·') || str_contains($line, 'Failed asserting') || str_contains($line, 'does not contain') || str_starts_with($line, 'Tests\\') || str_starts_with($line, '-') || str_starts_with($line, '+')) {
                         $keep[] = $line;
                     }
                 }
 
                 if ($keep !== []) {
-                    $raw = implode(' || ', array_slice($keep, 0, 12));
+                    $raw = implode(' || ', array_slice($keep, 0, 20));
                 }
             }
 
