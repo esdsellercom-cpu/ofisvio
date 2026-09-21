@@ -133,7 +133,7 @@ return [
 
     // Yedekleme (audit F-03): yol, retention, şifreleme anahtarı (base64:32 bayt ya da parola).
     'backup' => [
-        'path' => env('BACKUP_PATH', storage_path('app/backups')),
+        'path' => env('BACKUP_PATH') ?: storage_path('app/backups'), // boş env (.env.example) = varsayılan
         'keep_days' => (int) env('BACKUP_KEEP_DAYS', 30),
         'keep_min' => (int) env('BACKUP_KEEP_MIN', 3),
         'encryption_key' => env('BACKUP_ENCRYPTION_KEY', ''),

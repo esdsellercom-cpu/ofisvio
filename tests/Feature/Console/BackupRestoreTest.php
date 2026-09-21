@@ -52,6 +52,9 @@ class BackupRestoreTest extends TestCase
         File::put($this->root.'/storage/app/public/media/1/kapak.png', 'PNG');
 
         $service = app(BackupService::class);
+        config(['ofisvio.backup.path' => '']); // boş yol (CI .env.example) → varsayılan dizin, mkdir('') hatası yok
+        $this->assertStringEndsWith('backups', $service->directory());
+        config(['ofisvio.backup.path' => $this->root.'/backups']);
         $created = $service->create();
         $this->assertTrue($created['encrypted']);
         $this->assertFileExists($created['path']);

@@ -36,7 +36,7 @@ class BackupService
 
     public function directory(): string
     {
-        $dir = (string) config('ofisvio.backup.path', storage_path('app/backups'));
+        $dir = trim((string) config('ofisvio.backup.path', '')) ?: storage_path('app/backups');
         File::ensureDirectoryExists($dir, 0700);
 
         return rtrim($dir, '/\\');
