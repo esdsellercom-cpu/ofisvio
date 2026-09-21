@@ -10,6 +10,8 @@ use App\Models\WebhookEndpoint;
 use App\Services\GeoService;
 use App\Services\LeadService;
 use Database\Seeders\WebsiteSeeder;
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\DB;
@@ -166,6 +168,12 @@ class WebhookCenterTest extends TestCase
     #[Test]
     public function gelen_webhook_buyuk_govdeyi_reddeder(): void
     {
+        // Regresyon (smoke buldu): Laravel 13 web grubu PreventRequestForgery — webhooks/* CSRF dışında olmalı, yoksa üretimde 419.
+        // Testte CSRF atlandığından davranış değil, kayıtlı istisna listesi doğrulanır.
+        $never = (new \ReflectionClass(PreventRequestForgery::class))->getStaticPropertyValue('neverVerify');
+        $this->assertContains('webhooks/*', $never, 'gelen webhook CSRF istisnası bootstrap/app.php içinde tanımlı olmalı');
+        $this->assertTrue(in_array(PreventRequestForgery::class, app(Kernel::class)->getMiddlewareGroups()['web'], true));
+
         config(['integrations.providers.sms.enabled' => true, 'integrations.providers.sms.secrets.api_key' => 'x', 'integrations.providers.sms.webhook_secret' => 'gelen-secret']);
         $body = str_repeat('a', 262145);
         $this->call('POST', '/webhooks/sms', [], [], [], ['HTTP_X-Ofisvio-Timestamp' => (string) time(), 'HTTP_X-Ofisvio-Signature' => 'x', 'HTTP_X-Ofisvio-Event-Id' => 'e1', 'CONTENT_TYPE' => 'application/json'], $body)->assertStatus(413);

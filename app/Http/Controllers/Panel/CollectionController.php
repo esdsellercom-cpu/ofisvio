@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Panel;
 
 use App\Documents\DocumentTemplates;
 use App\Http\Controllers\Controller;
+use App\Models\LedgerEntry;
 use App\Models\Payment;
+use App\Services\AuthorizationService;
 use App\Services\DocumentService;
 use App\Services\InvoiceService;
 use App\Services\SubscriptionService;
@@ -29,7 +31,20 @@ class CollectionController extends Controller
         private readonly InvoiceService $invoices,
         private readonly SubscriptionService $subscriptions,
         private readonly DocumentService $documents,
+        private readonly AuthorizationService $authorization,
     ) {}
+
+    /** Defter (audit F-15): ledger.view global ise tüm şirketler, değilse tenant scope. */
+    public function ledger(Request $request): View
+    {
+        $global = $this->authorization->can($request->user(), 'ledger.view');
+
+        return view('panel.collections.ledger', [
+            'entries' => $this->invoices->ledgerEntries(['type' => (string) $request->query('tur', '')], 50, $global),
+            'types' => LedgerEntry::TYPES,
+            'type' => (string) $request->query('tur', ''),
+        ]);
+    }
 
     public function index(Request $request): View
     {

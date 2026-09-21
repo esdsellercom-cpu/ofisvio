@@ -30,6 +30,8 @@ Schedule::command('ofisvio:search-console-sync')->dailyAt('04:00')->withoutOverl
 Schedule::command('ofisvio:analytics-sync')->dailyAt('04:20')->withoutOverlapping()->onOneServer();
 Schedule::command('ofisvio:web-vitals')->weeklyOn(1, '04:40')->withoutOverlapping()->onOneServer();
 Schedule::command('ofisvio:content-refresh-scan')->weeklyOn(1, '05:00')->withoutOverlapping()->onOneServer(); // yenileme adayları (faz 60e)
+// Yedek (audit F-03): günlük, doğrulamalı; BACKUP_PATH sunucu dışına senkronlanır (DEPLOY.md).
+Schedule::command('ofisvio:backup')->dailyAt('02:30')->withoutOverlapping()->onOneServer();
 // Sistem alarmı (audit F-18): doctor hatası / failed_jobs → Bildirim Merkezi system.alert (6 saatte bir tekrar).
 Schedule::command('ofisvio:health-alert')->everyFifteenMinutes()->withoutOverlapping()->onOneServer();
 // KVKK saklama (audit F-09): süresi dolan vitrin kayıtları anonimleşir, eski KYC dosyaları imha (ayarlar › gizlilik).

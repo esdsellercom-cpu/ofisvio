@@ -154,3 +154,72 @@ jobs:
           # 'faker' ve 'dummy' kullanımı gözden geçirilmeli.
           ! grep -rn --include='*.php' -E '\b(fake\(\)|Faker\\)' app/ || \
             (echo "app/ içinde fake data üretimi bulundu — §3 ihlali" && exit 1)
+
+  # --- Audit F-02: sürüm artefaktı — kapı + güvenlik yeşilse main'den imzalı, özetli, kaynağı doğrulanabilir paket.
+  # Deploy sunucuda deploy/deploy.sh ile: sha256 + (gh attestation verify) → bakım → migrate → doctor → smoke → up.
+  release:
+    name: Sürüm artefaktı (sha256 + provenance)
+    needs: [gate, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, dom, intl, pdo_sqlite, zip, gd
+          coverage: none
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Üretim bağımlılıkları ve derleme
+        run: |
+          composer install --no-interaction --prefer-dist --no-progress --no-dev --optimize-autoloader
+          npm ci
+          npm run build
+
+      - name: Paket + manifest + sha256
+        run: |
+          set -euo pipefail
+          BUILD="ofisvio-${GITHUB_SHA::12}-${GITHUB_RUN_NUMBER}"
+          cat > RELEASE.json <<JSON
+          {
+            "name": "${BUILD}",
+            "commit": "${GITHUB_SHA}",
+            "ref": "${GITHUB_REF}",
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_number": "${GITHUB_RUN_NUMBER}",
+            "built_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "composer_lock_sha256": "$(sha256sum composer.lock | cut -d' ' -f1)",
+            "package_lock_sha256": "$(sha256sum package-lock.json | cut -d' ' -f1)"
+          }
+          JSON
+          tar --exclude='./.git' --exclude='./node_modules' --exclude='./tests' --exclude='./storage/logs/*' --exclude='./storage/framework/cache/*' \
+              --exclude='./storage/framework/sessions/*' --exclude='./storage/framework/views/*' --exclude='./.env' --exclude='./database/database.sqlite' \
+              -czf "${BUILD}.tar.gz" .
+          sha256sum "${BUILD}.tar.gz" > "${BUILD}.tar.gz.sha256"
+          echo "BUILD=${BUILD}" >> "$GITHUB_ENV"
+          cat RELEASE.json
+
+      - name: Provenance (SLSA attestation)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: ${{ env.BUILD }}.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BUILD }}
+          path: |
+            ${{ env.BUILD }}.tar.gz
+            ${{ env.BUILD }}.tar.gz.sha256
+            RELEASE.json
+          retention-days: 90

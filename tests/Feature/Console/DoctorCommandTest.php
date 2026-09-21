@@ -9,11 +9,13 @@ use App\Models\Media;
 use App\Models\Website;
 use App\Security\MalwareScanner;
 use App\Security\ScanResult;
+use App\Services\BackupService;
 use App\Services\LegalDocumentService;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Panel\CreatesTenantFixtures;
@@ -80,8 +82,15 @@ class DoctorCommandTest extends TestCase
         $kvkk = Content::create(['website_id' => $site->id, 'kind' => 'page', 'slug' => 'kvkk-aydinlatma', 'title' => 'KVKK aydınlatma metni', 'body' => str_repeat('Kişisel verileriniz. ', 30)]);
         app(LegalDocumentService::class)->publishIfChanged(null, $site, 'kvkk', $kvkk, 'ilk sürüm');
 
+        // Audit F-03: üretimde doğrulanmış yedek zorunlu — yokken hata, gerçek yedek alınıp doğrulanınca ok.
+        [$code, $out] = $this->doctor();
+        $this->assertSame(1, $code, $out);
+        $this->assertStringContainsString('Doğrulanmış yedek yok', $out);
+        $this->seedVerifiedBackup();
+
         [$code, $out] = $this->doctor();
         $this->assertSame(0, $code, $out);
+        $this->assertStringContainsString('son doğrulanmış yedek', $out);
         $this->assertStringContainsString('v1', $out);
         $this->assertStringContainsString('0 hata', $out);
         $this->assertStringContainsString('clamav canlı tarama temiz', $out);
@@ -105,6 +114,7 @@ class DoctorCommandTest extends TestCase
         $late->forceFill(['status' => ContentStatus::SCHEDULED, 'scheduled_for' => now()->subHour()])->save();
         $kvkk = Content::create(['website_id' => $late->website_id, 'kind' => 'page', 'slug' => 'kvkk', 'title' => 'KVKK', 'body' => str_repeat('Metin. ', 20)]);
         app(LegalDocumentService::class)->publishIfChanged(null, Website::query()->default()->firstOrFail(), 'kvkk', $kvkk); // F-07: bu test tarayıcı/zamanlayıcı hatalarını ölçer
+        $this->seedVerifiedBackup(); // F-03: aynı nedenle gerçek, doğrulanmış yedek
 
         [$code, $out] = $this->doctor();
         $this->assertSame(1, $code, $out);
@@ -137,5 +147,20 @@ class DoctorCommandTest extends TestCase
         $row = collect(json_decode($out, true)['rows'])->firstWhere('name', 'Medya dosyaları');
         $this->assertSame('warn', $row['level'] ?? null, $out);
         $this->assertStringContainsString('yok.jpg', (string) ($row['note'] ?? ''));
+    }
+
+    /** Gerçek yedek: dosya tabanlı boş sqlite + geçici depolama; BackupService ile alınır ve doğrulanır (sahte damga yok). */
+    private function seedVerifiedBackup(): void
+    {
+        $root = sys_get_temp_dir().DIRECTORY_SEPARATOR.'ofisvio-doctor-bk-'.bin2hex(random_bytes(4));
+        File::ensureDirectoryExists($root.'/storage/app/private');
+        File::ensureDirectoryExists($root.'/storage/app/public');
+        File::ensureDirectoryExists($root.'/storage/framework');
+        (new \PDO('sqlite:'.$root.'/db.sqlite'))->exec('create table doctor_probe (id integer)'); // gerçek, boş olmayan sqlite dosyası
+        config(['database.connections.sqlite.database' => $root.'/db.sqlite', 'ofisvio.backup.path' => $root.'/backups']);
+        $this->app->useStoragePath($root.'/storage');
+        $created = app(BackupService::class)->create(false);
+        $this->assertTrue(app(BackupService::class)->verify($created['name'])['ok']);
+        config(['database.connections.sqlite.database' => ':memory:']);
     }
 }

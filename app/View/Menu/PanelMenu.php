@@ -78,6 +78,7 @@ class PanelMenu
             ['Finans', [
                 $can('invoice.view') ? $this->item('Tahsilat & üyelik takibi', route('panel.collections.index'), $this->routeIs('panel.collections.*'), $badges['invoices_overdue'] ?? 0, 'c') : null,
                 $can('invoice.view') ? $this->item('Ödemeler & faturalandırma', route('panel.invoices.index'), $this->routeIs('panel.invoices.*')) : null,
+                $can('ledger.view') ? $this->item('Muhasebe defteri', route('panel.collections.ledger'), $this->routeIs('panel.collections.ledger')) : null,
             ]],
             ['Büyüme', [
                 $can('event.view', 'event.manage') ? $this->item('Etkinlikler & topluluk', route('panel.events.index'), $this->routeIs('panel.events.*')) : null,

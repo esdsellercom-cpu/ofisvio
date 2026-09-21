@@ -14,7 +14,7 @@ kuruldu ve artık yalnızca arşivdir.
 |---|---|
 | `./vendor/bin/pint --test` | ✅ |
 | `./vendor/bin/phpstan analyse` (level 6) | ✅ 0 hata |
-| `php artisan test` | ✅ **362/362** (Unit 27 · Feature 319 · Architecture 16) |
+| `php artisan test` | ✅ **370/370** (Unit 27 · Feature 327 · Architecture 16) |
 | `npm run build` | ✅ |
 
 Laravel 13.32 / PHP 8.3.33 / Node 24 / Vite 8. CI: `.github/workflows/quality-gate.yml`
@@ -1037,6 +1037,16 @@ değil DB'de (MockDataDetectionTest).
   yeniden deneme (1 dk → 12 sa), panelden test gönderimi ve başarısızı tekrar gönderme, 30 gün budama. Gelen webhook
   gövde sınırı 256 KB (413). Entegrasyon sağlığında `webhook_out` gerçek durum taşır.
 - Testler: SiteChromeTest, IntegrationHubTest, WebhookCenterTest (+8) → **362/362**.
+
+---
+
+### 62. Final production audit → FIX (`AUDIT-2026-09-21.md`) ✅ (21–22 Eylül 2026)
+
+- **P0:** ödeme kaydı kilit + idempotency (F-01), zamanlayıcı `onOneServer` (F-05), artefakt + provenance + `deploy/deploy.sh` + `ofisvio:smoke` (F-02), `ofisvio:backup/restore` şifreli + doğrulamalı + prova testi (F-03), NTP / DB saat denetimi (F-04).
+- **P0B:** çerez rızası (F-06), yasal metin sürümü + rıza kaydı (F-07), TC kimlik şifreleme + PII audit maskesi (F-08), KVKK saklama/anonimleştirme (F-09); MASAK değerlendirmesi hukuki karar olarak açık (F-10).
+- **P1:** CSP nonce (F-11), TRUSTED_PROXIES (F-12), planlı entegrasyon durumu (F-13), anahtar rotasyonu `ofisvio:reencrypt` (F-14), append-only defter (F-15), CI bağımlılık denetimi (F-16), `ofisvio:install` (F-17), sistem alarmı `ofisvio:health-alert` (F-18), kılık değiştirmiş yükleme testleri + zorunlu yeniden kodlama (F-19), favicon (F-20).
+- Smoke'un bulduğu gerçek hata: gelen webhook CSRF istisnası L13'te çalışmıyordu (419) → `preventRequestForgery(except)`.
+- Testler +8 → **370/370**.
 
 ---
 ## FRONTEND FAZLARI

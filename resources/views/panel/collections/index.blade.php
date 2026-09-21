@@ -10,6 +10,7 @@
             <p>Vadesi geçen ve yaklaşan faturalar, bitişi yaklaşan üyelikler, ay tahsilatı — hepsi canlı toplam.</p>
         </div>
         <div class="panel-head__actions">
+            <a href="{{ route('panel.collections.ledger') }}" class="btn btn--ghost btn--pill">Defter</a>
             {{-- Faz 47: mevcut ekranın üstüne eklenen aksiyonlar (liste/tasarım değişmez) --}}
             @can('payment_allocation.manage')
                 <button type="button" class="btn btn--brand" data-modal-open="#modal-payment" data-title="Manuel tahsilat">+ Manuel tahsilat</button>

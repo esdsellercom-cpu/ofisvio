@@ -29,6 +29,9 @@ betiği bunu kapı olarak kullanır.
 | `ANALYTICS_ENABLED` + `ANALYTICS_SERVICE_ACCOUNT_JSON` | servis hesabı JSON | GA4 Data API (faz 60d); mülk kimliği panelde, servis hesabı GA4'te görüntüleyici |
 | `PAGESPEED_ENABLED` (+ `PAGESPEED_API_KEY`) | `true` | Core Web Vitals ölçümü (haftalık zamanlayıcı) |
 | `AI_ENABLED` + `AI_API_KEY` (+ `AI_MODEL`, `AI_PRICE_*`) | Anthropic anahtarı | AI Content Engine (faz 60e); insan onayı zorunlu, AI yayındaki içeriğe dokunmaz |
+| `TRUSTED_PROXIES` | proxy IP listesi ya da `*` | Ters proxy/CDN arkasında HTTPS algılama (audit F-12) |
+| `BACKUP_PATH` · `BACKUP_ENCRYPTION_KEY` · `BACKUP_KEEP_DAYS` | dış dizin · base64:32 bayt · 30 | Günlük şifreli yedek + doğrulama (§8, audit F-03) |
+| `APP_PREVIOUS_KEYS` | eski APP_KEY (yalnız rotasyon sırasında) | `ofisvio:reencrypt` sonrası kaldırılır (§9, audit F-14) |
 | `GOOGLE_MAPS_ENABLED` + `GOOGLE_MAPS_API_KEY` | Maps Platform anahtarı | Harita/konum (faz 61b); tarayıcıya gitmez, yalnız sunucu tarafı |
 
 **Entegrasyon secret'ları (faz 61b):** tüm sağlayıcı anahtarları panelden de girilebilir (`/panel/ayarlar/api`, `secrets.manage`); panel değerleri `integration_secrets` tablosunda **APP_KEY ile şifreli** saklanır ve env'in önüne geçer. `APP_KEY` değişirse panelde saklanan secret'lar çözülemez ve yeniden girilmelidir — anahtar rotasyonundan önce env'e taşıyın. Giden webhook'lar (faz 61c) kuyruk ister (`queue:work`); teslimat logu 30 gün budanır.
@@ -58,6 +61,17 @@ dediği sürece uygulama KYC yüklemesini reddeder (fail-closed — tasarım ger
 
 ## 3. Kurulum / güncelleme
 
+**Tercih edilen yol: CI artefaktı + `deploy/deploy.sh` (§7).** Elle kurulumda tek komut (audit F-17 — web tabanlı
+`/install` ucu bilinçli olarak YOKTUR; kurulum sunucu erişimi olan operatörün işidir):
+
+```bash
+php artisan ofisvio:install --check          # PHP ≥ 8.3, uzantılar, yazılabilir dizinler, APP_KEY, DB (değiştirmez)
+php artisan ofisvio:install                  # migrate → referans veri → storage:link → OFISVIO_ADMIN_* hesapları → kilit (storage/app/.installed) → doctor
+php artisan ofisvio:install --upgrade        # kurulu sistemde: migrate + referans veri + doctor
+```
+
+Eşdeğer adımlar (ne yaptığını görmek için):
+
 ```bash
 composer install --no-dev --optimize-autoloader
 npm ci && npm run build
@@ -67,6 +81,7 @@ php artisan db:seed --force                  # roller, izin matrisi, hizmet kata
 php artisan ofisvio:blog-starter --user=admin@ornek.com   # (isteğe bağlı) başlangıç blog seti: 14 yazı + kapak + SEO/GEO; var olan slug atlanır, --draft ile taslak
 php artisan optimize                         # config + route + view cache
 php artisan ofisvio:doctor                   # 0 dönmüyorsa trafik açma
+php artisan ofisvio:smoke                    # çalışan sistem: rotalar, DB, önbellek, kuyruk, zamanlayıcı, depolama, şifreleme, tenant izolasyonu
 ```
 
 İlk kurulumda personel hesabı — şifre `.env`'den, kodda/seeder'da yoktur:
@@ -136,12 +151,82 @@ alanı; her deploy sonrası ve saatlik bir kontrolde.
 
 ## 6. Geri alma
 
-Migrasyonlar geri alınabilir (`migrate:rollback --step=1`), ancak içerik
-tabloları veri taşır — geri almadan önce DB yedeği. Kod geri alındığında
-`php artisan optimize:clear && php artisan optimize`, sonra yine
-`ofisvio:doctor`.
+`deploy/deploy.sh --rollback` bir önceki sürüme döner (`previous` → `current`, önbellekler, doctor, `up`).
+Migrasyonlar geri alınmaz (`migrate:rollback --step=1` mümkün ama içerik tabloları veri taşır) — veri geri
+alınacaksa §8 yedekten geri yükleme. Elle geri almada `php artisan optimize:clear && php artisan optimize`, sonra
+`ofisvio:doctor` + `ofisvio:smoke`.
 
-## 7. Kalite kapısı CI'da
+## 7. Kalite kapısı ve sürüm artefaktı (CI/CD, audit F-02/F-16)
 
-`.github/workflows/quality-gate.yml` her push'ta pint + phpstan + test + build
-koşar (Redis önbelleğiyle). Yeşil olmayan commit deploy edilmez.
+`.github/workflows/quality-gate.yml` her push'ta: pint → phpstan → `composer validate --strict` + `composer audit`
+→ migration + seed → test (Redis) → `npm audit --audit-level=high` + build; ayrı job'da tenant/RBAC/mimari testleri.
+main'de kapı yeşilse **release** job'u üretim paketini üretir: `composer --no-dev`, `npm run build`,
+`ofisvio-<commit>-<run>.tar.gz` + `.sha256` + `RELEASE.json` (commit, run, lock özetleri) + **SLSA provenance
+attestation** (GitHub). Artefakt 90 gün saklanır.
+
+Sunucuda deploy (fail-closed; her adım düşerse bakım modu AÇIK kalır ve `current` değişmez):
+
+```bash
+gh run download <run-id> -n ofisvio-<commit>-<run> -D /tmp/rel
+APP_ROOT=/var/www/ofisvio deploy/deploy.sh /tmp/rel/ofisvio-<commit>-<run>.tar.gz
+```
+
+1. `sha256sum -c` · 2. `gh attestation verify --repo esdsellercom-cpu/ofisvio` (provenance; `SKIP_ATTEST=1` yalnız
+kayıtlı istisna) · 3. `releases/<build>` aç, `shared/.env` + `shared/storage` bağla, `APP_ENV=production` ve
+`APP_DEBUG=false` şart · 4. `down` · 5. `migrate --force` + önbellekler · 6. `ofisvio:doctor` · 7. `current` anahtarla,
+`queue:restart` · 8. `ofisvio:smoke` → `up`. Smoke düşerse `--rollback`; `ofisvio:health-alert` (15 dk) doctor hatalarını
+yöneticilere bildirir.
+
+## 8. Yedekleme ve geri yükleme (audit F-03)
+
+`ofisvio:backup` günlük 02:30 (zamanlayıcı, tek sunucu): veritabanı dökümü (sqlite kopya / `mysqldump` /
+`pg_dump`) + `storage/app/private` (KYC, sözleşme) + `storage/app/public` (medya) + `manifest.json` → tek arşiv,
+`.sha256`, **BACKUP_ENCRYPTION_KEY** tanımlıysa parça parça AES-256-GCM ile şifreli (`.tar.enc`). Doğrulama gerçek
+açmadır (sha256 + şifre çözme + tar + manifest) ve her yedekten sonra otomatik koşar; doctor son doğrulanmış yedek
+`BACKUP_MAX_AGE_HOURS` (26) içinde değilse üretimde HATA verir.
+
+```env
+BACKUP_PATH=/var/backups/ofisvio           # sunucu DIŞINA senkronlayın (nesne depolama, immutable/WORM, erişimi kısıtlı)
+BACKUP_ENCRYPTION_KEY=base64:...           # php -r "echo 'base64:'.base64_encode(random_bytes(32));" — anahtarı yedekten AYRI saklayın
+BACKUP_KEEP_DAYS=30                        # retention; en az BACKUP_KEEP_MIN (3) yedek kalır
+```
+
+```bash
+php artisan ofisvio:backup --list
+php artisan ofisvio:backup --verify=ofisvio-YYYYMMDD-HHMMSS-xxxxxx
+php artisan ofisvio:restore ofisvio-YYYYMMDD-HHMMSS-xxxxxx            # yalnız doğrular
+php artisan ofisvio:restore ofisvio-YYYYMMDD-HHMMSS-xxxxxx --force    # bakım modu → DB + dosyalar → doctor → up (doctor geçmezse bakımda kalır)
+```
+
+**Prova zorunludur:** üç ayda bir staging'de BACKUP → yok et → RESTORE → `ofisvio:smoke` (CI'da
+`BackupRestoreTest` aynı akışı SQLite ile her koşuda çalıştırır). `mysqldump`/`mysql` (ya da `pg_dump`/`psql`)
+sunucuda PATH'te olmalı; parola ortam değişkeniyle geçer, komut satırına/loga yazılmaz.
+
+## 9. Anahtar rotasyonu (audit F-14)
+
+Şifreli alanlar tek listede (`KeyRotationService::FIELDS`: panel secret'ları, webhook secret/gövde, TC kimlik).
+
+```env
+APP_PREVIOUS_KEYS=base64:<eski>
+APP_KEY=base64:<yeni>
+```
+
+```bash
+php artisan ofisvio:reencrypt --dry-run     # eski anahtarla şifreli kayıt sayısı
+php artisan ofisvio:reencrypt               # yeni anahtarla yeniden yazar (audit: security.key_rotated)
+php artisan ofisvio:doctor                  # "Anahtar rotasyonu: bekleyen yok" → APP_PREVIOUS_KEYS kaldırılabilir
+```
+
+Bekleyen kayıt varken eski anahtarı silmek veri kaybıdır; doctor üretimde bunu HATA sayar.
+
+## 10. Saat, proxy, saklama
+
+- **NTP (audit F-04):** chrony/systemd-timesyncd zorunlu; doctor `timedatectl`/`chronyc` ile senkron durumunu ve
+  DB ↔ uygulama saat farkını (> 5 sn hata) denetler. Webhook tekrar penceresi, JIT süresi, TOTP ve imzalı URL'ler
+  saate bağlıdır.
+- **Ters proxy (audit F-12):** nginx/CDN arkasında `TRUSTED_PROXIES=<ip,ip>` (tek katman
+  için `*`); boşsa X-Forwarded-Proto yok sayılır → HSTS ve secure çerez üretilmez.
+- **KVKK saklama (audit F-09):** Ayarlar › Gizlilik & saklama; `ofisvio:retention` günlük 03:00 (anonimleştirme,
+  eski KYC dosyaları yalnız ayar açıksa). Yasal metin sürümleri (F-07): Footer'da KVKK sayfası seçili olmalı — doctor
+  üretimde KVKK sürümü yoksa hata verir; vitrin rızaları o anki sürüme bağlanır.
+- **Çerez rızası (F-06):** GA4/GTM yalnız ziyaretçi "Kabul et" derse yüklenir; bant metni Footer ayarında.

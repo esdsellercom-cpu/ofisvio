@@ -28,6 +28,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->replace(Illuminate\Http\Middleware\TrustProxies::class, TrustProxies::class); // TRUSTED_PROXIES (audit F-12)
+        // Gelen webhook (sunucudan sunucuya, HMAC imzalı): CSRF/origin denetimi dışında. Rota düzeyi withoutMiddleware(ValidateCsrfToken)
+        // Laravel 13'ün web grubundaki PreventRequestForgery'yi yakalamıyordu → üretimde 419 (smoke yakaladı; testte CSRF atlanır).
+        $middleware->preventRequestForgery(except: ['webhooks/*']);
         $middleware->web(append: [PerRequestCaches::class, SecurityHeaders::class, RequestProfiler::class]); // RequestProfiler (faz 60f): istek profili, terminate'te yazar
         // SiteSeoPolicy (faz 44): vitrin yönlendirme/başlık politikası — GLOBAL, rota eşleşmeden önce çalışır
         // (eski/olmayan adresler de yönlendirilir); panel ve kimlik yolları atlanır.

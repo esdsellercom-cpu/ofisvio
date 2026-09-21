@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\Document;
 use App\Models\Invoice;
+use App\Models\LedgerEntry;
 use App\Models\Payment;
 use App\Models\User;
 use App\Services\DocumentService;
@@ -181,6 +182,29 @@ class CollectionCenterTest extends TestCase
         // 4) Ödenmiş faturaya kayıt kilit altında da reddedilir; panel formu çift gönderimde hata mesajı alır (500 yok).
         $this->actingAs($finance)->from('/panel/tahsilat')->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '1', 'method' => 'cash', 'paid_on' => '2026-09-18'])->assertRedirect('/panel/tahsilat')->assertSessionHasErrors();
         $this->assertSame(4, Payment::withoutTenantScope()->count());
+
+        // Audit F-15: append-only defter — fatura kesimi (+) ve 4 tahsilat (−) satırı; kalan sıfır; satır güncellenemez/silinemez;
+        // tahsilat iptali yeni (+) satır açar; defter ekranı ledger.view ister.
+        $entries = LedgerEntry::withoutTenantScope()->where('invoice_id', $invoice->id)->orderBy('id')->get();
+        $this->assertSame(['invoice_issued', 'payment_received', 'payment_received', 'payment_received', 'payment_received'], $entries->pluck('type')->all());
+        $this->assertSame(0, $entries->sum('amount'));
+        $this->assertSame(0, $entries->last()->balance_after);
+        try {
+            $entries->first()->forceFill(['amount' => 1])->save();
+            $this->fail('Defter satırı güncellendi.');
+        } catch (\LogicException) {
+        }
+        try {
+            $entries->first()->delete();
+            $this->fail('Defter satırı silindi.');
+        } catch (\LogicException) {
+        }
+        $service->cancelPayment($finance, Payment::withoutTenantScope()->orderBy('id')->firstOrFail(), 'Yanlış fatura');
+        $latest = LedgerEntry::withoutTenantScope()->where('invoice_id', $invoice->id)->orderByDesc('id')->firstOrFail();
+        $this->assertSame(['payment_reversed', 70000, 70000], [$latest->type, $latest->amount, $latest->balance_after]);
+        $this->assertSame(6, LedgerEntry::withoutTenantScope()->where('invoice_id', $invoice->id)->count());
+        $this->actingAs($finance)->get('/panel/tahsilat/defter')->assertOk()->assertSee('Muhasebe defteri')->assertSee('Tahsilat iptali')->assertSee('Yanlış fatura');
+        $this->actingAs($this->staff('operations_admin'))->get('/panel/tahsilat/defter')->assertForbidden();
     }
 
     #[Test]

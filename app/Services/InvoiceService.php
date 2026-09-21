@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Company;
 use App\Models\Document;
 use App\Models\Invoice;
+use App\Models\LedgerEntry;
 use App\Models\Payment;
 use App\Models\Scopes\TenantScope;
 use App\Models\Subscription;
@@ -262,6 +263,7 @@ class InvoiceService
                 'issued_by' => $actor?->id,
             ])->save();
             $this->audit->record($actor, 'invoice.issued', 'invoice', $invoice->id, $before, $invoice->toArray());
+            $this->ledger($actor, $invoice, 'invoice_issued', $invoice->total, null, 'Fatura '.$invoice->number);
             DB::afterCommit(fn () => $this->notify('invoice.issued', $invoice));
 
             return $invoice;
@@ -304,8 +306,13 @@ class InvoiceService
         }
 
         $before = $invoice->toArray();
+        $hadBalance = in_array((string) $before['status'], ['issued', 'overdue'], true);
         $invoice->fill(['status' => 'cancelled', 'cancelled_by' => $actor?->id, 'cancelled_at' => Carbon::now(), 'cancel_reason' => $reason])->save();
         $this->audit->record($actor, 'invoice.cancelled', 'invoice', $invoice->id, $before, $invoice->toArray());
+
+        if ($hadBalance) {
+            $this->ledger($actor, $invoice, 'invoice_cancelled', -$invoice->total, null, 'İptal: '.$reason);
+        }
         $this->syncBookingPayment($invoice, 'unpaid');
 
         return $invoice;
@@ -393,6 +400,7 @@ class InvoiceService
             $paid = $invoice->paid_amount + $amount;
             $invoice->fill(['paid_amount' => $paid] + ($paid >= $invoice->total ? ['status' => 'paid', 'paid_at' => Carbon::now()] : []))->save();
 
+            $this->ledger($actor, $invoice, 'payment_received', -$amount, $payment, 'Tahsilat '.$payment->method.($payment->reference !== null ? ' · '.$payment->reference : ''));
             $this->audit->record($actor, 'payment.recorded', 'payment', $payment->id, [], $payment->toArray());
             $this->audit->record($actor, $invoice->status === 'paid' ? 'invoice.paid' : 'invoice.partially_paid', 'invoice', $invoice->id, $before, $invoice->toArray());
             $this->syncBookingPayment($invoice, $invoice->status === 'paid' ? 'paid' : 'partial');
@@ -438,12 +446,49 @@ class InvoiceService
                 $this->audit->record($actor, 'document.cancelled', 'document', $document->id, ['status' => 'issued'], ['status' => 'cancelled', 'cancel_reason' => $reason]);
             }
 
+            $this->ledger($actor, $invoice, 'payment_reversed', $payment->amount, $payment, 'İptal: '.$reason);
             $this->audit->record($actor, 'payment.cancelled', 'payment', $payment->id, $before, $payment->only(['status', 'cancel_reason']));
             $this->audit->record($actor, 'invoice.payment_reversed', 'invoice', $invoice->id, $invoiceBefore, $invoice->toArray());
             $this->syncBookingPayment($invoice, $paid <= 0 ? 'unpaid' : ($status === 'paid' ? 'paid' : 'partial'));
 
             return $payment;
         });
+    }
+
+    /**
+     * Append-only defter satırı (audit F-15): fatura bakiyesi açısından imzalı tutar; balance_after fatura üzerindeki kalan.
+     * Yalnız bu servis yazar; satır güncellenmez/silinmez (LedgerEntry). İşlem içinde çağrılır.
+     */
+    private function ledger(?User $actor, Invoice $invoice, string $type, int $amount, ?Payment $payment, ?string $memo): void
+    {
+        LedgerEntry::create([
+            'company_id' => $invoice->company_id,
+            'invoice_id' => $invoice->id,
+            'payment_id' => $payment?->id,
+            'type' => $type,
+            'amount' => $amount,
+            'currency' => (string) $invoice->currency,
+            'balance_after' => $invoice->status === 'cancelled' ? 0 : $invoice->outstanding(),
+            'memo' => $memo !== null ? mb_substr($memo, 0, 200) : null,
+            'created_by' => $actor?->id,
+            'created_at' => Carbon::now(),
+        ]);
+    }
+
+    /**
+     * Defter listesi (ledger.view): finans personeli tüm şirketler (global), müşteri tarafı kendi şirketi (tenant scope).
+     *
+     * @param  array{company_id?: int|null, type?: string|null}  $filters
+     * @return LengthAwarePaginator<int, LedgerEntry>
+     */
+    public function ledgerEntries(array $filters = [], int $perPage = 50, bool $global = false): LengthAwarePaginator
+    {
+        $query = $global ? LedgerEntry::withoutTenantScope() : LedgerEntry::query();
+
+        return $query->with(['invoice', 'author', 'company' => fn ($c) => $c->withoutGlobalScope(TenantScope::class)])
+            ->when(! empty($filters['company_id']), fn (Builder $q) => $q->where('company_id', (int) $filters['company_id']))
+            ->when(! empty($filters['type']) && isset(LedgerEntry::TYPES[$filters['type']]), fn (Builder $q) => $q->where('type', $filters['type']))
+            ->orderByDesc('id')->paginate($perPage)->withQueryString();
     }
 
     public function findPayment(int $id): ?Payment

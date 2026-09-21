@@ -126,6 +126,15 @@ return [
      * Güvenlik başlıkları (SecurityHeaders middleware). Dış kaynak listesi burada;
      * yeni bir CDN/gömme eklenirse önce buraya yazılır. HSTS yalnız HTTPS yanıtlarında.
      */
+    // Yedekleme (audit F-03): yol, retention, şifreleme anahtarı (base64:32 bayt ya da parola).
+    'backup' => [
+        'path' => env('BACKUP_PATH', storage_path('app/backups')),
+        'keep_days' => (int) env('BACKUP_KEEP_DAYS', 30),
+        'keep_min' => (int) env('BACKUP_KEEP_MIN', 3),
+        'encryption_key' => env('BACKUP_ENCRYPTION_KEY', ''),
+        'max_age_hours' => (int) env('BACKUP_MAX_AGE_HOURS', 26), // doctor: doğrulanmış son yedek bundan eskiyse hata (üretim)
+    ],
+
     'security' => [
         'hsts' => (bool) env('SECURITY_HSTS', true),
         // Ters proxy (audit F-12): boş = güven yok; '*' = tek proxy katmanı; 'ip1,ip2' = liste.

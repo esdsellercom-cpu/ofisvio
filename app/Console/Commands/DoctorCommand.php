@@ -9,6 +9,7 @@ use App\Models\Permission;
 use App\Models\UserRole;
 use App\Models\Website;
 use App\Security\MalwareScanner;
+use App\Services\BackupService;
 use App\Services\KeyRotationService;
 use App\Services\LegalDocumentService;
 use Illuminate\Console\Command;
@@ -18,6 +19,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\Process\Process;
 use Throwable;
 
 /**
@@ -35,6 +37,9 @@ class DoctorCommand extends Command
 
     /** Zamanlayıcı bu süreden uzun sessizse uyarı (üretimde hata). */
     public const HEARTBEAT_MAX_MINUTES = 5;
+
+    /** Audit F-04: DB sunucusu ile uygulama saati arasında izin verilen fark (saniye). */
+    public const CLOCK_DRIFT_MAX_SECONDS = 5;
 
     protected $signature = 'ofisvio:doctor {--json : Makine okunur çıktı}';
 
@@ -60,6 +65,8 @@ class DoctorCommand extends Command
         $this->checkLegal($production);
         $this->checkKeyRotation($production);
         $this->checkFailedJobs();
+        $this->checkClock($production);
+        $this->checkBackup($production);
         $this->checkIntegrations($production);
 
         $failed = array_filter($this->rows, fn (array $r) => $r['level'] === 'fail');
@@ -331,6 +338,98 @@ class DoctorCommand extends Command
         }
     }
 
+    /**
+     * Audit F-04: saat doğruluğu — webhook tekrar penceresi, JIT süresi, TOTP, imzalı URL saat kaymasına duyarlıdır.
+     * (1) DB sunucusu ile uygulama saati farkı (çok sunuculu kurulumda gerçek sapma); (2) Linux'ta NTP senkron durumu
+     * (timedatectl / chronyc). Denetlenemeyen durum üretimde uyarı, sapma > CLOCK_DRIFT_MAX_SECONDS üretimde hata.
+     */
+    private function checkClock(bool $production): void
+    {
+        try {
+            $dbEpoch = match (DB::connection()->getDriverName()) {
+                'sqlite' => (int) DB::selectOne("select strftime('%s', 'now') as t")->t,
+                'mysql', 'mariadb' => (int) DB::selectOne('select unix_timestamp() as t')->t,
+                'pgsql' => (int) DB::selectOne('select extract(epoch from now()) as t')->t,
+                default => null,
+            };
+        } catch (Throwable $e) {
+            $dbEpoch = null;
+        }
+
+        if ($dbEpoch !== null) {
+            $drift = abs(time() - $dbEpoch);
+            $drift <= self::CLOCK_DRIFT_MAX_SECONDS
+                ? $this->add('Saat (DB ↔ uygulama)', 'ok', $drift.' sn fark')
+                : $this->strict($production, 'Saat (DB ↔ uygulama)', $drift.' sn sapma — NTP/chrony ayarlayın (webhook, JIT, 2FA, imzalı URL etkilenir)');
+        }
+
+        if (PHP_OS_FAMILY !== 'Linux') {
+            $this->add('NTP senkronu', $production ? 'warn' : 'ok', 'Yalnız Linux üzerinde denetlenir (timedatectl/chronyc)');
+
+            return;
+        }
+
+        $status = $this->ntpStatus();
+        match ($status) {
+            'yes' => $this->add('NTP senkronu', 'ok', 'sistem saati senkron'),
+            'no' => $this->strict($production, 'NTP senkronu', 'Sistem saati senkron DEĞİL — chrony/systemd-timesyncd etkinleştirin'),
+            default => $this->add('NTP senkronu', 'warn', 'Denetlenemedi (timedatectl/chronyc yok) — sunucuda NTP çalıştığını elle doğrulayın'),
+        };
+    }
+
+    /** 'yes' | 'no' | 'unknown' */
+    private function ntpStatus(): string
+    {
+        foreach ([['timedatectl', 'show', '-p', 'NTPSynchronized', '--value'], ['chronyc', '-c', 'tracking']] as $cmd) {
+            try {
+                $process = new Process($cmd, null, null, null, 5);
+                $process->run();
+
+                if (! $process->isSuccessful()) {
+                    continue;
+                }
+
+                $out = trim($process->getOutput());
+
+                if ($cmd[0] === 'timedatectl') {
+                    return $out === 'yes' ? 'yes' : 'no';
+                }
+
+                // chronyc -c tracking: 4. alan (leap status) 0 = normal, 3 = senkron değil
+                $fields = explode(',', $out);
+
+                return isset($fields[3]) && (int) $fields[3] !== 3 ? 'yes' : 'no';
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return 'unknown';
+    }
+
+    /** Audit F-03: doğrulanmış son yedek yaşı; üretimde BACKUP_MAX_AGE_HOURS'tan eskiyse (ya da hiç yoksa) hata. */
+    private function checkBackup(bool $production): void
+    {
+        try {
+            $age = app(BackupService::class)->lastVerifiedAgeHours();
+        } catch (Throwable $e) {
+            $this->add('Yedek', 'warn', 'Denetlenemedi: '.mb_substr($e->getMessage(), 0, 80));
+
+            return;
+        }
+
+        $max = (int) config('ofisvio.backup.max_age_hours', 26);
+        $encrypted = trim((string) config('ofisvio.backup.encryption_key', '')) !== '';
+
+        if ($age === null) {
+            $this->strict($production, 'Yedek', 'Doğrulanmış yedek yok — php artisan ofisvio:backup');
+        } elseif ($age > $max) {
+            $this->strict($production, 'Yedek', sprintf('Son doğrulanmış yedek %.0f saat önce (> %d) — zamanlayıcı/backup çalışmıyor', $age, $max));
+        } else {
+            $this->add('Yedek', 'ok', sprintf('son doğrulanmış yedek %.0f saat önce%s', $age, $encrypted ? '' : ' · ŞİFRESİZ (BACKUP_ENCRYPTION_KEY)'));
+        }
+    }
+
     /** Audit F-18: başarısız kuyruk işleri görünür olsun (health-alert bunu uyarıya çevirir). */
     private function checkFailedJobs(): void
     {
@@ -370,7 +469,14 @@ class DoctorCommand extends Command
             return; // "Varsayılan site" kontrolü zaten hata verir
         }
 
-        $current = app(LegalDocumentService::class)->current($site, 'kvkk');
+        try {
+            $current = app(LegalDocumentService::class)->current($site, 'kvkk');
+        } catch (Throwable $e) {
+            $this->add('KVKK metni sürümü', 'warn', 'Denetlenemedi (migration bekliyor?): '.mb_substr($e->getMessage(), 0, 80));
+
+            return;
+        }
+
         $current !== null
             ? $this->add('KVKK metni sürümü', 'ok', 'v'.$current->version.' · '.$current->published_at->format('d.m.Y'))
             : $this->strict($production, 'KVKK metni sürümü', 'Yok — Ayarlar › Footer ekranında KVKK sayfasını seçip yayınlayın; rızalar metne bağlanamıyor');
