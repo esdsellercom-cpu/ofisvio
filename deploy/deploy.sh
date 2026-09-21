@@ -62,6 +62,7 @@ tar -xzf "$ARCHIVE" -C "$TARGET"
 [[ -f "$TARGET/RELEASE.json" ]] || die "RELEASE.json yok — bu bir CI artefaktı değil"
 [[ -f "$APP_ROOT/shared/.env" ]] || die "shared/.env yok (ilk kurulum: DEPLOY.md §1)"
 ln -sfn "$APP_ROOT/shared/.env" "$TARGET/.env"
+cp -rn "$TARGET/storage/." "$APP_ROOT/shared/storage/"   # ilk kurulumda framework/app alt dizinleri (var olanı ezmez)
 rm -rf "$TARGET/storage" && ln -sfn "$APP_ROOT/shared/storage" "$TARGET/storage"
 grep -q '^APP_DEBUG=false' "$APP_ROOT/shared/.env" || die "APP_DEBUG=false değil — DEPLOY BLOCK"
 grep -q '^APP_ENV=production' "$APP_ROOT/shared/.env" || die "APP_ENV=production değil — DEPLOY BLOCK"
