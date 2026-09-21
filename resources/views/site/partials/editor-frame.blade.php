@@ -7,4 +7,4 @@
         </template>
     @endforeach
 </div>
-<script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/site-editor-frame.js') }}" defer></script>
+<script src="{{ asset_v('js/site-editor-frame.js') }}" defer></script>

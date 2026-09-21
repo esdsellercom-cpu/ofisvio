@@ -35,7 +35,7 @@
 
     @include('site.partials.whatsapp')
     @if (! empty($cookieBannerNeeded))@include('site.partials.cookie-consent')@endif
-    <script nonce="{{ csp_nonce() }}" src="{{ asset_v('js/ofisvio.js') }}" defer></script>
+    <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
     @include('site.partials.seo-body-end')
     @if (! empty($liveEdit['enabled']))@include('site.partials.live-edit')@endif
 </body>

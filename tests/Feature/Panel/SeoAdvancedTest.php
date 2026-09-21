@@ -148,19 +148,22 @@ class SeoAdvancedTest extends TestCase
         $this->assertStringContainsString('<link rel="preconnect" href="https://cdn.example.com">', $html);
         // Audit F-06 (KVKK): GA4 tanımlı ama rıza yok → etiket BASILMAZ, rıza bandı görünür; "yalnız zorunlu" → etiket yok, bant yok;
         // "kabul" → etiket basılır. Tercih sunucu çerezinde, düz form POST (tarayıcı depolaması / JS çağrısı yok).
-        $this->assertStringNotContainsString('googletagmanager.com/gtag/js', $html);
+        $this->assertStringNotContainsString('data-ga4=', $html);
+        $this->assertStringNotContainsString('js/analytics.js', $html);
         $this->assertStringContainsString('data-cookie-bar', $html);
         $this->assertStringContainsString('Yalnız zorunlu', $html);
         $this->assertStringContainsString('name="return" value="/blog/sanal-ofis"', $html);
         $decline = $this->from('/blog/sanal-ofis')->post('/cerez-tercihi', ['choice' => 'essential', 'return' => '/blog/sanal-ofis'])->assertRedirect('/blog/sanal-ofis');
         $decline->assertCookie(CookieConsent::COOKIE, 'essential');
         $declined = $this->withCookie(CookieConsent::COOKIE, 'essential')->get('/blog/sanal-ofis')->assertOk()->getContent();
-        $this->assertStringNotContainsString('googletagmanager.com/gtag/js', $declined);
+        $this->assertStringNotContainsString('data-ga4=', $declined);
         $this->assertStringNotContainsString('data-cookie-bar', $declined);
         $this->post('/cerez-tercihi', ['choice' => 'all', 'return' => '//evil.example'])->assertRedirect('/'); // açık yönlendirme yok
         $html = $this->withCookie(CookieConsent::COOKIE, 'all')->get('/blog/sanal-ofis')->assertOk()->getContent();
         $this->assertStringNotContainsString('data-cookie-bar', $html);
-        $this->assertStringContainsString('googletagmanager.com/gtag/js?id=G-ABC123', $html);
+        $this->assertStringContainsString('js/analytics.js', $html);
+        $this->assertStringContainsString('data-ga4="G-ABC123"', $html);
+        $this->assertStringNotContainsString('nonce=', $html, 'rıza sonrası da satır içi script yok (ETag korunur)');
         $this->assertStringContainsString('<meta name="x-custom-head" content="1">', $html);
         $this->assertStringContainsString('<!-- body-start-marker -->', $html);
         $this->assertStringContainsString('<!-- body-end-marker -->', $html);
