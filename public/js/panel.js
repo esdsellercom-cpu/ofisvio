@@ -250,7 +250,18 @@
     });
   }
 
-  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); initDeclarative(); initBusyForms(); }
+  // Defter düzeltme (F-15): form action'ı seçilen fatura kimliğiyle kurulur (rota şablonunda 0 → id); HTTP çağrısı yok, düz POST.
+  function initRouteForms() {
+    document.querySelectorAll('form[data-jit-form]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        var id = form.querySelector('[data-jit-invoice]');
+        var btn = form.querySelector('[data-jit-submit]');
+        if (id && btn && btn.getAttribute('data-route')) form.action = btn.getAttribute('data-route').replace(/\/0\//, '/' + encodeURIComponent(id.value) + '/');
+      });
+    });
+  }
+
+  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); initDeclarative(); initRouteForms(); initBusyForms(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

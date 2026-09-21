@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Website;
+use App\Site\BrandStyle;
 use DomainException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Str;
@@ -210,7 +211,7 @@ class WebsiteService
      * Site genel ayarları (faz 29): iletişim/kimlik. Personel (website.manage)
      * ve müşteri (content.edit, kendi sitesi) aynı yolu kullanır.
      *
-     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null, whatsapp_number?: string|null, business_hours?: string|null, announcement_text?: string|null, announcement_href?: string|null, announcement_until?: string|null}  $data
+     * @param  array{contact_phone?: string|null, contact_email?: string|null, tagline?: string|null, address?: string|null, legal_name?: string|null, whatsapp_number?: string|null, business_hours?: string|null, announcement_text?: string|null, announcement_href?: string|null, announcement_until?: string|null, brand?: string|null, brand_deep?: string|null, brand_light?: string|null, brand_wash?: string|null, ink?: string|null, surface?: string|null, font_sans?: string|null, font_serif?: string|null}  $data
      */
     public function updateSettings(Website $website, array $data): Website
     {
@@ -225,6 +226,8 @@ class WebsiteService
             'announcement_text' => $this->blankToNull($data['announcement_text'] ?? null),
             'announcement_href' => $this->blankToNull($data['announcement_href'] ?? null),
             'announcement_until' => $this->blankToNull($data['announcement_until'] ?? null),
+            // Marka renk/tipografi (audit parity): hex + font allowlist; boş = tema varsayılanı.
+            'brand_style' => array_key_exists('brand', $data) || array_key_exists('font_sans', $data) ? (BrandStyle::normalize($data) ?: null) : $website->brand_style,
         ]);
         $website->save();
 

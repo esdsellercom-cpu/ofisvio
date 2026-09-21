@@ -205,6 +205,17 @@ class CollectionCenterTest extends TestCase
         $this->assertSame(6, LedgerEntry::withoutTenantScope()->where('invoice_id', $invoice->id)->count());
         $this->actingAs($finance)->get('/panel/tahsilat/defter')->assertOk()->assertSee('Muhasebe defteri')->assertSee('Tahsilat iptali')->assertSee('Yanlış fatura');
         $this->actingAs($this->staff('operations_admin'))->get('/panel/tahsilat/defter')->assertForbidden();
+
+        // Düzeltme kaydı (ledger.correction_entry JIT'li): grant yokken 403; gerekçeli süreli erişim sonrası imzalı yeni satır; fatura bakiyesi değişmez; sıfır tutar reddedilir.
+        $this->actingAs($finance)->post('/panel/tahsilat/defter/'.$invoice->id.'/duzeltme', ['amount' => '10', 'direction' => 'credit', 'memo' => 'Yuvarlama'])->assertForbidden();
+        $this->actingAs($finance)->post('/panel/tahsilat/defter/'.$invoice->id.'/jit', ['reason' => 'Kuruş farkı düzeltmesi', 'ttl_minutes' => 15])->assertRedirect()->assertSessionHasNoErrors();
+        $this->actingAs($finance)->from('/panel/tahsilat/defter')->post('/panel/tahsilat/defter/'.$invoice->id.'/duzeltme', ['amount' => '0', 'direction' => 'credit', 'memo' => 'x'])->assertSessionHasErrors();
+        $this->actingAs($finance)->post('/panel/tahsilat/defter/'.$invoice->id.'/duzeltme', ['amount' => '0,10', 'direction' => 'credit', 'memo' => 'Yuvarlama'])->assertRedirect()->assertSessionHasNoErrors();
+        $correction = LedgerEntry::withoutTenantScope()->where('invoice_id', $invoice->id)->orderByDesc('id')->firstOrFail();
+        $this->assertSame(['correction', -10, 'Düzeltme: Yuvarlama'], [$correction->type, $correction->amount, $correction->memo]);
+        $this->assertSame(70000, $invoice->fresh()->outstanding(), 'düzeltme fatura bakiyesine dokunmaz');
+        $this->assertTrue(AuditLog::query()->where('action', 'ledger.correction')->exists());
+        $this->actingAs($finance)->get('/panel/tahsilat/defter')->assertOk()->assertSee('Düzeltme kaydı ekle')->assertSee('Düzeltme: Yuvarlama');
     }
 
     #[Test]

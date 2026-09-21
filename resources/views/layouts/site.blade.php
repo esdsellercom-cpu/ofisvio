@@ -14,10 +14,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?{{ implode('&', \App\Site\BrandStyle::fontFamilies($currentWebsite?->brand_style)) }}&display=swap">
 
     {{-- Varlık derlemesi yok: site `php artisan serve` ile doğrudan çalışır. --}}
     <link rel="stylesheet" href="{{ asset_v('css/ofisvio.css') }}">
+    @if (($brandCss = \App\Site\BrandStyle::css($currentWebsite?->brand_style)) !== '')<style nonce="{{ csp_nonce() }}">{!! $brandCss !!}</style>@endif
 </head>
 <body>
     @include('site.partials.seo-body-start')

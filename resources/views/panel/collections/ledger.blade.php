@@ -14,6 +14,30 @@
         <select class="control" name="tur" style="max-width:220px" data-autosubmit><option value="">Tüm türler</option>@foreach ($types as $k => $label)<option value="{{ $k }}" @selected($type === $k)>{{ $label }}</option>@endforeach</select>
         <noscript><button type="submit" class="btn btn--ghost btn--pill">Süz</button></noscript>
     </form>
+    @if ($canCorrect)
+        <details class="panel" style="margin-bottom:12px">
+            <summary class="small" style="cursor:pointer;color:var(--brand);font-weight:600">Düzeltme kaydı ekle (JIT: ledger.correction_entry — fatura başına gerekçeli, süreli erişim)</summary>
+            <div class="grid-auto" style="--min:280px;--gap:14px;margin-top:10px">
+                <form method="POST" action="#" class="stack" style="gap:8px" data-jit-form data-no-busy>
+                    @csrf
+                    <p class="eyebrow" style="margin:0">1. Erişim aç</p>
+                    <label class="field"><span class="label">Fatura no (id)</span><input class="control mono" type="number" name="invoice_id" min="1" required data-jit-invoice></label>
+                    <label class="field"><span class="label">Gerekçe</span><input class="control" type="text" name="reason" maxlength="300" required></label>
+                    <label class="field"><span class="label">Süre (dk)</span><input class="control" type="number" name="ttl_minutes" value="15" min="5" max="120"></label>
+                    <div><button type="submit" class="btn btn--ghost btn--pill" data-jit-submit data-route="{{ route('panel.collections.ledger.jit', ['invoice' => 0]) }}">Erişim iste</button></div>
+                </form>
+                <form method="POST" action="#" class="stack" style="gap:8px" data-jit-form data-no-busy>
+                    @csrf
+                    <p class="eyebrow" style="margin:0">2. Düzeltme satırı</p>
+                    <label class="field"><span class="label">Fatura no (id)</span><input class="control mono" type="number" name="invoice_id" min="1" required data-jit-invoice></label>
+                    <label class="field"><span class="label">Tutar ({{ money_symbol() }})</span><input class="control mono" type="text" name="amount" inputmode="decimal" required placeholder="0,00"></label>
+                    <label class="field"><span class="label">Yön</span><select class="control" name="direction"><option value="debit">Borç (+)</option><option value="credit">Alacak (−)</option></select></label>
+                    <label class="field"><span class="label">Gerekçe</span><input class="control" type="text" name="memo" maxlength="200" required></label>
+                    <div><button type="submit" class="btn btn--brand btn--pill" data-jit-submit data-route="{{ route('panel.collections.ledger.correction', ['invoice' => 0]) }}">Düzeltme ekle</button></div>
+                </form>
+            </div>
+        </details>
+    @endif
     <div class="table-wrap"><table class="data">
         <thead><tr><th>#</th><th>Tarih</th><th>Firma</th><th>Fatura</th><th>Tür</th><th style="text-align:right">Tutar</th><th style="text-align:right">Kalan</th><th>Açıklama</th><th>Kim</th></tr></thead>
         <tbody>

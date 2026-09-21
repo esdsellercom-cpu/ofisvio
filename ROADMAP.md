@@ -1047,6 +1047,7 @@ değil DB'de (MockDataDetectionTest).
 - **P1:** CSP nonce (F-11), TRUSTED_PROXIES (F-12), planlı entegrasyon durumu (F-13), anahtar rotasyonu `ofisvio:reencrypt` (F-14), append-only defter (F-15), CI bağımlılık denetimi (F-16), `ofisvio:install` (F-17), sistem alarmı `ofisvio:health-alert` (F-18), kılık değiştirmiş yükleme testleri + zorunlu yeniden kodlama (F-19), favicon (F-20).
 - Smoke'un bulduğu gerçek hata: gelen webhook CSRF istisnası L13'te çalışmıyordu (419) → `preventRequestForgery(except)`.
 - F-21 para simgesi ayardan, F-26 `ofisvio:offboard`; CI: junit → ek açıklama, release artefaktı (run 89 ✓).
+- Marka renk/tipografi paneli (`websites.brand_style`, `App\Site\BrandStyle`: hex + font allowlist → nonce'lu `:root`), defter düzeltme kaydı (`ledger.correction_entry` JIT).
 - Testler +9 → **371/371**.
 
 ---

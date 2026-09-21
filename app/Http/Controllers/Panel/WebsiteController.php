@@ -31,6 +31,10 @@ class WebsiteController extends Controller
         'announcement_text' => ['nullable', 'string', 'max:160'],
         'announcement_href' => ['nullable', 'string', 'max:300', 'regex:~^(/[^\s]*|#[\w-]+|https://[^\s]+)$~'],
         'announcement_until' => ['nullable', 'date'],
+        // Marka renk/tipografi: hex ve sabit font listesi (BrandStyle)
+        'brand' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'brand_deep' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'brand_light' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        'brand_wash' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'ink' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'], 'surface' => ['nullable', 'regex:/^#[0-9a-fA-F]{6}$/'],
+        'font_sans' => ['nullable', 'string', 'in:instrument,inter,manrope,dm,system'], 'font_serif' => ['nullable', 'string', 'in:instrument,playfair,lora,system'],
     ];
 
     public function __construct(

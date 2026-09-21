@@ -172,6 +172,8 @@ Route::middleware(['auth', 'account.active', 'verified'])->prefix('panel')->name
             Route::get('/belge/{document}/yazdir', [CollectionController::class, 'print'])->where('document', '[0-9]+')->middleware('permission:invoice.view')->name('documents.print');
             // Append-only defter (audit F-15): ledger.view global (finans) — satır asla düzenlenmez.
             Route::get('/defter', [CollectionController::class, 'ledger'])->middleware('permission:ledger.view')->name('ledger');
+            Route::post('/defter/{invoice}/jit', [CollectionController::class, 'ledgerJit'])->where('invoice', '[0-9]+')->middleware(['permission:ledger.view', 'throttle:jit-request'])->name('ledger.jit');
+            Route::post('/defter/{invoice}/duzeltme', [CollectionController::class, 'ledgerCorrection'])->where('invoice', '[0-9]+')->middleware('permission:ledger.correction_entry,,invoice,invoice')->name('ledger.correction');
             Route::get('/sablon/{kind}', [CollectionController::class, 'template'])->where('kind', 'receipt|overdue_notice')->middleware('permission:invoice.view')->name('templates.edit');
             Route::put('/sablon/{kind}', [CollectionController::class, 'updateTemplate'])->where('kind', 'receipt|overdue_notice')->middleware('permission:invoice.issue')->name('templates.update');
         });

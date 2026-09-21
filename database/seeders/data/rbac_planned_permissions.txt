@@ -25,7 +25,6 @@ invoice.export | Fatura CSV dışa aktarım (P2-15)
 invoice.refund | İade / kredi notu (P2-15; JIT + dual-control)
 kyc.physical_document.log | Fiziksel belge kabul kaydı (resepsiyon)
 lead.create | Panelden elle talep girişi (CRM P2-17)
-ledger.correction_entry | Muhasebe defteri (düzeltme kaydı; JIT)
 legal_document.publish | Yasal metin yayını (KVKK/sözleşme metinleri CMS'te)
 mail.view | Posta karşılama modülü
 masak.assessment_view | MASAK risk değerlendirmesi (uyum)

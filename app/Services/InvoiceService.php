@@ -476,6 +476,29 @@ class InvoiceService
     }
 
     /**
+     * Düzeltme kaydı (audit F-15; ledger.correction_entry JIT'li): orijinal satır asla değişmez, imzalı yeni satır eklenir.
+     * Fatura bakiyesine dokunmaz (muhasebe düzeltmesi); gerekçe zorunlu, audit'e düşer.
+     */
+    public function correction(User $actor, Invoice $invoice, int $amountMinor, string $memo): LedgerEntry
+    {
+        if ($amountMinor === 0) {
+            throw new DomainException('Düzeltme tutarı sıfır olamaz.');
+        }
+
+        if (trim($memo) === '') {
+            throw new DomainException('Düzeltme gerekçesi zorunlu.');
+        }
+
+        return DB::transaction(function () use ($actor, $invoice, $amountMinor, $memo) {
+            $this->ledger($actor, $invoice, 'correction', $amountMinor, null, 'Düzeltme: '.trim($memo));
+            $entry = LedgerEntry::withoutTenantScope()->where('invoice_id', $invoice->id)->orderByDesc('id')->firstOrFail();
+            $this->audit->record($actor, 'ledger.correction', 'ledger_entry', $entry->id, [], ['invoice_id' => $invoice->id, 'amount' => $amountMinor, 'memo' => mb_substr($memo, 0, 200)]);
+
+            return $entry;
+        });
+    }
+
+    /**
      * Defter listesi (ledger.view): finans personeli tüm şirketler (global), müşteri tarafı kendi şirketi (tenant scope).
      *
      * @param  array{company_id?: int|null, type?: string|null}  $filters

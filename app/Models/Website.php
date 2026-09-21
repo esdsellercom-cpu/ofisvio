@@ -21,7 +21,7 @@ class Website extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'organization_id', 'name', 'slug', 'domain', 'theme', 'is_default',
+        'organization_id', 'name', 'slug', 'domain', 'theme', 'brand_style', 'is_default',
         'seo_title_suffix', 'seo_default_description', 'robots_index', 'seo_locale',
         'same_as', 'legal_name', 'nav_links', 'builder_globals', 'header_config', 'footer_config',
         'cache_ttl_seconds', 'http_max_age', 'http_s_maxage',
@@ -29,7 +29,7 @@ class Website extends Model
         'announcement_text', 'announcement_href', 'announcement_until',
     ];
 
-    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'seo_settings' => 'array', 'nav_links' => 'array', 'builder_globals' => 'array', 'header_config' => 'array', 'footer_config' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
+    protected $casts = ['is_default' => 'boolean', 'robots_index' => 'boolean', 'same_as' => 'array', 'seo_settings' => 'array', 'nav_links' => 'array', 'builder_globals' => 'array', 'header_config' => 'array', 'footer_config' => 'array', 'brand_style' => 'array', 'business_hours' => 'array', 'announcement_until' => 'datetime'];
 
     /**
      * Marka/iletişim bilgisi (faz 29): yalnız site alanları (boşsa gösterilmez).

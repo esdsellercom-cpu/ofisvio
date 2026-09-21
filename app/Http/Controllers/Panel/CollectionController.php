@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Panel;
 
 use App\Documents\DocumentTemplates;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RequestJitAccessRequest;
 use App\Models\LedgerEntry;
 use App\Models\Payment;
 use App\Services\AuthorizationService;
 use App\Services\DocumentService;
 use App\Services\InvoiceService;
+use App\Services\JitAccessService;
 use App\Services\SubscriptionService;
 use App\Support\Money;
 use App\Support\PanelReturn;
@@ -32,6 +34,7 @@ class CollectionController extends Controller
         private readonly SubscriptionService $subscriptions,
         private readonly DocumentService $documents,
         private readonly AuthorizationService $authorization,
+        private readonly JitAccessService $jit,
     ) {}
 
     /** Defter (audit F-15): ledger.view global ise tüm şirketler, değilse tenant scope. */
@@ -43,7 +46,37 @@ class CollectionController extends Controller
             'entries' => $this->invoices->ledgerEntries(['type' => (string) $request->query('tur', '')], 50, $global),
             'types' => LedgerEntry::TYPES,
             'type' => (string) $request->query('tur', ''),
+            'canCorrect' => $this->authorization->can($request->user(), 'ledger.correction_entry'),
         ]);
+    }
+
+    /** Düzeltme için JIT (ledger.correction_entry fatura başına, gerekçeli, süreli). */
+    public function ledgerJit(RequestJitAccessRequest $request, int $invoice): RedirectResponse
+    {
+        $record = $this->invoices->findAny($invoice) ?? abort(404);
+        $v = $request->validated();
+        $grantId = $this->jit->grant($request->user(), 'ledger.correction_entry', [], 'invoice', $record->id, $v['reason'], null, (int) $v['ttl_minutes']);
+
+        if ($grantId === null) {
+            return back()->withErrors(['reason' => 'JIT erişimi açılamadı: rolünüz ledger.correction_entry taşımıyor.']);
+        }
+
+        return back()->with('status', 'Düzeltme kaydı için '.$v['ttl_minutes'].' dakikalık erişim açıldı.');
+    }
+
+    public function ledgerCorrection(Request $request, int $invoice): RedirectResponse
+    {
+        $record = $this->invoices->findAny($invoice) ?? abort(404);
+        $data = $request->validate(['amount' => ['required', Money::RULE], 'direction' => ['required', 'in:debit,credit'], 'memo' => ['required', 'string', 'max:200']]);
+        $amount = Money::parse((string) $data['amount']) * ($data['direction'] === 'credit' ? -1 : 1);
+
+        try {
+            $this->invoices->correction($request->user(), $record, $amount, (string) $data['memo']);
+        } catch (DomainException $e) {
+            return back()->withErrors(['memo' => $e->getMessage()]);
+        }
+
+        return back()->with('status', 'Düzeltme kaydı eklendi.');
     }
 
     public function index(Request $request): View

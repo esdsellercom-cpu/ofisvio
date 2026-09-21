@@ -109,6 +109,22 @@ class SiteBlocksTest extends TestCase
         $this->assertStringNotContainsString($seedPhone, $home);
 
         $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_email' => 'bozuk'])->assertSessionHasErrors('contact_email');
+
+        // Marka renk/tipografi (audit parity): hex + font allowlist → vitrinde :root değişkeni ve Google Fonts bağlantısı değişir;
+        // geçersiz hex ve listede olmayan font reddedilir; serbest CSS yolu yok (yalnız değişken değerleri).
+        $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_phone' => '0212 555 00 00', 'brand' => '#123456', 'brand_light' => '#ABCDEF', 'font_sans' => 'inter', 'font_serif' => 'lora'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(['brand' => '#123456', 'brand_light' => '#abcdef', 'font_sans' => 'inter', 'font_serif' => 'lora'], $default->fresh()->brand_style);
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        $this->assertStringContainsString(':root{--brand:#123456;--brand-light:#abcdef;--font-sans:Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;--font-serif:Lora, Georgia, "Times New Roman", serif}', $home);
+        $this->assertStringContainsString('family=Inter:wght@400;500;600;700&amp;family=Lora:', $home);
+        $this->assertStringNotContainsString('family=Instrument+Sans', $home);
+        $this->actingAs($admin)->from("/panel/websiteler/{$default->id}/duzenle")->put("/panel/websiteler/{$default->id}/ayarlar", ['brand' => 'red;background:url(x)', 'font_sans' => 'comic'])->assertSessionHasErrors(['brand', 'font_sans']);
+        $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", ['contact_phone' => '0212 555 00 00', 'brand' => '', 'font_sans' => 'system', 'font_serif' => 'instrument'])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(['font_sans' => 'system'], $default->fresh()->brand_style);
+        $home = $this->get('http://localhost/')->assertOk()->getContent();
+        $this->assertStringContainsString('--font-sans:system-ui', $home);
+        $this->assertStringNotContainsString('--brand:#123456', $home);
+        $this->assertStringContainsString('family=Instrument+Serif', $home);
         $this->actingAs($admin)->put("/panel/websiteler/{$default->id}/ayarlar", [])->assertRedirect();
         $this->assertNull($default->fresh()->contact_phone);
         $this->get('http://localhost/')->assertOk()->assertDontSee('tel:+90');
