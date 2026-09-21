@@ -36,7 +36,7 @@
                                     @if ($canManage)
                                         <td class="num">
                                             @if ($a->isActive())
-                                                <form method="POST" action="{{ route('panel.spaces.end', [$space->id, $a->id]) }}" onsubmit="return confirm('Tahsis sonlandırılsın mı?')">@csrf<button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sonlandır</button></form>
+                                                <form method="POST" action="{{ route('panel.spaces.end', [$space->id, $a->id]) }}" data-confirm="Tahsis sonlandırılsın mı?">@csrf<button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sonlandır</button></form>
                                             @endif
                                         </td>
                                     @endif
@@ -55,7 +55,7 @@
                     <div class="card__body">
                         <form method="GET" action="{{ route('panel.spaces.show', $space->id) }}" class="stack" style="gap:8px;margin-bottom:8px">
                             <label class="field"><span class="label">Şirket</span>
-                                <select class="control" name="sirket" onchange="this.form.requestSubmit()" @error('company_id') aria-invalid="true" @enderror>
+                                <select class="control" name="sirket" data-autosubmit @error('company_id') aria-invalid="true" @enderror>
                                     <option value="">Seçin</option>
                                     @foreach ($companies as $c)<option value="{{ $c->id }}" @selected($selectedCompany && $selectedCompany->id === $c->id)>{{ $c->legal_name }}</option>@endforeach
                                 </select>

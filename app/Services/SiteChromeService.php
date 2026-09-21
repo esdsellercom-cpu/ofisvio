@@ -29,6 +29,7 @@ class SiteChromeService
     public const HEADER_DEFAULTS = [
         'logo_media_id' => null,
         'logo_mobile_media_id' => null,
+        'favicon_media_id' => null, // sekme simgesi + apple-touch-icon (audit F-20); boş = simge basılmaz
         'logo_height' => 34,
         'menu' => [],            // boş = yayınlanmış bölüm çapaları (otomatik)
         'cta' => ['label' => '', 'href' => '#teklif', 'style' => 'brand'], // label boş = texts.cta_header
@@ -207,6 +208,7 @@ class SiteChromeService
         return [
             'logo_media_id' => $this->mediaId($website, $in['logo_media_id'] ?? null),
             'logo_mobile_media_id' => $this->mediaId($website, $in['logo_mobile_media_id'] ?? null),
+            'favicon_media_id' => $this->mediaId($website, $in['favicon_media_id'] ?? null),
             'logo_height' => max(20, min(80, (int) ($in['logo_height'] ?? 34))),
             'menu' => $menu,
             'cta' => ['label' => self::text($in['cta']['label'] ?? '', 40), 'href' => self::href($in['cta']['href'] ?? '#teklif') ?: '#teklif', 'style' => in_array($in['cta']['style'] ?? '', ['brand', 'ghost'], true) ? $in['cta']['style'] : 'brand'],

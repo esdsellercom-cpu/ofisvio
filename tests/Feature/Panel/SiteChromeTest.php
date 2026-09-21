@@ -73,7 +73,7 @@ class SiteChromeTest extends TestCase
         $this->actingAs($admin)->get('/panel/ayarlar')->assertOk()->assertSee('Entegrasyon merkezi')->assertSee('Header');
 
         $payload = ['website' => $this->site->id, 'note' => 'Mega menü', 'c' => [
-            'logo_media_id' => $logo->id, 'logo_height' => 40, 'height' => 90, 'sticky' => 0, 'transparent' => 0, 'show_login' => 1, 'show_phone' => 1, 'active_style' => 'pill',
+            'logo_media_id' => $logo->id, 'favicon_media_id' => $logo->id, 'logo_height' => 40, 'height' => 90, 'sticky' => 0, 'transparent' => 0, 'show_login' => 1, 'show_phone' => 1, 'active_style' => 'pill',
             'menu' => [
                 ['label' => 'Çözümler', 'href' => '/cozumler', 'mega' => 1, 'children' => [['label' => 'Sanal Ofis', 'href' => '/cozum/sanal-ofis', 'description' => 'Tescil adresi'], ['label' => 'Kötü', 'href' => 'javascript:alert(1)']]],
                 ['label' => 'Yazılar', 'href' => '/blog'],
@@ -108,6 +108,8 @@ class SiteChromeTest extends TestCase
             $this->assertStringContainsString('--hdr-h:90px', $html, $path);
             $this->assertStringContainsString('--hdr-bg:#ffffff', $html, $path);
             $this->assertStringContainsString($logo->urlFor(400), $html, $path);
+            $this->assertStringContainsString('<link rel="icon" type="image/png" href="'.$logo->url().'">', $html, $path); // favicon (audit F-20)
+            $this->assertStringContainsString('rel="apple-touch-icon"', $html, $path);
             $this->assertStringContainsString('instagram.com/ofisvio', $html, $path);
             $this->assertStringNotContainsString('javascript:', $html);
         }

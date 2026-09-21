@@ -11,6 +11,7 @@ use App\Http\Middleware\PublicCacheHeaders;
 use App\Http\Middleware\RequestProfiler;
 use App\Http\Middleware\SecurityHeaders;
 use App\Http\Middleware\SiteSeoPolicy;
+use App\Http\Middleware\TrustProxies;
 use App\Services\CurrentWebsite;
 use App\Services\RedirectService;
 use Illuminate\Foundation\Application;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->replace(Illuminate\Http\Middleware\TrustProxies::class, TrustProxies::class); // TRUSTED_PROXIES (audit F-12)
         $middleware->web(append: [PerRequestCaches::class, SecurityHeaders::class, RequestProfiler::class]); // RequestProfiler (faz 60f): istek profili, terminate'te yazar
         // SiteSeoPolicy (faz 44): vitrin yönlendirme/başlık politikası — GLOBAL, rota eşleşmeden önce çalışır
         // (eski/olmayan adresler de yönlendirilir); panel ve kimlik yolları atlanır.

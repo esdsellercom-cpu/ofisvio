@@ -46,6 +46,12 @@ jobs:
       - name: Composer bağımlılıkları
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      # Tedarik zinciri (audit F-16): lock dosyası tutarlı ve bilinen zafiyet yok; biri bile varsa kapı kırmızı.
+      - name: Bağımlılık denetimi (composer)
+        run: |
+          composer validate --strict --no-check-publish
+          composer audit --no-dev --format=summary
+
       - name: Ortam
         run: |
           cp .env.example .env
@@ -109,6 +115,7 @@ jobs:
       - name: Frontend derleme
         run: |
           npm ci
+          npm audit --omit=dev --audit-level=high
           npm run build
 
   security:

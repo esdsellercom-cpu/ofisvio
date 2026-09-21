@@ -13,7 +13,7 @@
     @if ($websites->count() > 1)
         <form method="GET" class="inline-form" style="margin-bottom:18px">
             <label class="field" style="flex:0 1 220px"><span class="label">Site</span>
-                <select class="control" name="website" onchange="this.form.submit()">
+                <select class="control" name="website" data-autosubmit>
                     @foreach ($websites as $site)
                         <option value="{{ $site->id }}" @selected($site->id === $website->id)>{{ $site->name }}</option>
                     @endforeach
@@ -53,7 +53,7 @@
                         </form>
                     @endcan
                     @can('content.publish')
-                        <form method="POST" action="{{ route('panel.content.media.destroy', ['media' => $m, 'website' => $website->id]) }}" style="margin-top:8px" onsubmit="return confirm('Görsel silinsin mi?')">
+                        <form method="POST" action="{{ route('panel.content.media.destroy', ['media' => $m, 'website' => $website->id]) }}" style="margin-top:8px" data-confirm="Görsel silinsin mi?">
                             @csrf @method('DELETE')
                             <button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger);border-color:#E9C4BC">Sil</button>
                         </form>

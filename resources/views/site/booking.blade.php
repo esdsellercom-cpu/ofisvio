@@ -8,14 +8,14 @@
 
         <form method="GET" action="{{ route('site.booking.index') }}" class="inline-form" style="margin-top:26px">
             <label class="field" style="flex:1 1 220px"><span class="label">Lokasyon</span>
-                <select class="control" name="lokasyon" onchange="this.form.requestSubmit()">
+                <select class="control" name="lokasyon" data-autosubmit>
                     @foreach ($locations as $loc)
                         <option value="{{ $loc->id }}" @selected($location && $loc->id === $location->id)>{{ $loc->name }} · {{ $loc->city }}</option>
                     @endforeach
                 </select>
             </label>
             <label class="field" style="flex:0 1 180px"><span class="label">Gün</span>
-                <input class="control" type="date" name="gun" value="{{ $day->toDateString() }}" min="{{ now()->toDateString() }}" max="{{ now()->addDays($policy['max_advance_days'])->toDateString() }}" onchange="this.form.requestSubmit()">
+                <input class="control" type="date" name="gun" value="{{ $day->toDateString() }}" min="{{ now()->toDateString() }}" max="{{ now()->addDays($policy['max_advance_days'])->toDateString() }}" data-autosubmit>
             </label>
             <noscript><button type="submit" class="btn btn--ghost">Göster</button></noscript>
         </form>

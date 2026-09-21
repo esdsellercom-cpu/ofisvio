@@ -70,7 +70,7 @@
                                             <form method="POST" action="{{ route('panel.notifications.recipients.toggle', $r) }}">@csrf
                                                 <button type="submit" class="btn btn--ghost btn--pill">{{ $r->is_active ? 'Pasife al' : 'Etkinleştir' }}</button>
                                             </form>
-                                            <form method="POST" action="{{ route('panel.notifications.recipients.destroy', $r) }}" onsubmit="return confirm('Alıcı silinsin mi?')">@csrf @method('DELETE')
+                                            <form method="POST" action="{{ route('panel.notifications.recipients.destroy', $r) }}" data-confirm="Alıcı silinsin mi?">@csrf @method('DELETE')
                                                 <button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil</button>
                                             </form>
                                         </div>
@@ -113,10 +113,10 @@
             <form method="GET" class="inline-form" style="margin-bottom:14px">
                 <input type="hidden" name="sekme" value="sablonlar">
                 <label class="field" style="flex:1 1 240px"><span class="label">Olay</span>
-                    <select class="control" name="olay" onchange="this.form.requestSubmit()">@foreach ($events as $ek => $def)<option value="{{ $ek }}" @selected($templateEvent === $ek)>{{ $def['label'] }}</option>@endforeach</select>
+                    <select class="control" name="olay" data-autosubmit>@foreach ($events as $ek => $def)<option value="{{ $ek }}" @selected($templateEvent === $ek)>{{ $def['label'] }}</option>@endforeach</select>
                 </label>
                 <label class="field" style="flex:0 1 180px"><span class="label">Kanal</span>
-                    <select class="control" name="kanal" onchange="this.form.requestSubmit()">@foreach ($channels as $ck => $cl)<option value="{{ $ck }}" @selected($templateChannel === $ck)>{{ $cl }}</option>@endforeach</select>
+                    <select class="control" name="kanal" data-autosubmit>@foreach ($channels as $ck => $cl)<option value="{{ $ck }}" @selected($templateChannel === $ck)>{{ $cl }}</option>@endforeach</select>
                 </label>
             </form>
             <form method="POST" action="{{ route('panel.notifications.templates') }}" class="stack" style="gap:12px">
@@ -134,10 +134,10 @@
         <form method="GET" class="inline-form" style="margin-bottom:14px">
             <input type="hidden" name="sekme" value="gunluk">
             <label class="field" style="flex:0 1 160px"><span class="label">Durum</span>
-                <select class="control" name="durum" onchange="this.form.requestSubmit()"><option value="">Tümü</option>@foreach (\App\Models\NotificationLog::STATUSES as $k => $l)<option value="{{ $k }}" @selected(($logFilters['durum'] ?? '') === $k)>{{ $l }}</option>@endforeach</select>
+                <select class="control" name="durum" data-autosubmit><option value="">Tümü</option>@foreach (\App\Models\NotificationLog::STATUSES as $k => $l)<option value="{{ $k }}" @selected(($logFilters['durum'] ?? '') === $k)>{{ $l }}</option>@endforeach</select>
             </label>
             <label class="field" style="flex:0 1 160px"><span class="label">Kanal</span>
-                <select class="control" name="kanal" onchange="this.form.requestSubmit()"><option value="">Tümü</option>@foreach ($channels as $ck => $cl)<option value="{{ $ck }}" @selected(($logFilters['kanal'] ?? '') === $ck)>{{ $cl }}</option>@endforeach</select>
+                <select class="control" name="kanal" data-autosubmit><option value="">Tümü</option>@foreach ($channels as $ck => $cl)<option value="{{ $ck }}" @selected(($logFilters['kanal'] ?? '') === $ck)>{{ $cl }}</option>@endforeach</select>
             </label>
         </form>
         <div class="table-wrap">

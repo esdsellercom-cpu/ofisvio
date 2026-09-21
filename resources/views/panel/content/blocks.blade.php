@@ -12,7 +12,7 @@
             <p class="small muted" style="margin:6px 0 0">Hazır bileşenler ve kayıtlı şablonlar. Düzenleme sayfa üzerinde yapılır: <a href="{{ route('panel.content.builder.index', ['website' => $website->id]) }}">Ana sayfa tasarımı</a>@if ($hasChanges) <span class="badge badge--warn">yayınlanmamış değişiklik</span>@endif</p>
         </div>
         <div class="panel-head__actions">
-            <form method="GET" class="inline-form"><select class="control" name="kategori" onchange="this.form.requestSubmit()"><option value="">Tüm kategoriler</option>@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected($category === $k)>{{ $l }}</option>@endforeach</select></form>
+            <form method="GET" class="inline-form"><select class="control" name="kategori" data-autosubmit><option value="">Tüm kategoriler</option>@foreach ($categories as $k => $l)<option value="{{ $k }}" @selected($category === $k)>{{ $l }}</option>@endforeach</select></form>
             <a href="{{ route('panel.content.builder.index', ['website' => $website->id]) }}" class="btn btn--ghost">Tasarım editörü</a>
             @can('content.edit')<button type="button" class="btn btn--brand" data-modal-open="#modal-preset-new">+ Yeni blok şablonu</button>@endcan
         </div>

@@ -162,7 +162,7 @@
             @endif
 
             @if ($hasOverride && $b->isActive())
-                <form method="POST" action="{{ route('panel.bookings.location.cancel', [$location, $b->id]) }}" class="panel stack" style="gap:8px;border-color:#E9C4BC" onsubmit="return confirm('Rezervasyon iptal edilsin mi?')">@csrf
+                <form method="POST" action="{{ route('panel.bookings.location.cancel', [$location, $b->id]) }}" class="panel stack" style="gap:8px;border-color:#E9C4BC" data-confirm="Rezervasyon iptal edilsin mi?">@csrf
                     <p class="eyebrow" style="margin:0;color:var(--danger)">İptal (JIT)</p>
                     <input class="control" type="text" name="reason" required minlength="5" maxlength="200" placeholder="Gerekçe (zorunlu)">
                     <button type="submit" class="btn btn--ghost btn--block" style="color:var(--danger)">İptal et</button>

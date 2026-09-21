@@ -38,7 +38,7 @@
                         <td>
                             @if ($b->isUpcoming())
                                 @can('booking.cancel', $company)
-                                    <form method="POST" action="{{ route('panel.companies.bookings.cancel', [$company, $b]) }}" class="inline-form" onsubmit="return confirm('Rezervasyon iptal edilsin mi?')">
+                                    <form method="POST" action="{{ route('panel.companies.bookings.cancel', [$company, $b]) }}" class="inline-form" data-confirm="Rezervasyon iptal edilsin mi?">
                                         @csrf
                                         <input class="control" type="text" name="reason" placeholder="Neden (isteğe bağlı)" maxlength="200" style="min-width:160px">
                                         <button type="submit" class="btn btn--ghost btn--pill">İptal et</button>

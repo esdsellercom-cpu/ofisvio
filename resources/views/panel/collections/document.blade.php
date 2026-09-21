@@ -49,7 +49,7 @@
                 </form>
                 <details class="card">
                     <summary class="card__head" style="cursor:pointer"><h3>Belgeyi iptal et</h3></summary>
-                    <form method="POST" action="{{ route('panel.collections.documents.cancel', $document) }}" class="card__body stack" style="gap:8px" onsubmit="return confirm('Belge iptal edilsin mi? Kayıt geçmişte kalır.')">@csrf
+                    <form method="POST" action="{{ route('panel.collections.documents.cancel', $document) }}" class="card__body stack" style="gap:8px" data-confirm="Belge iptal edilsin mi? Kayıt geçmişte kalır.">@csrf
                         <input class="control" type="text" name="reason" required minlength="5" maxlength="200" placeholder="Gerekçe">
                         <button type="submit" class="btn btn--danger">İptal et</button>
                     </form>

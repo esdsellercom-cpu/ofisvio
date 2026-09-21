@@ -28,7 +28,7 @@
                 @include('panel.geo.partials.room-fields', ['r' => $r])
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
                     <button type="submit" class="btn btn--brand">Kaydet</button>
-                    <button type="submit" form="delete-room-{{ $r->id }}" class="btn btn--ghost" style="color:var(--danger);border-color:#E9C4BC" onclick="return confirm('Oda silinsin mi?')">Sil</button>
+                    <button type="submit" form="delete-room-{{ $r->id }}" class="btn btn--ghost" style="color:var(--danger);border-color:#E9C4BC" data-confirm="Oda silinsin mi?">Sil</button>
                 </div>
             </form>
             <form id="delete-room-{{ $r->id }}" method="POST" action="{{ route('panel.geo.rooms.destroy', [$location, $r->id]) }}" hidden>@csrf @method('DELETE')</form>

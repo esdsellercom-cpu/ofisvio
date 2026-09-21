@@ -229,7 +229,28 @@
     window.addEventListener('pageshow', function () { document.querySelectorAll('form[data-busy]').forEach(function (f) { f.removeAttribute('data-busy'); f.querySelectorAll('[aria-busy]').forEach(function (b) { b.disabled = false; b.removeAttribute('aria-busy'); b.classList.remove('is-busy'); }); }); });
   }
 
-  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); initBusyForms(); }
+  // CSP nonce (audit F-11): satır içi onsubmit/onchange yok. data-confirm="Soru?" → onaysız gönderim iptal; data-autosubmit → değişince form gönder.
+  function initDeclarative() {
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (form instanceof HTMLFormElement && form.hasAttribute('data-confirm') && !window.confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+    }, true); // yakalama evresi: busy kilidinden önce
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest('button[data-confirm], a[data-confirm]') : null;
+      if (btn && !window.confirm(btn.getAttribute('data-confirm'))) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+      var print = e.target && e.target.closest ? e.target.closest('[data-print]') : null;
+      if (print) { e.preventDefault(); window.print(); }
+    }, true);
+    document.addEventListener('change', function (e) {
+      var el = e.target;
+      if (!el || !el.hasAttribute) return;
+      if (el.hasAttribute('data-autosubmit') && el.form) { el.form.requestSubmit ? el.form.requestSubmit() : el.form.submit(); }
+      if (el.hasAttribute('data-navigate') && el.value) { window.location.href = el.value; }
+      if (el.hasAttribute('data-action-target')) { var form = document.getElementById(el.getAttribute('data-action-target')); var opt = el.options[el.selectedIndex]; if (form && opt && opt.getAttribute('data-action')) form.action = opt.getAttribute('data-action'); }
+    });
+  }
+
+  function boot() { initShell(); initTheme(); initModals(); initLivePreview(); initDeclarative(); initBusyForms(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

@@ -2,7 +2,7 @@
 
 @section('title', $def['label'].' — Entegrasyon')
 
-@php($tone = ['connected' => 'ok', 'unconfigured' => 'warn', 'error' => 'danger', 'disabled' => 'muted', 'link' => 'info'][$status['state']])
+@php($tone = ['connected' => 'ok', 'unconfigured' => 'warn', 'error' => 'danger', 'disabled' => 'muted', 'link' => 'info', 'planned' => 'muted'][$status['state']])
 @php($basic = array_values(array_filter($fields, fn ($f) => empty($f['advanced']))))
 @php($advanced = array_values(array_filter($fields, fn ($f) => ! empty($f['advanced']))))
 
@@ -21,7 +21,13 @@
 
     @if (session('test_error'))<div class="notice notice--error" role="alert" style="margin-bottom:16px"><span class="notice__dot" aria-hidden="true"></span><div>{{ session('test_error') }}</div></div>@endif
 
-    @if ($def['kind'] === 'link')
+    @if ($def['kind'] === 'planned')
+        <div class="panel">
+            <p class="eyebrow">Planlı modül</p>
+            <p style="margin:0 0 8px">Bu sağlayıcının adaptörü henüz yazılmadı: burada girilecek anahtar hiçbir akışta kullanılmaz, bağlantı testi yoktur. Yanıltıcı "Bağlı" durumu üretmemek için yapılandırma kapalıdır.</p>
+            <p class="small muted" style="margin:0">{{ $def['usage'] }}</p>
+        </div>
+    @elseif ($def['kind'] === 'link')
         <div class="panel">
             <p style="margin:0 0 12px">Bu entegrasyon başka bir ekranda yönetilir.</p>
             @if (($def['link'] ?? '') === 'webhooks')

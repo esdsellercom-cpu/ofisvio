@@ -77,7 +77,7 @@
                 </div>
                 <div class="panel">
                     <p class="eyebrow">Tehlikeli bölge</p>
-                    <form method="POST" action="{{ route('panel.settings.webhooks.destroy', $endpoint) }}" onsubmit="return confirm('Bu webhook ve teslimat logu silinecek. Devam edilsin mi?')">@csrf<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Webhook'u sil</button></form>
+                    <form method="POST" action="{{ route('panel.settings.webhooks.destroy', $endpoint) }}" data-confirm="Bu webhook ve teslimat logu silinecek. Devam edilsin mi?">@csrf<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Webhook'u sil</button></form>
                 </div>
             @endif
             <div class="panel">

@@ -32,7 +32,7 @@
                 </nav>
                 <form method="GET" class="r inline-form" style="gap:6px">
                     <input type="hidden" name="sekme" value="{{ $tab }}">
-                    <select class="control" name="paket" style="width:auto" onchange="this.form.requestSubmit()">
+                    <select class="control" name="paket" style="width:auto" data-autosubmit>
                         <option value="">Tüm paketler</option>
                         @foreach ($plans as $plan)<option value="{{ $plan->id }}" @selected((int) ($filters['paket'] ?? 0) === $plan->id)>{{ $plan->name }}</option>@endforeach
                     </select>

@@ -10,8 +10,8 @@
         </div>
         <div class="panel-head__actions">
             <form method="GET" class="inline-form">
-                <select class="control" name="gorunum" onchange="this.form.requestSubmit()"><option value="week" @selected($view === 'week')>Hafta</option><option value="day" @selected($view === 'day')>Gün</option></select>
-                <input class="control" type="date" name="gun" value="{{ $from->toDateString() }}" onchange="this.form.requestSubmit()">
+                <select class="control" name="gorunum" data-autosubmit><option value="week" @selected($view === 'week')>Hafta</option><option value="day" @selected($view === 'day')>Gün</option></select>
+                <input class="control" type="date" name="gun" value="{{ $from->toDateString() }}" data-autosubmit>
             </form>
             <a href="{{ route('panel.bookings.calendar', [$location, 'gorunum' => $view, 'gun' => $from->copy()->subDays($view === 'week' ? 7 : 1)->toDateString()]) }}" class="btn btn--ghost">‹</a>
             <a href="{{ route('panel.bookings.calendar', [$location, 'gorunum' => $view, 'gun' => $today->toDateString()]) }}" class="btn btn--ghost">Bugün</a>

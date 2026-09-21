@@ -4,14 +4,14 @@
      $pickerUrl · $rooms · $room · $day · $slots · $horizonDays --}}
 <form method="GET" action="{{ $pickerUrl }}" class="inline-form" style="margin-bottom:16px">
     <label class="field" style="flex:1 1 220px"><span class="label">Oda</span>
-        <select class="control" name="oda" onchange="this.form.requestSubmit()">
+        <select class="control" name="oda" data-autosubmit>
             @foreach ($rooms as $r)
                 <option value="{{ $r->id }}" @selected($room && $r->id === $room->id)>@if ($rooms->pluck('location_id')->unique()->count() > 1){{ $r->location->name }} · @endif{{ $r->name }} ({{ $r->capacity }} kişi, {{ money($r->hourly_rate) }}/sa)</option>
             @endforeach
         </select>
     </label>
     <label class="field" style="flex:0 1 180px"><span class="label">Gün</span>
-        <input class="control" type="date" name="gun" value="{{ $day->toDateString() }}" min="{{ now()->toDateString() }}" max="{{ now()->addDays($horizonDays)->toDateString() }}" onchange="this.form.requestSubmit()">
+        <input class="control" type="date" name="gun" value="{{ $day->toDateString() }}" min="{{ now()->toDateString() }}" max="{{ now()->addDays($horizonDays)->toDateString() }}" data-autosubmit>
     </label>
     <noscript><button type="submit" class="btn btn--ghost">Göster</button></noscript>
 </form>

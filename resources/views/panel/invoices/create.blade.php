@@ -15,7 +15,7 @@
         <div class="card__body">
             <form method="GET" class="inline-form" style="margin-bottom:8px">
                 <label class="field" style="flex:1 1 260px"><span class="label">Şirket</span>
-                    <select class="control" name="sirket" onchange="this.form.requestSubmit()">
+                    <select class="control" name="sirket" data-autosubmit>
                         <option value="">Seçin</option>
                         @foreach ($companies as $c)<option value="{{ $c->id }}" @selected($companyId === $c->id)>{{ $c->legal_name }}</option>@endforeach
                     </select>

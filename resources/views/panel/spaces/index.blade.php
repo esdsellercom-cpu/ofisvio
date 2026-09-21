@@ -42,7 +42,7 @@
 
         <form method="GET" class="inv-toolbar">
             <input type="hidden" name="sekme" value="{{ $tab }}">
-            <select class="control" name="lokasyon" style="max-width:220px" onchange="this.form.requestSubmit()">
+            <select class="control" name="lokasyon" style="max-width:220px" data-autosubmit>
                 <option value="">Tüm lokasyonlar</option>
                 @foreach ($locations as $loc)<option value="{{ $loc->id }}" @selected($locationId === $loc->id)>{{ $loc->name }}</option>@endforeach
             </select>
@@ -100,7 +100,7 @@
                                             <span style="display:inline-flex;gap:4px">
                                                 <button type="button" class="btn btn--quiet" data-modal-open="#modal-asset" data-title="Demirbaşı düzenle" data-method="PUT" data-action="{{ route('panel.spaces.inventory.asset.update', $a->id) }}" data-fill="{{ json_encode(['location_id' => $a->location_id, 'space_id' => $a->space_id, 'name' => $a->name, 'code' => $a->code, 'category' => $a->category, 'serial' => $a->serial, 'status' => $a->status === 'assigned' ? 'available' : $a->status, 'notes' => $a->notes]) }}">Düzenle</button>
                                                 @if ($a->status !== 'assigned')
-                                                    <form method="POST" action="{{ route('panel.spaces.inventory.asset.destroy', $a->id) }}" onsubmit="return confirm('Demirbaş silinsin mi?')">@csrf @method('DELETE')<input type="hidden" name="_tab" value="demirbas"><button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sil</button></form>
+                                                    <form method="POST" action="{{ route('panel.spaces.inventory.asset.destroy', $a->id) }}" data-confirm="Demirbaş silinsin mi?">@csrf @method('DELETE')<input type="hidden" name="_tab" value="demirbas"><button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sil</button></form>
                                                 @endif
                                             </span>
                                         @endif
@@ -135,7 +135,7 @@
                                         @if ($canManage)
                                             <span style="display:inline-flex;gap:4px">
                                                 <button type="button" class="btn btn--quiet" data-modal-open="#modal-assignment" data-title="Tahsisi düzenle · {{ $as->space->name }}" data-method="PUT" data-action="{{ route('panel.spaces.inventory.assignment.update', $as->id) }}" data-fill="{{ json_encode(['company_id' => $as->company_id, 'space_location' => $as->space->location_id, 'ends_on' => $as->ends_on?->toDateString(), 'user_id' => $as->user_id, 'note' => $as->note, 'asset_ids' => $as->assets->pluck('id')->all()]) }}">Değiştir</button>
-                                                <form method="POST" action="{{ route('panel.spaces.inventory.assignment.end', $as->id) }}" onsubmit="return confirm('Tahsis sonlandırılsın mı? Demirbaşlar serbest kalır.')">@csrf<input type="hidden" name="_tab" value="tahsisler"><button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sonlandır</button></form>
+                                                <form method="POST" action="{{ route('panel.spaces.inventory.assignment.end', $as->id) }}" data-confirm="Tahsis sonlandırılsın mı? Demirbaşlar serbest kalır.">@csrf<input type="hidden" name="_tab" value="tahsisler"><button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sonlandır</button></form>
                                             </span>
                                         @endif
                                     </td>

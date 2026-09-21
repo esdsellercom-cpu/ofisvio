@@ -39,7 +39,7 @@ class IntegrationHubController extends Controller
             'def' => $def,
             'category' => IntegrationRegistry::CATEGORIES[$def['category']],
             'status' => $this->hub->status($key),
-            'fields' => $def['kind'] === 'link' ? [] : $this->hub->formFields($key),
+            'fields' => in_array($def['kind'], ['link', 'planned'], true) ? [] : $this->hub->formFields($key),
             'canManage' => $this->authorization->can($user, 'integrations.manage'),
             'canSecrets' => $this->authorization->can($user, 'secrets.manage'),
             'recent' => $this->hub->recentLogs($key),

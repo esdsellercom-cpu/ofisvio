@@ -49,6 +49,12 @@ class IntegrationHubTest extends TestCase
         $this->actingAs($ops)->post('/panel/ayarlar/entegrasyonlar/ai', ['f' => ['model' => 'x']])->assertForbidden();
         $this->actingAs($admin)->get('/panel/ayarlar/entegrasyonlar/crm')->assertOk()->assertSee('başka bir ekranda');
         $this->actingAs($admin)->get('/panel/ayarlar/entegrasyonlar/bilinmeyen')->assertNotFound();
+        // Audit F-13: adaptörü olmayan sağlayıcı (iyzico/e-Fatura) "Planlı" — yapılandırma ve test kabul edilmez, yanıltıcı Bağlı yok.
+        $this->actingAs($admin)->get('/panel/ayarlar/entegrasyonlar/iyzico')->assertOk()->assertSee('Planlı modül')->assertDontSee('Bağlantıyı test et');
+        $this->actingAs($admin)->from('/panel/ayarlar/entegrasyonlar/iyzico')->post('/panel/ayarlar/entegrasyonlar/iyzico', ['f' => ['api_key' => 'x'], 'enabled_choice' => 'on'])->assertSessionHasErrors('integration');
+        $this->assertSame(0, DB::table('integration_secrets')->where('provider', 'iyzico')->count());
+        $this->actingAs($admin)->post('/panel/ayarlar/entegrasyonlar/iyzico/test')->assertRedirect()->assertSessionHas('test_error');
+        $this->actingAs($admin)->get('/panel/ayarlar/api')->assertOk()->assertSee('Planlı (adaptör yok)');
         $this->actingAs($admin)->get('/panel/ayarlar/entegrasyonlar/saglik')->assertOk()->assertSee('Entegrasyon sağlığı')->assertSee('Ödeme')->assertSee('Harita');
         $this->actingAs($admin)->get('/panel/ayarlar/entegrasyonlar/loglar')->assertOk()->assertSee('API log ve izleme');
         $this->actingAs($admin)->get('/panel/ayarlar/api/cekirdek')->assertOk()->assertSee('Veritabanı');

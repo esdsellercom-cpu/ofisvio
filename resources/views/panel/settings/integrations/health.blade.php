@@ -2,7 +2,7 @@
 
 @section('title', 'Entegrasyon sağlığı')
 
-@php($tone = ['connected' => 'ok', 'unconfigured' => 'warn', 'error' => 'danger', 'disabled' => 'muted', 'link' => 'info'])
+@php($tone = ['connected' => 'ok', 'unconfigured' => 'warn', 'error' => 'danger', 'disabled' => 'muted', 'link' => 'info', 'planned' => 'muted'])
 
 @section('content')
     <div class="panel-head">

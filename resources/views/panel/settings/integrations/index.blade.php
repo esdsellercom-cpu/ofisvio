@@ -2,7 +2,7 @@
 
 @section('title', 'Entegrasyon merkezi')
 
-@php($tone = fn (string $state) => ['connected' => 'ok', 'unconfigured' => 'warn', 'error' => 'danger', 'disabled' => 'muted', 'link' => 'info'][$state])
+@php($tone = fn (string $state) => ['connected' => 'ok', 'unconfigured' => 'warn', 'error' => 'danger', 'disabled' => 'muted', 'link' => 'info', 'planned' => 'muted'][$state])
 
 @section('content')
     <div class="panel-head">
@@ -29,11 +29,11 @@
                         <tr>
                             <td><strong>{{ $item['label'] }}</strong><span class="small muted" style="display:block">{{ $item['description'] }}</span></td>
                             <td><span class="badge badge--{{ $tone($item['state']) }}">{{ $item['state_label'] }}</span>@if ($item['missing'] !== [])<span class="small muted" style="display:block">eksik: {{ implode(', ', $item['missing']) }}</span>@endif</td>
-                            <td class="small">{{ $item['kind'] === 'link' ? '—' : ($item['enabled'] ? 'Aktif' : 'Pasif') }}<span class="muted" style="display:block">{{ $item['source'] }}</span></td>
+                            <td class="small">{{ in_array($item['kind'], ['link', 'planned'], true) ? '—' : ($item['enabled'] ? 'Aktif' : 'Pasif') }}<span class="muted" style="display:block">{{ $item['source'] }}</span></td>
                             <td class="small">{{ $item['last_ok_at'] ? \Illuminate\Support\Carbon::parse($item['last_ok_at'])->diffForHumans() : '—' }}</td>
                             <td class="small">{{ $item['last_sync_at'] ? \Illuminate\Support\Carbon::parse($item['last_sync_at'])->diffForHumans() : '—' }}</td>
                             <td class="small" style="max-width:260px;color:var(--danger)">{{ $item['last_error'] ?? '' }}</td>
-                            <td><a href="{{ route('panel.settings.integrations.show', $item['key']) }}" class="btn btn--ghost btn--pill">{{ $item['kind'] === 'link' ? 'Aç' : 'Ayarlar' }}</a></td>
+                            <td><a href="{{ route('panel.settings.integrations.show', $item['key']) }}" class="btn btn--ghost btn--pill">{{ $item['kind'] === 'link' ? 'Aç' : ($item['kind'] === 'planned' ? 'Bilgi' : 'Ayarlar') }}</a></td>
                         </tr>
                     @endforeach
                 </tbody>

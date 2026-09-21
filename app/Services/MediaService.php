@@ -130,7 +130,14 @@ class MediaService
             // 8) Otomatik boyutlandırma: uzun kenar MAX_EDGE'i aşıyorsa (ya da EXIF yönü döndürülmüşse) karantina
             //    kopyası yerinde küçültülüp yeniden kodlanır; boyutlar/bayt bu sonuçtan alınır (sha256 orijinalden —
             //    aynı büyük dosya ikinci kez yüklenince yine yinelenen sayılır).
+            //    Audit F-19: her görsel GD ile YENİDEN KODLANIR (boyut değişmese de) — sonuna eklenmiş PHP/HTML yükü (polyglot)
+            //    ve EXIF/GPS meta verisi çıktıya geçmez; GD yoksa ya da çözülemezse yükleme reddedilir (ham dosya asla yazılmaz).
             $normalized = $this->normalize($path, $mime, (int) $dimensions[0], (int) $dimensions[1]);
+
+            if ($normalized === null) {
+                $this->reject($uploader, 'reencode', $file, $mime, 'Görsel yeniden kodlanamadı (GD yok ya da dosya bozuk); güvenlik gereği ham dosya kabul edilmez.');
+            }
+
             $dimensions = [$normalized[0], $normalized[1]];
             $size = (int) filesize($path);
 
@@ -252,21 +259,25 @@ class MediaService
      * Otomatik boyutlandırma: uzun kenar MAX_EDGE'e indirilir, EXIF yönü (JPEG) uygulanır; dosya yerinde yeniden
      * yazılır. GD yoksa ya da görsel zaten sınırın içindeyse dokunulmaz.
      *
-     * @return array{0: int, 1: int, 2: bool} [genişlik, yükseklik, değişti mi]
+     * @return array{0: int, 1: int, 2: bool}|null [genişlik, yükseklik, değişti mi]; null = yeniden kodlanamadı (reddedilir)
      */
-    private function normalize(string $path, string $mime, int $width, int $height): array
+    private function normalize(string $path, string $mime, int $width, int $height): ?array
     {
         $orientation = $mime === 'image/jpeg' && function_exists('exif_read_data') ? (int) ((@exif_read_data($path)['Orientation'] ?? 1)) : 1;
-        $needsResize = max($width, $height) > self::MAX_EDGE;
 
-        if ((! $needsResize && $orientation <= 1) || ! function_exists('imagecreatefromstring')) {
-            return [$width, $height, false];
+        if (! function_exists('imagecreatefromstring')) {
+            return null; // GD zorunlu (DEPLOY.md): ham dosya geçirilmez
         }
 
         $image = @imagecreatefromstring((string) file_get_contents($path));
 
         if ($image === false) {
-            return [$width, $height, false];
+            return null;
+        }
+
+        if ($mime !== 'image/jpeg') {
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
         }
 
         // EXIF yönü: 3 = 180°, 6 = saat yönünde 90°, 8 = saat yönünün tersine 90° (ayna yönleri nadirdir, atlanır).
@@ -312,7 +323,7 @@ class MediaService
         imagedestroy($image);
 
         if ($bytes === '' || file_put_contents($path, $bytes) === false) {
-            return [$width, $height, false];
+            return null;
         }
 
         return [$width, $height, true];
@@ -374,6 +385,7 @@ class MediaService
             'mime' => 'Yalnız JPEG, PNG ve WebP görsel kabul edilir.',
             'magic_bytes' => 'Dosya geçerli bir görsel değil (sihirli bayt doğrulaması).',
             'size' => 'Görsel '.(self::MAX_BYTES / 1048576).' MB\'tan büyük olamaz.',
+            'reencode' => 'Görsel işlenemedi; başka bir dosya deneyin.',
             default => 'Yükleme reddedildi.',
         });
     }

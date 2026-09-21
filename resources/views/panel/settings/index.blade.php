@@ -13,7 +13,7 @@
             <form method="GET" class="inline-form">
                 @if ($group)<input type="hidden" name="grup" value="{{ $group }}">@endif
                 <label class="field" style="flex:1 1 220px"><span class="label">Kapsam</span>
-                    <select class="control" name="lokasyon" onchange="this.form.requestSubmit()">
+                    <select class="control" name="lokasyon" data-autosubmit>
                         <option value="">Kurulum (tüm lokasyonlar)</option>
                         @foreach ($locations as $loc)
                             <option value="{{ $loc->id }}" @selected($location && $location->id === $loc->id)>{{ $loc->name }} (üzerine yaz)</option>

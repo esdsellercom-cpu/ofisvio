@@ -183,6 +183,7 @@ class SiteLayoutComposer
         $header = $site !== null ? $this->chrome->config($site, 'header', (bool) ($data['preview'] ?? false) || $this->request->attributes->get('ofv.editor') === true) : SiteChromeService::HEADER_DEFAULTS;
         $header['logo'] = $site !== null && $header['logo_media_id'] !== null ? Media::query()->where('website_id', $site->id)->find($header['logo_media_id']) : null;
         $header['logo_mobile'] = $site !== null && $header['logo_mobile_media_id'] !== null ? Media::query()->where('website_id', $site->id)->find($header['logo_mobile_media_id']) : null;
+        $header['favicon'] = $site !== null && ($header['favicon_media_id'] ?? null) !== null ? Media::query()->where('website_id', $site->id)->find($header['favicon_media_id']) : null;
 
         $view->with($contentExtras + [
             'siteNavLinks' => $navLinks,

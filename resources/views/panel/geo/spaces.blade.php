@@ -36,7 +36,7 @@
                 @include('panel.geo.partials.space-fields', ['s' => $s])
                 <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
                     <button type="submit" class="btn btn--brand">Kaydet</button>
-                    <button type="submit" form="delete-space-{{ $s->id }}" class="btn btn--danger" onclick="return confirm('Alan silinsin mi?')">Sil</button>
+                    <button type="submit" form="delete-space-{{ $s->id }}" class="btn btn--danger" data-confirm="Alan silinsin mi?">Sil</button>
                 </div>
             </form>
             <form id="delete-space-{{ $s->id }}" method="POST" action="{{ route('panel.geo.spaces.destroy', [$location, $s->id]) }}" hidden>@csrf @method('DELETE')</form>

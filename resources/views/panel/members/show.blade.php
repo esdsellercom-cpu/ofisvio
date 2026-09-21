@@ -149,7 +149,7 @@
                             <span>{{ $a->starts_on->format('d.m.Y') }} → {{ $a->ends_on?->format('d.m.Y') ?? 'süresiz' }} · <span class="pill {{ $a->status === 'active' ? 'g' : 'n' }} flat">{{ $a->status === 'active' ? 'Aktif' : 'Bitti' }}</span>@if ($a->user) · {{ $a->user->name }}@endif @if ($a->subscription) · {{ $a->subscription->plan?->name }}@endif</span>
                             <span class="small">Demirbaşlar: @if ($a->assets->isEmpty())<span class="muted">yok</span>@else @foreach ($a->assets as $x)<span class="tag">{{ $x->name }}{{ $x->code ? ' ('.$x->code.')' : '' }}</span> @endforeach @endif</span>
                         </div>
-                        <span class="rt">@if ($can['space'] && $a->status === 'active')<button type="button" class="btn btn--quiet" data-modal-open="#modal-asset" data-fill="{{ json_encode(['assignment_id' => $a->id]) }}">Demirbaş</button><form method="POST" action="{{ route('panel.spaces.inventory.assignment.end', $a->id) }}" style="display:inline" onsubmit="return confirm('Tahsis bitirilsin mi? Demirbaşlar iade alınır.')">@csrf<input type="hidden" name="return" value="{{ $returnUrl }}?sekme=tahsis"><button type="submit" class="btn btn--quiet">Bitir</button></form>@endif</span>
+                        <span class="rt">@if ($can['space'] && $a->status === 'active')<button type="button" class="btn btn--quiet" data-modal-open="#modal-asset" data-fill="{{ json_encode(['assignment_id' => $a->id]) }}">Demirbaş</button><form method="POST" action="{{ route('panel.spaces.inventory.assignment.end', $a->id) }}" style="display:inline" data-confirm="Tahsis bitirilsin mi? Demirbaşlar iade alınır.">@csrf<input type="hidden" name="return" value="{{ $returnUrl }}?sekme=tahsis"><button type="submit" class="btn btn--quiet">Bitir</button></form>@endif</span>
                     </div>
                 @endforeach
             </div>@endif
@@ -337,7 +337,7 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script nonce="{{ csp_nonce() }}">
     // Demirbaş modalı: seçilen tahsise göre form action ve mevcut demirbaş işaretleri (bağımlılıksız; HTTP yok).
     document.addEventListener('DOMContentLoaded', function () {
         var form = document.querySelector('[data-asset-form]'); if (!form) return;

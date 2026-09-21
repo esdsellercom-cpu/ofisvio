@@ -9,11 +9,13 @@ use App\Models\Permission;
 use App\Models\UserRole;
 use App\Models\Website;
 use App\Security\MalwareScanner;
+use App\Services\KeyRotationService;
 use App\Services\LegalDocumentService;
 use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
@@ -56,6 +58,8 @@ class DoctorCommand extends Command
         $this->checkScheduler($production);
         $this->checkSeedAndAdmin();
         $this->checkLegal($production);
+        $this->checkKeyRotation($production);
+        $this->checkFailedJobs();
         $this->checkIntegrations($production);
 
         $failed = array_filter($this->rows, fn (array $r) => $r['level'] === 'fail');
@@ -108,6 +112,12 @@ class DoctorCommand extends Command
         Str::startsWith($url, 'https://')
             ? $this->add('APP_URL', 'ok', $url)
             : $this->strict($production, 'APP_URL', $url.' — https:// olmalı (canonical, sitemap, çerez güvenliği)');
+
+        // Ters proxy (audit F-12): üretimde neredeyse her zaman nginx/CDN vardır; güven tanımsızsa HTTPS algılanmaz.
+        $proxies = trim((string) config('ofisvio.security.trusted_proxies', ''));
+        $proxies !== ''
+            ? $this->add('Ters proxy', 'ok', 'TRUSTED_PROXIES='.$proxies)
+            : $this->add('Ters proxy', $production ? 'warn' : 'ok', 'TRUSTED_PROXIES boş — proxy/CDN arkasındaysanız X-Forwarded-Proto yok sayılır (HSTS, secure çerez, https URL)');
 
         config('app.timezone') === 'Europe/Istanbul'
             ? $this->add('Saat dilimi', 'ok', 'Europe/Istanbul')
@@ -319,6 +329,36 @@ class DoctorCommand extends Command
         if ($enabled === 0) {
             $this->add('Entegrasyonlar', 'ok', 'açık sağlayıcı yok (hepsi env ile kapalı)');
         }
+    }
+
+    /** Audit F-18: başarısız kuyruk işleri görünür olsun (health-alert bunu uyarıya çevirir). */
+    private function checkFailedJobs(): void
+    {
+        if (! Schema::hasTable('failed_jobs')) {
+            return;
+        }
+
+        $n = DB::table('failed_jobs')->count();
+        $n === 0
+            ? $this->add('Başarısız işler', 'ok', 'failed_jobs boş')
+            : $this->add('Başarısız işler', 'warn', $n.' iş — php artisan queue:failed / queue:retry all');
+    }
+
+    /** Audit F-14: eski APP_KEY ile şifreli kayıt kaldıysa APP_PREVIOUS_KEYS kaldırılamaz; üretimde hata. */
+    private function checkKeyRotation(bool $production): void
+    {
+        try {
+            $pending = array_sum(app(KeyRotationService::class)->pending());
+        } catch (Throwable $e) {
+            $this->add('Anahtar rotasyonu', 'warn', 'Denetlenemedi: '.$e->getMessage());
+
+            return;
+        }
+
+        $previous = array_filter((array) config('app.previous_keys'));
+        $pending === 0
+            ? $this->add('Anahtar rotasyonu', 'ok', $previous !== [] ? 'Bekleyen kayıt yok — APP_PREVIOUS_KEYS kaldırılabilir' : 'tüm şifreli kayıtlar mevcut anahtarla')
+            : $this->strict($production, 'Anahtar rotasyonu', $pending.' kayıt eski anahtarla şifreli — php artisan ofisvio:reencrypt (APP_PREVIOUS_KEYS silinmeden)');
     }
 
     /** Audit F-07 (KVKK): vitrin rızaları bir yasal metin sürümüne bağlanmalı; üretimde KVKK sürümü yoksa hata. */

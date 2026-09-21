@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @include('site.partials.seo-head')
+    @if (! empty($header['favicon']))<link rel="icon" type="{{ $header['favicon']->mime_type }}" href="{{ $header['favicon']->url() }}"><link rel="apple-touch-icon" href="{{ $header['favicon']->urlFor(400) }}">@endif
     @empty($seo)
         <title>@yield('title', config('ofisvio.brand.name').' — şirketinizin adresi bugün hazır olsun')</title>
         <meta name="description" content="@yield('description', 'Sanal ofis, hazır ofis ve coworking. Tescil adresi, çağrı ve kargo karşılama, saatlik toplantı odası.')">

@@ -117,7 +117,7 @@
                 @elseif ($user->id === auth()->id())
                     <p class="small muted" style="margin:0">Kendi hesabınızı askıya alamazsınız.</p>
                 @else
-                    <form method="POST" action="{{ route('panel.users.suspend', $user) }}" class="stack" style="gap:8px" onsubmit="return confirm('Hesap askıya alınsın mı? Açık oturumları kapatılır, giriş engellenir.')">
+                    <form method="POST" action="{{ route('panel.users.suspend', $user) }}" class="stack" style="gap:8px" data-confirm="Hesap askıya alınsın mı? Açık oturumları kapatılır, giriş engellenir.">
                         @csrf
                         <label class="field"><span class="label">Gerekçe</span><input class="control" type="text" name="reason" minlength="5" maxlength="300" required></label>
                         <div><button type="submit" class="btn btn--danger">Hesabı askıya al</button></div>

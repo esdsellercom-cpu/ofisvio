@@ -14,7 +14,7 @@
         <div class="panel-head__actions">
             <form method="GET" class="inline-form">
                 <label class="field" style="flex:1 1 240px"><span class="label">Ara</span><input class="control" type="search" name="q" value="{{ $q }}" placeholder="ad, soyad, firma, e-posta, telefon, üye no"></label>
-                <label class="field"><span class="label">Süzgeç</span><select class="control" name="f" onchange="this.form.requestSubmit()">@foreach ($filters as $k => $l)<option value="{{ $k }}" @selected($filter === $k)>{{ $l }}</option>@endforeach</select></label>
+                <label class="field"><span class="label">Süzgeç</span><select class="control" name="f" data-autosubmit>@foreach ($filters as $k => $l)<option value="{{ $k }}" @selected($filter === $k)>{{ $l }}</option>@endforeach</select></label>
                 <button type="submit" class="btn btn--ghost">Ara</button>
             </form>
             @if ($canCreate)<a href="{{ route('panel.members.create') }}" class="btn btn--brand">+ Yeni üye</a>@endif

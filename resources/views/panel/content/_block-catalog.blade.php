@@ -23,7 +23,7 @@
                         @can('content.edit')
                             <button type="button" class="btn btn--ghost btn--pill" data-modal-open="#modal-preset-edit" data-action="{{ route('panel.content.blocks.preset.update', $p->id) }}" data-fill='@json(['name' => $p->name, 'category' => $p->category, 'is_global' => $p->is_global ? '1' : ''])' data-title="Bloğu düzenle: {{ $p->name }}">Ad / kategori</button>
                             <form method="POST" action="{{ route('panel.content.blocks.preset.duplicate', $p->id) }}">@csrf<button type="submit" class="btn btn--ghost btn--pill">Kopyala</button></form>
-                            <form method="POST" action="{{ route('panel.content.blocks.preset.destroy', $p->id) }}" onsubmit="return confirm('Blok silinsin mi? Bağlı bölümler kendi kopyalarıyla kalır.')">@csrf @method('DELETE')<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil</button></form>
+                            <form method="POST" action="{{ route('panel.content.blocks.preset.destroy', $p->id) }}" data-confirm="Blok silinsin mi? Bağlı bölümler kendi kopyalarıyla kalır.">@csrf @method('DELETE')<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil</button></form>
                         @endcan
                     </div>
                 @else

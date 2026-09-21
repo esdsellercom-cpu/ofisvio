@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Services\CurrentWebsite;
 use App\Services\SeoSettingsService;
+use App\Support\Csp;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -27,6 +28,8 @@ class SecurityHeaders
 
     public function handle(Request $request, Closure $next): Response
     {
+        Csp::reset();
+        $nonce = Csp::nonce(); // görünümler render edilmeden önce üretilir; yanıt başlığıyla aynı değer
         $response = $next($request);
         $panel = $request->is('panel', 'panel/*', 'login', 'two-factor-challenge', 'user/*', 'forgot-password', 'reset-password/*');
         $cfg = (array) config('ofisvio.security');
@@ -34,7 +37,8 @@ class SecurityHeaders
 
         $csp = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline'".$analytics,
+            // audit F-11: satır içi script yalnız nonce ile; 'strict-dynamic' nonce'lu scriptin yüklediklerine (GTM) izin verir, 'self' + host listesi eski tarayıcılar için kalır.
+            "script-src 'self' 'nonce-".$nonce."' 'strict-dynamic'".$analytics,
             "style-src 'self' 'unsafe-inline' ".implode(' ', (array) ($cfg['style_src'] ?? [])),
             "font-src 'self' data: ".implode(' ', (array) ($cfg['font_src'] ?? [])),
             "img-src 'self' data: https:",

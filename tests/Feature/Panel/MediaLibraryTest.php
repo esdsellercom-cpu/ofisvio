@@ -167,6 +167,33 @@ class MediaLibraryTest extends TestCase
         $this->assertSame(0, Media::count());
         $this->assertSame([], Storage::disk('public')->allFiles());
 
+        // Audit F-19: kılık değiştirmiş dosyalar — PHP/HTML/SVG/JS gövdesi ne uzantı ne çift uzantı ile geçer; PNG başlığı + PHP
+        // kuyruğu (polyglot) getimagesize/finfo eşleşmesinden düşer; yol geçişi adı sunucu adını etkilemez; public diske dosya yazılmaz.
+        $pngHead = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', true);
+        foreach ([
+            ['kabuk.php.jpg', '<?php system($_GET["c"]); ?>'],
+            ['kabuk.jpg', 'GIF89a<?php echo shell_exec($_GET["c"]); ?>'],
+            ['sayfa.png', '<html><body><script>alert(1)</script></body></html>'],
+            ['vektor.svg', '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"><script>alert(1)</script></svg>'],
+            ['betik.js', 'alert(1)'],
+            ['zararli.exe', "MZ\x90\x00\x03"],
+            ['../../gecis.png', 'x'],
+        ] as [$name, $body]) {
+            $this->actingAs($admin)->from('/panel/icerik/medya')->post('/panel/icerik/medya', ['file' => UploadedFile::fake()->createWithContent($name, $body)])->assertSessionHasErrors('file');
+        }
+        $this->assertSame(0, Media::count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
+
+        // Polyglot (geçerli PNG + PHP kuyruğu): görsel olarak geçer ama her görsel GD ile yeniden kodlandığından kuyruk
+        // diske asla yazılmaz — ne ana dosyada ne varyantlarda.
+        $this->actingAs($admin)->post('/panel/icerik/medya', ['file' => UploadedFile::fake()->createWithContent('poly.png', $pngHead.'<?php system($_GET["c"]); ?>')])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertNotSame([], Storage::disk('public')->allFiles());
+        foreach (Storage::disk('public')->allFiles() as $stored) {
+            $this->assertStringNotContainsString('<?php', (string) Storage::disk('public')->get($stored), $stored);
+        }
+        Media::query()->delete();
+        Storage::fake('public');
+
         // Tarayıcı erişilemez: yükleme REDDEDİLİR (fail-closed).
         $this->scanner->result = ScanResult::unavailable('clamd yok');
         $this->actingAs($admin)->from('/panel/icerik/medya')->post('/panel/icerik/medya', ['file' => $this->png()])->assertSessionHasErrors('file');

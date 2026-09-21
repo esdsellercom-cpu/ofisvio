@@ -37,7 +37,7 @@
                                         <div class="row-actions">
                                             <a href="{{ route('panel.plans.edit', $plan) }}" class="btn btn--quiet">Düzenle</a>
                                             @if ($plan->subscriptions_count === 0)
-                                                <form method="POST" action="{{ route('panel.plans.destroy', $plan) }}" onsubmit="return confirm('Paket silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sil</button></form>
+                                                <form method="POST" action="{{ route('panel.plans.destroy', $plan) }}" data-confirm="Paket silinsin mi?">@csrf @method('DELETE')<button type="submit" class="btn btn--quiet" style="color:var(--crit)">Sil</button></form>
                                             @endif
                                         </div>
                                     @endcan

@@ -1,6 +1,7 @@
 <?php
 
 use App\Site\SectionStyle;
+use App\Support\Csp;
 use App\Support\Money;
 use Illuminate\Support\HtmlString;
 
@@ -9,6 +10,14 @@ if (! function_exists('money')) {
     function money(int|float|null $minor, ?string $currency = null): string
     {
         return Money::format($minor, $currency);
+    }
+}
+
+if (! function_exists('csp_nonce')) {
+    /** CSP nonce (audit F-11): satır içi <script nonce="{{ csp_nonce() }}">; SecurityHeaders aynı değeri başlığa yazar. */
+    function csp_nonce(): string
+    {
+        return Csp::nonce();
     }
 }
 

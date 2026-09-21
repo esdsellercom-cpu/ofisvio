@@ -61,6 +61,11 @@ final class NotificationEvents
             'event.registered' => ['label' => 'Etkinlik kaydı alındı', 'placeholders' => ['event', 'date', 'location', 'customer_name', 'customer_email', 'brand'], 'defaults' => [['email', 'customer']], 'subject' => '{{brand}} — Kaydınız alındı: {{event}}', 'body' => "{{brand}} — Etkinlik Kaydı\n\nEtkinlik: {{event}}\nTarih: {{date}}\nYer: {{location}}\n\nSizi bekliyoruz."],
             'franchise.applied' => ['label' => 'Yeni franchise başvurusu', 'placeholders' => ['number', 'name', 'email', 'phone', 'city', 'brand'], 'defaults' => [['in_app', 'crm'], ['email', 'crm']], 'subject' => '{{brand}} — Yeni franchise başvurusu {{number}}', 'body' => "{{brand}} — Franchise Başvurusu {{number}}\n\nAd: {{name}}\nE-posta: {{email}}\nTelefon: {{phone}}\nŞehir: {{city}}"],
             'notification.failed' => ['label' => 'Bildirim gönderilemedi (sistem)', 'placeholders' => ['event', 'channel', 'recipient', 'error', 'brand'], 'defaults' => [['in_app', 'super_admin']], 'subject' => '{{brand}} — Bildirim gönderilemedi', 'body' => "{{brand}} — Bildirim gönderilemedi\n\nOlay: {{event}}\nKanal: {{channel}}\nAlıcı: {{recipient}}\nHata: {{error}}\n\nTüm denemeler tükendi; Bildirim Merkezi › Günlük."],
+            'system.alert' => ['label' => 'Sistem uyarısı (doctor / kuyruk)', 'placeholders' => ['message', 'count', 'brand'], 'defaults' => [['in_app', 'super_admin'], ['email', 'super_admin']], 'subject' => '{{brand}} — Sistem uyarısı ({{count}} hata)', 'body' => '{{brand}} — Sistem uyarısı
+
+{{message}}
+
+Ayrıntı: Ayarlar › Sistem sağlığı (ofisvio:doctor).'],
             'security.alert' => ['label' => 'Güvenlik uyarısı', 'placeholders' => ['message', 'brand'], 'defaults' => [['in_app', 'super_admin'], ['email', 'super_admin']], 'subject' => '{{brand}} — Güvenlik uyarısı', 'body' => "{{brand}} — Güvenlik\n\n{{message}}"],
         ];
     }

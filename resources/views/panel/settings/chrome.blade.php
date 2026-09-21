@@ -44,6 +44,9 @@
                     <label class="field"><span class="label">Mobil logo (isteğe bağlı)</span>
                         <select class="control" name="c[logo_mobile_media_id]"><option value="">— aynı logo —</option>@foreach ($mediaOptions as $m)<option value="{{ $m->id }}" @selected((int) $c['logo_mobile_media_id'] === $m->id)>{{ $m->original_name }}</option>@endforeach</select>
                     </label>
+                    <label class="field"><span class="label">Favicon / uygulama simgesi (kare PNG, en az 180 px)</span>
+                        <select class="control" name="c[favicon_media_id]"><option value="">— simge yok —</option>@foreach ($mediaOptions as $m)<option value="{{ $m->id }}" @selected((int) ($c['favicon_media_id'] ?? 0) === $m->id)>{{ $m->original_name }}</option>@endforeach</select>
+                    </label>
                     <label class="field"><span class="label">Logo yüksekliği (px)</span><input class="control mono" type="number" name="c[logo_height]" value="{{ $c['logo_height'] }}" min="20" max="80"></label>
                 </div>
                 <p class="small muted" style="margin:0">Favicon: <code>public/favicon.ico</code> deploy ile; medya kütüphanesinden yüklenmez (tarayıcı önbelleği).</p>
@@ -175,7 +178,7 @@
         <div class="panel" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
             <label class="field" style="flex:1 1 220px"><span class="label">Sürüm notu (isteğe bağlı)</span><input class="control" type="text" name="note" maxlength="200" placeholder="örn. Mega menü açıldı"></label>
             <button type="submit" class="btn btn--ghost" formaction="{{ route('panel.settings.chrome.preview', $area) }}">Taslak olarak önizle</button>
-            @if ($canPublish)<button type="submit" class="btn btn--brand" onclick="return confirm('Bu değişiklik tüm sitede uygulanacaktır. Yayınlansın mı?')">Yayınla (tüm sitede)</button>@else<span class="small muted">Yayın için website.manage gerekir; taslak önizleyebilirsiniz.</span>@endif
+            @if ($canPublish)<button type="submit" class="btn btn--brand" data-confirm="Bu değişiklik tüm sitede uygulanacaktır. Yayınlansın mı?">Yayınla (tüm sitede)</button>@else<span class="small muted">Yayın için website.manage gerekir; taslak önizleyebilirsiniz.</span>@endif
         </div>
     </form>
 
@@ -185,7 +188,7 @@
             <table class="data"><thead><tr><th>#</th><th>Tarih</th><th>Kim</th><th>Not</th><th></th></tr></thead><tbody>
                 @foreach ($versions as $v)
                     <tr><td class="mono">{{ $v->number }}</td><td class="small">{{ $v->created_at->format('d.m.Y H:i') }}</td><td class="small">{{ $v->author?->name ?? '—' }}</td><td class="small">{{ $v->note ?? '—' }}</td>
-                        <td>@if ($canPublish)<form method="POST" action="{{ route('panel.settings.chrome.rollback', [$area, $v->id]) }}" onsubmit="return confirm('Sürüm {{ $v->number }} yayınlansın mı? Mevcut yapılandırma yeni sürüm olarak saklanır.')">@csrf<input type="hidden" name="website" value="{{ $website->id }}"><button type="submit" class="btn btn--ghost btn--pill">Bu sürüme dön</button></form>@endif</td></tr>
+                        <td>@if ($canPublish)<form method="POST" action="{{ route('panel.settings.chrome.rollback', [$area, $v->id]) }}" data-confirm="Sürüm {{ $v->number }} yayınlansın mı? Mevcut yapılandırma yeni sürüm olarak saklanır.">@csrf<input type="hidden" name="website" value="{{ $website->id }}"><button type="submit" class="btn btn--ghost btn--pill">Bu sürüme dön</button></form>@endif</td></tr>
                 @endforeach
             </tbody></table>
         @endif

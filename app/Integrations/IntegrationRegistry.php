@@ -32,13 +32,14 @@ final class IntegrationRegistry
     public static function definitions(): array
     {
         return [
-            'iyzico' => ['label' => 'iyzico', 'category' => 'payment', 'kind' => 'gateway', 'description' => 'Online kart ödemesi (Integration Gateway).', 'usage' => 'Ödeme başlatma/doğrulama; webhook /webhooks/iyzico.', 'test' => 'gateway', 'fields' => [
+            // Audit F-13: adaptörü/tüketicisi yazılmamış sağlayıcılar 'planned' — panel yapılandırma ve test kabul etmez, gelen webhook saklanır ama işlenmez (dürüst durum).
+            'iyzico' => ['label' => 'iyzico', 'category' => 'payment', 'kind' => 'planned', 'description' => 'Online kart ödemesi — adaptör henüz yazılmadı; tahsilat panelden manuel (Tahsilat merkezi).', 'usage' => 'Planlı: ödeme başlatma/doğrulama, webhook /webhooks/iyzico → InvoiceService::recordPayment.', 'test' => 'gateway', 'fields' => [
                 ['key' => 'api_key', 'label' => 'API anahtarı', 'type' => 'secret', 'required' => true, 'env' => 'IYZICO_API_KEY'],
                 ['key' => 'secret_key', 'label' => 'Secret key', 'type' => 'secret', 'required' => true, 'env' => 'IYZICO_SECRET_KEY'],
                 ['key' => 'webhook_secret', 'label' => 'Webhook secret', 'type' => 'secret', 'advanced' => true, 'env' => 'IYZICO_WEBHOOK_SECRET', 'help' => 'Gelen webhook imzası (HMAC).'],
                 ['key' => 'base_url', 'label' => 'Base URL', 'type' => 'url', 'advanced' => true, 'env' => 'IYZICO_BASE_URL', 'default' => 'https://api.iyzipay.com'],
             ]],
-            'efatura' => ['label' => 'e-Fatura', 'category' => 'payment', 'kind' => 'gateway', 'description' => 'e-Fatura entegratörü.', 'usage' => 'Fatura gönderimi (Gateway).', 'test' => 'gateway', 'fields' => [
+            'efatura' => ['label' => 'e-Fatura', 'category' => 'payment', 'kind' => 'planned', 'description' => 'e-Fatura entegratörü — adaptör henüz yazılmadı; faturalar PDF olarak üretilir.', 'usage' => 'Planlı: fatura gönderimi (Gateway).', 'test' => 'gateway', 'fields' => [
                 ['key' => 'username', 'label' => 'Kullanıcı adı', 'type' => 'string', 'required' => true, 'env' => 'EFATURA_USERNAME'],
                 ['key' => 'password', 'label' => 'Parola', 'type' => 'secret', 'required' => true, 'env' => 'EFATURA_PASSWORD'],
                 ['key' => 'base_url', 'label' => 'Base URL', 'type' => 'url', 'required' => true, 'env' => 'EFATURA_BASE_URL'],

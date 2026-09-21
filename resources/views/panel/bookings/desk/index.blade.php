@@ -34,7 +34,7 @@
     <form method="GET" class="inline-form" style="margin-bottom:16px">
         <input type="hidden" name="sekme" value="{{ $tab }}">
         <label class="field" style="flex:1 1 200px"><span class="label">Lokasyon</span>
-            <select class="control" name="lokasyon" onchange="this.form.requestSubmit()">
+            <select class="control" name="lokasyon" data-autosubmit>
                 <option value="">Tümü</option>
                 @foreach ($locations as $loc)
                     <option value="{{ $loc->id }}" @selected((string) ($filters['lokasyon'] ?? '') === (string) $loc->id)>{{ $loc->name }}</option>
@@ -42,7 +42,7 @@
             </select>
         </label>
         <label class="field" style="flex:0 1 170px"><span class="label">Başlangıç ≥</span>
-            <input class="control" type="date" name="baslangic" value="{{ $filters['baslangic'] ?? '' }}" onchange="this.form.requestSubmit()">
+            <input class="control" type="date" name="baslangic" value="{{ $filters['baslangic'] ?? '' }}" data-autosubmit>
         </label>
         <label class="field" style="flex:1 1 200px"><span class="label">Ara (no, ad, e-posta, telefon, firma)</span>
             <input class="control" type="search" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="80">

@@ -40,7 +40,7 @@
         @if ($websites->count() > 1)
             <label class="field" style="flex:0 1 220px">
                 <span class="label">Site</span>
-                <select class="control" name="website" onchange="this.form.submit()">
+                <select class="control" name="website" data-autosubmit>
                     @foreach ($websites as $site)
                         <option value="{{ $site->id }}" @selected($site->id === $website->id)>{{ $site->name }}</option>
                     @endforeach
@@ -51,7 +51,7 @@
         @endif
         <label class="field" style="flex:0 1 180px">
             <span class="label">Tür</span>
-            <select class="control" name="kind" onchange="this.form.submit()">
+            <select class="control" name="kind" data-autosubmit>
                 <option value="">Hepsi</option>
                 @foreach ($kinds as $k)
                     <option value="{{ $k->value }}" @selected($kind === $k)>{{ $k->label() }}</option>
@@ -60,7 +60,7 @@
         </label>
         <label class="field" style="flex:0 1 200px">
             <span class="label">Durum</span>
-            <select class="control" name="status" onchange="this.form.submit()">
+            <select class="control" name="status" data-autosubmit>
                 <option value="">Hepsi</option>
                 @foreach ($statuses as $s)
                     <option value="{{ $s->value }}" @selected($status === $s)>{{ $s->label() }}</option>

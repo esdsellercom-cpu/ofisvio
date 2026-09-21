@@ -43,7 +43,7 @@
                             @if ($member)
                                 <input class="control" type="text" value="{{ $member->company->legal_name }}" disabled>
                             @else
-                                <select class="control" name="company_select" onchange="document.getElementById('member-form').action = this.options[this.selectedIndex].getAttribute('data-action')">
+                                <select class="control" name="company_select" data-action-target="member-form">
                                     @foreach ($companies as $c)<option value="{{ $c->id }}" data-action="{{ route('panel.members.store', $c) }}" @selected($c->id === $selectedCompany)>{{ $c->legal_name }}@if ($c->tax_number) · VKN {{ $c->tax_number }}@endif</option>@endforeach
                                 </select>
                                 <span class="small muted">Firma vergi no / ünvanı şirket kaydından gelir. Yeni firma: <a href="{{ route('panel.companies.index') }}">Şirketler</a>.</span>

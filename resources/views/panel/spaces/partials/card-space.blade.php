@@ -38,7 +38,7 @@
                 <div class="menu__list">
                     @foreach ($s->activeAssignments as $as)
                         <button type="button" data-modal-open="#modal-assignment" data-title="Tahsisi düzenle · {{ $s->name }}" data-method="PUT" data-action="{{ route('panel.spaces.inventory.assignment.update', $as->id) }}" data-fill="{{ json_encode(['company_id' => $as->company_id, 'space_location' => $s->location_id, 'ends_on' => $as->ends_on?->toDateString(), 'user_id' => $as->user_id, 'note' => $as->note, 'asset_ids' => $as->assets->pluck('id')->all()]) }}">Tahsisi değiştir{{ $as->user ? ' · '.$as->user->name : '' }}</button>
-                        <form method="POST" action="{{ route('panel.spaces.inventory.assignment.end', $as->id) }}" onsubmit="return confirm('Tahsis sonlandırılsın mı? Demirbaşlar serbest kalır.')">@csrf<input type="hidden" name="_tab" value="{{ $tab }}"><button type="submit" class="danger">Tahsisi sonlandır{{ $as->user ? ' · '.$as->user->name : '' }}</button></form>
+                        <form method="POST" action="{{ route('panel.spaces.inventory.assignment.end', $as->id) }}" data-confirm="Tahsis sonlandırılsın mı? Demirbaşlar serbest kalır.">@csrf<input type="hidden" name="_tab" value="{{ $tab }}"><button type="submit" class="danger">Tahsisi sonlandır{{ $as->user ? ' · '.$as->user->name : '' }}</button></form>
                     @endforeach
                     <button type="button" data-modal-open="#modal-asset" data-title="Demirbaş ekle · {{ $s->name }}" data-fill="{{ json_encode(['location_id' => $s->location_id, 'space_id' => $s->id]) }}">Bu alana demirbaş ekle</button>
                 </div>

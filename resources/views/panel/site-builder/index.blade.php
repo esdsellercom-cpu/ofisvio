@@ -25,7 +25,7 @@
             <div class="ve-top__group">
                 <span class="eyebrow" style="margin:0">Site editörü</span>
                 @if ($websites->count() > 1)
-                    <form method="GET" class="inline-form"><select class="control" name="website" onchange="this.form.requestSubmit()">@foreach ($websites as $w)<option value="{{ $w->id }}" @selected($w->id === $website->id)>{{ $w->name }}</option>@endforeach</select></form>
+                    <form method="GET" class="inline-form"><select class="control" name="website" data-autosubmit>@foreach ($websites as $w)<option value="{{ $w->id }}" @selected($w->id === $website->id)>{{ $w->name }}</option>@endforeach</select></form>
                 @else
                     <b>{{ $website->name }}</b>
                 @endif
@@ -92,7 +92,7 @@
                             @forelse ($presets as $p)
                                 <div class="ve-chip ve-chip--preset" draggable="true" data-add-type="preset:{{ $p->id }}">
                                     <span class="ve-chip__icon" aria-hidden="true">{{ $library[$p->type]['icon'] ?? '▣' }}</span><span style="flex:1;min-width:0"><b style="display:block;overflow:hidden;text-overflow:ellipsis">{{ $p->is_global ? '🌐 ' : '' }}{{ $p->name }}</b><span class="small muted">{{ $library[$p->type]['label'] ?? $p->type }} · {{ $categories[$p->category] ?? $p->category }}</span></span>
-                                    <form method="POST" action="{{ route('panel.content.builder.preset.destroy', [$website, $p->id]) }}" onsubmit="return confirm('Kayıtlı blok silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--quiet" title="Sil">×</button></form>
+                                    <form method="POST" action="{{ route('panel.content.builder.preset.destroy', [$website, $p->id]) }}" data-confirm="Kayıtlı blok silinsin mi?">@csrf @method('DELETE')<button type="submit" class="btn btn--quiet" title="Sil">×</button></form>
                                 </div>
                             @empty
                                 <div class="empty-state" style="border:0;padding:12px">Kayıtlı blok yok.</div>
@@ -129,7 +129,7 @@
                                     <div><b>Versiyon {{ $rev->number }}</b> <span class="small muted">· {{ $rev->published_at?->format('d.m.Y H:i') }} · {{ $rev->author?->name ?? '—' }}</span>@if ($rev->note)<div class="small">{{ $rev->note }}</div>@endif</div>
                                     <div style="display:flex;gap:4px">
                                         <button type="button" class="btn btn--quiet" data-preview-revision="{{ $rev->number }}">Önizle</button>
-                                        @can('content.publish')<form method="POST" action="{{ route('panel.content.builder.rollback', [$website, $rev->id]) }}" onsubmit="return confirm('Versiyon {{ $rev->number }} taslağa alınıp yeni sürüm olarak yayınlanacak. Devam?')">@csrf<button type="submit" class="btn btn--quiet">Geri dön</button></form>@endcan
+                                        @can('content.publish')<form method="POST" action="{{ route('panel.content.builder.rollback', [$website, $rev->id]) }}" data-confirm="Versiyon {{ $rev->number }} taslağa alınıp yeni sürüm olarak yayınlanacak. Devam?">@csrf<button type="submit" class="btn btn--quiet">Geri dön</button></form>@endcan
                                     </div>
                                 </div>
                             @empty

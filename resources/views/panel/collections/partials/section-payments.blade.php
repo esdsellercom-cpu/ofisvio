@@ -27,7 +27,7 @@
                                             <form method="POST" action="{{ route('panel.collections.payments.receipt', $p->id) }}">@csrf<button type="submit" class="btn btn--quiet">Makbuz oluştur</button></form>
                                         @endif
                                         <details class="menu"><summary class="btn btn--quiet">İptal</summary>
-                                            <form method="POST" action="{{ route('panel.collections.payments.cancel', $p->id) }}" class="menu__list" style="min-width:250px;padding:8px;gap:6px" onsubmit="return confirm('Tahsilat iptal edilsin mi? Fatura bakiyesi geri alınır, kayıt geçmişte kalır.')">@csrf
+                                            <form method="POST" action="{{ route('panel.collections.payments.cancel', $p->id) }}" class="menu__list" style="min-width:250px;padding:8px;gap:6px" data-confirm="Tahsilat iptal edilsin mi? Fatura bakiyesi geri alınır, kayıt geçmişte kalır.">@csrf
                                                 <input class="control" type="text" name="reason" placeholder="İptal gerekçesi (zorunlu)" required minlength="5" maxlength="200">
                                                 <button type="submit" class="btn btn--danger" style="justify-content:center">Tahsilatı iptal et</button>
                                             </form>

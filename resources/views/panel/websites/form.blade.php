@@ -93,7 +93,7 @@
         <div class="panel" style="max-width:640px;margin-top:20px">
             <p class="eyebrow">Tehlikeli bölge</p>
             @error('name')<p class="small" style="color:var(--danger)">{{ $message }}</p>@enderror
-            <form method="POST" action="{{ route('panel.websites.destroy', $website) }}" onsubmit="return confirm('Site silinsin mi? Yalnız içeriksiz site silinir; alan adı boşa çıkar.')">
+            <form method="POST" action="{{ route('panel.websites.destroy', $website) }}" data-confirm="Site silinsin mi? Yalnız içeriksiz site silinir; alan adı boşa çıkar.">
                 @csrf @method('DELETE')
                 <button type="submit" class="btn btn--ghost" style="color:var(--danger);border-color:#E9C4BC">Siteyi sil</button>
                 <span class="small muted" style="margin-left:10px">İçeriği olan site silinemez (önce içerikleri silin).</span>

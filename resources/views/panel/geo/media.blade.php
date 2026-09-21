@@ -64,7 +64,7 @@
                                             <button type="submit" form="mv-{{ $link->id }}-down" class="btn btn--ghost btn--pill" title="Aşağı" @disabled($loop->last)>↓</button>
                                             @unless ($link->is_primary)<button type="submit" form="pr-{{ $link->id }}" class="btn btn--ghost btn--pill">◉ Birincil yap</button>@endunless
                                             @if ((int) $location->cover_media_id !== (int) $m->id)<button type="submit" form="cv-{{ $link->id }}" class="btn btn--ghost btn--pill">Kapak yap</button>@endif
-                                            <button type="submit" form="rm-{{ $link->id }}" class="btn btn--ghost btn--pill" style="color:var(--danger)" onclick="return confirm('Görsel bu kategoriden kaldırılsın mı? Başka yerde kullanılmıyorsa dosya da silinir.')">Kaldır</button>
+                                            <button type="submit" form="rm-{{ $link->id }}" class="btn btn--ghost btn--pill" style="color:var(--danger)" data-confirm="Görsel bu kategoriden kaldırılsın mı? Başka yerde kullanılmıyorsa dosya da silinir.">Kaldır</button>
                                         </div>
                                         <form method="POST" action="{{ route('panel.geo.media.replace', [$location, $link->id]) }}" enctype="multipart/form-data" class="inline-form">@csrf
                                             <input class="control" type="file" name="file" accept="image/jpeg,image/png,image/webp" required style="max-width:260px">

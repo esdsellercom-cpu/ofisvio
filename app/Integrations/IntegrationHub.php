@@ -23,7 +23,7 @@ use Throwable;
  */
 class IntegrationHub
 {
-    public const STATES = ['connected' => '🟢 Bağlı', 'unconfigured' => '🟡 Yapılandırılmadı', 'error' => '🔴 Hata', 'disabled' => '⚪ Pasif', 'link' => '↗ Başka ekranda'];
+    public const STATES = ['connected' => '🟢 Bağlı', 'unconfigured' => '🟡 Yapılandırılmadı', 'error' => '🔴 Hata', 'disabled' => '⚪ Pasif', 'link' => '↗ Başka ekranda', 'planned' => '◌ Planlı (adaptör yok)'];
 
     public function __construct(
         private readonly IntegrationConfigRepository $repository,
@@ -67,6 +67,10 @@ class IntegrationHub
 
         if ($key === 'webhook_out') {
             return $this->outgoingWebhookStatus();
+        }
+
+        if ($def['kind'] === 'planned') {
+            return ['state' => 'planned', 'state_label' => self::STATES['planned'], 'enabled' => false, 'missing' => [], 'last_ok_at' => null, 'last_error_at' => null, 'last_error' => null, 'last_sync_at' => null, 'source' => '—'];
         }
 
         if ($def['kind'] === 'link') {
@@ -192,6 +196,10 @@ class IntegrationHub
             throw new DomainException('Bu entegrasyon başka ekranda yönetilir.');
         }
 
+        if ($def['kind'] === 'planned') {
+            throw new DomainException('Bu sağlayıcının adaptörü henüz yok; anahtar girilse de kullanılmaz. Modül yazıldığında bu ekran açılır.');
+        }
+
         $config = $this->repository->for($key)['config'];
         $secrets = [];
 
@@ -242,6 +250,11 @@ class IntegrationHub
     public function test(string $key): array
     {
         $def = IntegrationRegistry::definition($key) ?? throw new DomainException('Bilinmeyen entegrasyon: '.$key);
+
+        if ($def['kind'] === 'planned') {
+            return ['level' => 'warn', 'note' => 'Adaptör yok — test edilecek bağlantı yok (planlı modül).', 'duration_ms' => 0];
+        }
+
         $started = hrtime(true);
 
         try {

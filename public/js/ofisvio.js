@@ -267,7 +267,16 @@
       });
     });
   }
+  // CSP nonce (audit F-11): satır içi onchange yok; data-autosubmit değişince formu gönderir.
+  function initDeclarative() {
+    document.addEventListener('change', function (e) {
+      var el = e.target;
+      if (el && el.hasAttribute && el.hasAttribute('data-autosubmit') && el.form) { el.form.requestSubmit ? el.form.requestSubmit() : el.form.submit(); }
+    });
+  }
+
   function boot() {
+    initDeclarative();
     initNav();
     initHeroFilter();
     initLocations();

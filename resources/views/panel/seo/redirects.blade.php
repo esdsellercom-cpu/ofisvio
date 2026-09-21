@@ -16,7 +16,7 @@
         @if ($websites->count() > 1)
             <form method="GET" action="{{ route('panel.seo.redirects.home') }}" class="inline-form">
                 <label class="field"><span class="label">Site</span>
-                    <select class="control" onchange="location.href=this.value">
+                    <select class="control" data-navigate>
                         @foreach ($websites as $w)<option value="{{ route('panel.seo.redirects.index', [$w, $tab]) }}" @selected($w->id === $website->id)>{{ $w->name }}</option>@endforeach
                     </select>
                 </label>
@@ -73,7 +73,7 @@
         @endif
 
         <form method="GET" class="inline-form" style="margin-bottom:12px">
-            <select class="control" name="durum" onchange="this.form.submit()">
+            <select class="control" name="durum" data-autosubmit>
                 <option value="all" @selected($status === 'all')>Tüm durumlar</option>
                 @foreach (\App\Models\UrlRedirect::STATUSES as $k => $l)<option value="{{ $k }}" @selected($status === $k)>{{ $l }}</option>@endforeach
             </select>
@@ -98,7 +98,7 @@
                                 @if ($canEdit)
                                     <div class="row-actions">
                                         <a href="{{ route('panel.seo.redirects.index', [$website, 'yonlendirmeler', 'duzenle' => $r->id]) }}" class="btn btn--ghost btn--pill">Düzenle</a>
-                                        <form method="POST" action="{{ route('panel.seo.redirects.destroy', [$website, $r]) }}" onsubmit="return confirm('Yönlendirme silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil</button></form>
+                                        <form method="POST" action="{{ route('panel.seo.redirects.destroy', [$website, $r]) }}" data-confirm="Yönlendirme silinsin mi?">@csrf @method('DELETE')<button type="submit" class="btn btn--ghost btn--pill" style="color:var(--danger)">Sil</button></form>
                                     </div>
                                 @endif
                             </td>
@@ -146,7 +146,7 @@
     {{-- ---------------- 404 günlüğü ---------------- --}}
     @elseif ($tab === '404')
         <form method="GET" class="inline-form" style="margin-bottom:12px">
-            <select class="control" name="durum" onchange="this.form.submit()">
+            <select class="control" name="durum" data-autosubmit>
                 <option value="all" @selected($status === 'all')>Tümü</option>
                 @foreach (\App\Models\NotFoundLog::STATUSES as $k => $l)<option value="{{ $k }}" @selected($status === $k)>{{ $l }}</option>@endforeach
             </select>

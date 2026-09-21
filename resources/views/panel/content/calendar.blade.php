@@ -42,7 +42,7 @@
             <input type="hidden" name="ay" value="{{ $month->format('Y-m') }}">
             <label class="field" style="flex:0 1 220px">
                 <span class="label">Site</span>
-                <select class="control" name="website" onchange="this.form.submit()">
+                <select class="control" name="website" data-autosubmit>
                     @foreach ($websites as $site)
                         <option value="{{ $site->id }}" @selected($site->id === $website->id)>{{ $site->name }}</option>
                     @endforeach

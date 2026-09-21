@@ -20,7 +20,7 @@
 
     <form method="GET" class="inline-form" style="margin-bottom:18px">
         <label class="field" style="flex:0 1 180px"><span class="label">Gün</span>
-            <input class="control" type="date" name="gun" value="{{ $day->toDateString() }}" onchange="this.form.requestSubmit()">
+            <input class="control" type="date" name="gun" value="{{ $day->toDateString() }}" data-autosubmit>
         </label>
         <a href="{{ route('panel.bookings.location', [$location, 'gun' => $day->copy()->subDay()->toDateString()]) }}" class="btn btn--ghost">‹ Önceki</a>
         <a href="{{ route('panel.bookings.location', [$location, 'gun' => now()->toDateString()]) }}" class="btn btn--ghost">Bugün</a>

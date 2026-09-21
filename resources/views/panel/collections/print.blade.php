@@ -14,8 +14,8 @@
     </style>
 </head>
 <body>
-    <div class="bar"><a href="{{ route('panel.collections.documents.show', $document) }}">← Belgeye dön</a><a href="{{ route('panel.collections.documents.pdf', $document) }}">PDF indir</a><button type="button" onclick="window.print()">Yazdır</button></div>
+    <div class="bar"><a href="{{ route('panel.collections.documents.show', $document) }}">← Belgeye dön</a><a href="{{ route('panel.collections.documents.pdf', $document) }}">PDF indir</a><button type="button" data-print>Yazdır</button></div>
     <div class="sheet">{!! $html !!}</div>
-    <script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 150); });</script>
+    <script nonce="{{ csp_nonce() }}">window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 150); }); document.querySelectorAll('[data-print]').forEach(function (b) { b.addEventListener('click', function () { window.print(); }); });</script>
 </body>
 </html>

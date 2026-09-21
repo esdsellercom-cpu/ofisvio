@@ -14,7 +14,7 @@
             @can('event.manage')
                 <a href="{{ route('panel.events.edit', $event) }}" class="btn btn--ghost">Düzenle</a>
                 @if ($event->registrations->isEmpty())
-                    <form method="POST" action="{{ route('panel.events.destroy', $event) }}" onsubmit="return confirm('Etkinlik silinsin mi?')">@csrf @method('DELETE')<button type="submit" class="btn btn--danger">Sil</button></form>
+                    <form method="POST" action="{{ route('panel.events.destroy', $event) }}" data-confirm="Etkinlik silinsin mi?">@csrf @method('DELETE')<button type="submit" class="btn btn--danger">Sil</button></form>
                 @endif
             @endcan
         </div>

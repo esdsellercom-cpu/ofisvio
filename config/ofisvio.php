@@ -128,6 +128,8 @@ return [
      */
     'security' => [
         'hsts' => (bool) env('SECURITY_HSTS', true),
+        // Ters proxy (audit F-12): boş = güven yok; '*' = tek proxy katmanı; 'ip1,ip2' = liste.
+        'trusted_proxies' => (string) env('TRUSTED_PROXIES', ''),
         'style_src' => ['https://fonts.googleapis.com'],
         'font_src' => ['https://fonts.gstatic.com'],
         // İçerik gömmeleri (faz 48 kısa kodları): YouTube (nocookie), Vimeo, Google Haritalar.
