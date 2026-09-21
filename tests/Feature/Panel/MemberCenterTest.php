@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Panel;
 
+use App\Models\AuditLog;
 use App\Models\Contract;
 use App\Models\Document;
 use App\Models\ExtraCharge;
@@ -19,6 +20,7 @@ use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -85,6 +87,11 @@ class MemberCenterTest extends TestCase
         $this->assertSame('sanal_ofis', $profile->membership_type);
         $this->assertNotNull($profile->avatar_media_id);
         $this->assertSame('********901', $profile->maskedIdentity());
+        // Audit F-08: kimlik no DB'de şifreli, modelden çözülür, audit/JSON çıktısına girmez, ekranda yalnız maske.
+        $this->assertSame('12345678901', $profile->identity_number);
+        $this->assertStringNotContainsString('12345678901', (string) DB::table('member_profiles')->where('id', $profile->id)->value('identity_number'));
+        $this->assertStringNotContainsString('12345678901', json_encode($profile->toArray()));
+        $this->assertStringNotContainsString('12345678901', json_encode(AuditLog::query()->get()->toArray()));
         $contract = Contract::withoutTenantScope()->where('company_id', $co->id)->firstOrFail();
         $this->assertSame('SOZ-2026-000001', $contract->number);
         $this->assertSame(13, $contract->daysLeft());

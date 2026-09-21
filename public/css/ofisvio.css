@@ -551,3 +551,11 @@ html[data-theme="deniz"] {
 }
 .site-section.sec-hidden { display: none; }
 .btn--link { background: none; border: 0; padding: 0; color: var(--brand); text-decoration: underline; font-weight: 600; }
+
+/* Çerez rıza bandı (audit F-06) */
+.cookie-bar { position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-radius: var(--r); background: var(--ink, #1c1b19); color: #fff; box-shadow: 0 16px 40px -18px rgba(0,0,0,.55); }
+.cookie-bar__text { margin: 0; font-size: 14px; line-height: 1.5; max-width: 760px; }
+.cookie-bar__text a { color: #fff; text-decoration: underline; }
+.cookie-bar__actions { display: flex; gap: 8px; margin: 0; }
+.cookie-bar .btn--ghost { color: #fff; border-color: rgba(255,255,255,.4); }
+@media (max-width: 640px) { .cookie-bar { left: 8px; right: 8px; bottom: 8px; } .cookie-bar__actions { width: 100%; } .cookie-bar__actions .btn { flex: 1; } }

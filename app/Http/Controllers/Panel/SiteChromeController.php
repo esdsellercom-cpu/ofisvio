@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Website;
 use App\Services\AuthorizationService;
 use App\Services\ContentService;
+use App\Services\LegalDocumentService;
 use App\Services\MediaService;
 use App\Services\SiteBuilderService;
 use App\Services\SiteChromeService;
@@ -27,6 +28,7 @@ class SiteChromeController extends Controller
         private readonly MediaService $media,
         private readonly SiteBuilderService $builder,
         private readonly AuthorizationService $authorization,
+        private readonly LegalDocumentService $legal,
     ) {}
 
     public function header(Request $request): View
@@ -58,6 +60,7 @@ class SiteChromeController extends Controller
             'canPublish' => $this->authorization->can($request->user(), 'website.manage'),
             'previewUrl' => $this->builder->previewUrl($website),
             'returnTo' => $this->returnPath($request),
+            'legalVersions' => $area === 'footer' ? $this->legal->versions($website) : collect(),
         ]);
     }
 

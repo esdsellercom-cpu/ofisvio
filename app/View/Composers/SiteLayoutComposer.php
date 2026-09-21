@@ -19,6 +19,7 @@ use App\Services\SeoSettingsService;
 use App\Services\SiteBlockService;
 use App\Services\SiteBuilderService;
 use App\Services\SiteChromeService;
+use App\Site\CookieConsent;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -197,6 +198,8 @@ class SiteLayoutComposer
             'tenantNav' => $tenant ? $this->contents->navigation($site) : collect(),
             'tenantHasPosts' => $tenant && $this->contents->livePosts($site, 1)->isNotEmpty(),
             'seo' => $seo,
+            'cookieConsent' => $consent = CookieConsent::fromRequest($this->request),
+            'cookieBannerNeeded' => $consent === null && is_array($seo) && CookieConsent::needsBanner($seo),
         ]);
     }
 }

@@ -9,6 +9,7 @@ use App\Models\Permission;
 use App\Models\UserRole;
 use App\Models\Website;
 use App\Security\MalwareScanner;
+use App\Services\LegalDocumentService;
 use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Cache;
@@ -54,6 +55,7 @@ class DoctorCommand extends Command
         $this->checkMailAndQueue($production);
         $this->checkScheduler($production);
         $this->checkSeedAndAdmin();
+        $this->checkLegal($production);
         $this->checkIntegrations($production);
 
         $failed = array_filter($this->rows, fn (array $r) => $r['level'] === 'fail');
@@ -317,6 +319,21 @@ class DoctorCommand extends Command
         if ($enabled === 0) {
             $this->add('Entegrasyonlar', 'ok', 'açık sağlayıcı yok (hepsi env ile kapalı)');
         }
+    }
+
+    /** Audit F-07 (KVKK): vitrin rızaları bir yasal metin sürümüne bağlanmalı; üretimde KVKK sürümü yoksa hata. */
+    private function checkLegal(bool $production): void
+    {
+        $site = Website::query()->where('is_default', true)->first();
+
+        if ($site === null) {
+            return; // "Varsayılan site" kontrolü zaten hata verir
+        }
+
+        $current = app(LegalDocumentService::class)->current($site, 'kvkk');
+        $current !== null
+            ? $this->add('KVKK metni sürümü', 'ok', 'v'.$current->version.' · '.$current->published_at->format('d.m.Y'))
+            : $this->strict($production, 'KVKK metni sürümü', 'Yok — Ayarlar › Footer ekranında KVKK sayfasını seçip yayınlayın; rızalar metne bağlanamıyor');
     }
 
     private function checkSeedAndAdmin(): void

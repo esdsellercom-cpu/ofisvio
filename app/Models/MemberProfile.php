@@ -15,7 +15,10 @@ class MemberProfile extends Model
 
     protected $fillable = ['user_role_id', 'member_no', 'first_name', 'last_name', 'title', 'phone', 'identity_number', 'address', 'city', 'country', 'membership_type', 'member_since', 'note', 'avatar_media_id', 'updated_by'];
 
-    protected $casts = ['member_since' => 'date'];
+    /** TC kimlik / vergi no şifreli saklanır (audit F-08, KVKK); ekranda yalnız maskeli (maskedIdentity). */
+    protected $casts = ['member_since' => 'date', 'identity_number' => 'encrypted'];
+
+    protected $hidden = ['identity_number'];
 
     /** @return BelongsTo<UserRole, $this> */
     public function membership(): BelongsTo

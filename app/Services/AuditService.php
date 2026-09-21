@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\Auth;
  */
 class AuditService
 {
-    private const SECRET_KEYS = ['password', 'secret', 'token', 'api_key', 'webhook_secret', 'two_factor_secret'];
+    /** Secret VE özel nitelikli kişisel veri (audit F-08): audit kaydına asla düz metin girmez. */
+    private const SECRET_KEYS = ['password', 'secret', 'token', 'api_key', 'webhook_secret', 'two_factor_secret', 'identity_number', 'iban', 'card_number'];
 
     public function __construct(private readonly Request $request, private readonly TenantContext $context) {}
 

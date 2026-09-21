@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Events\SiteChromePublished;
 use App\Models\Content;
 use App\Models\Media;
 use App\Models\SiteChromeVersion;
@@ -57,6 +58,7 @@ class SiteChromeService
         'copyright' => '',        // boş = © yıl tüzel ad
         'bottom_text' => '',
         'show_location' => true,
+        'cookie_notice' => ['text' => '', 'accept' => '', 'decline' => ''], // çerez rıza bandı metinleri (boş = varsayılan; audit F-06)
     ];
 
     public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache) {}
@@ -104,6 +106,7 @@ class SiteChromeService
 
         $this->cache->invalidate($website);
         $this->audit->record($actor, 'site.chrome_published', 'website', $website->id, ['area' => $area, 'config' => $before], ['area' => $area, 'config' => $config, 'note' => $note]);
+        event(new SiteChromePublished($website, $area, $actor)); // yasal metin sürümü (audit F-07)
 
         return $config;
     }
@@ -263,6 +266,7 @@ class SiteChromeService
             'copyright' => self::text($in['copyright'] ?? '', 120),
             'bottom_text' => self::text($in['bottom_text'] ?? '', 200),
             'show_location' => (bool) ($in['show_location'] ?? true),
+            'cookie_notice' => ['text' => self::text($in['cookie_notice']['text'] ?? '', 300), 'accept' => self::text($in['cookie_notice']['accept'] ?? '', 40), 'decline' => self::text($in['cookie_notice']['decline'] ?? '', 40)],
         ];
     }
 

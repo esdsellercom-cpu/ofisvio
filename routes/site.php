@@ -13,6 +13,7 @@
 
 use App\Http\Controllers\Site\BookingController;
 use App\Http\Controllers\Site\ContentController;
+use App\Http\Controllers\Site\CookieConsentController;
 use App\Http\Controllers\Site\EventController;
 use App\Http\Controllers\Site\FranchiseController;
 use App\Http\Controllers\Site\HomeController;
@@ -29,6 +30,8 @@ Route::get('/', HomeController::class)->middleware('public.cache')->name('site.h
 // StoreLeadRequest içinde; captcha eklenene kadar ilk savunma bu ikisi.
 // Bülten kaydı (faz 61a, footer): lead kind=newsletter; throttle + bot tuzağı.
 Route::post('/bulten', [LeadController::class, 'newsletter'])->middleware('throttle:10,1')->name('site.newsletter');
+// Çerez tercihi (audit F-06): düz form POST, sunucu tarafı çerez; GA4/GTM yalnız 'all' rızasıyla basılır.
+Route::post('/cerez-tercihi', CookieConsentController::class)->middleware('throttle:20,1')->name('site.cookie-consent');
 Route::post('/talep', [LeadController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('site.leads.store');

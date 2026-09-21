@@ -61,6 +61,7 @@ class BookingService
         private readonly SettingsService $settings,
         private readonly AuditService $audit,
         private readonly ContentCache $contentCache,
+        private readonly LegalDocumentService $legal,
     ) {}
 
     // ---- Odalar --------------------------------------------------------------
@@ -372,6 +373,10 @@ class BookingService
             $booking->reference = $this->reference($booking);
             $booking->save();
             $this->reserveSlots($booking);
+
+            if ($company === null) {
+                $this->legal->record('booking', $booking->id, ['ip' => $booking->consent_ip]); // vitrin rızası → KVKK sürümü (audit F-07)
+            }
 
             $this->history($booking, null, BookingStatus::REQUESTED, $actor, null);
             $this->audit->record($actor, 'booking.created', 'booking', $booking->id, [], $booking->only(['reference', 'room_id', 'starts_at', 'ends_at', 'status', 'source', 'total_amount']), $company?->organization_id);

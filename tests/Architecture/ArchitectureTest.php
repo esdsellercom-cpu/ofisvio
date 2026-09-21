@@ -135,6 +135,7 @@ class ArchitectureTest extends TestCase
             'SubscriptionService.php',      // üyelikler: finans listesi/sayaçlar subscription.view (global) rotasından, süre dolumu zamanlayıcı; müşteri tarafı forCompany scope içinde (bkz. sınıf başlığı)
             'GeoService.php',               // lokasyon silme koruması: rezervasyon var mı (tüm şirketler) — yalnız exists(), satır dönmez (bkz. delete)
             'MemberCenterService.php',      // sözleşme numarası (SOZ-YYYY-000001) tüm organizasyonlar genelinde tekil olmalı: yalnız numara sayımı/tekillik, satır dönmez (bkz. createContract)
+            'RetentionService.php',         // KVKK imha (audit F-09): tüm şirketlerin SONUÇLANMIŞ vitrin rezervasyonları ve eski KYC dosyaları; yalnız zamanlayıcı/komut çağırır, satır dönmez (bkz. sınıf başlığı)
             'DocumentService.php',          // belgeler: makbuz/geciken ödeme belgesi finans personeli (invoice.view global) için tüm şirketler; müşteri tarafı bu servisi kullanmaz (bkz. sınıf başlığı)
         ];
 

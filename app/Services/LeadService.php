@@ -21,7 +21,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
  */
 class LeadService
 {
-    public function __construct(private readonly NotificationService $notifications, private readonly WebhookDispatcher $webhooks) {}
+    public function __construct(private readonly NotificationService $notifications, private readonly WebhookDispatcher $webhooks, private readonly LegalDocumentService $legal) {}
 
     /**
      * @param  array{kind: string, name: string, email: string, phone?: ?string,
@@ -51,6 +51,8 @@ class LeadService
                 ? mb_substr((string) $consent['user_agent'], 0, 255)
                 : null,
         ]);
+
+        $this->legal->record('lead', $lead->id, $consent); // rıza → o anki KVKK sürümü (audit F-07)
 
         // Bildirim merkezi: CRM grubuna yeni talep (kural/alıcı panelden).
         $this->notifications->dispatch('lead.created', [

@@ -3,12 +3,17 @@
 namespace Tests\Feature\Panel;
 
 use App\Enums\ContentStatus;
+use App\Events\ContentPublicationChanged;
 use App\Models\AuditLog;
+use App\Models\ConsentRecord;
 use App\Models\Content;
 use App\Models\Lead;
+use App\Models\LegalDocumentVersion;
 use App\Models\Media;
 use App\Models\SiteChromeVersion;
 use App\Models\Website;
+use App\Services\LeadService;
+use App\Services\LegalDocumentService;
 use App\Services\SiteBuilderService;
 use App\Services\SiteChromeService;
 use Database\Seeders\LocationSeeder;
@@ -154,6 +159,24 @@ class SiteChromeTest extends TestCase
         $config = $this->site->fresh()->footer_config;
         $this->assertCount(2, $config['columns'], 'boş kolon düşer');
         $this->assertNull($config['legal']['privacy'], 'olmayan sayfa düşer');
+
+        // Audit F-07 (KVKK): footer yayını seçili yasal sayfalar için sürüm açar (kvkk v1, terms v1); değişmeyen gövde yeni sürüm açmaz;
+        // gövde değişip içerik yeniden yayınlanınca v2; vitrin rızası o anki sürüme ve özete bağlanır; audit değer değil sürüm/özet yazar.
+        $legal = app(LegalDocumentService::class);
+        $this->assertSame([1, 1], [$legal->current($this->site->fresh(), 'kvkk')?->version, $legal->current($this->site->fresh(), 'terms')?->version]);
+        $this->assertNull($legal->current($this->site->fresh(), 'privacy'));
+        $this->assertSame(hash('sha256', (string) $kvkk->body), $legal->current($this->site->fresh(), 'kvkk')?->content_hash);
+        $this->assertSame(0, $legal->syncFromFooter($admin, $this->site->fresh(), 'tekrar yayın'), 'gövde değişmedi → yeni sürüm yok');
+        $this->assertSame(2, LegalDocumentVersion::query()->count());
+        $kvkk->forceFill(['body' => $kvkk->body."\n\nEk madde: veri işleme süresi güncellendi."])->save();
+        event(new ContentPublicationChanged($kvkk->fresh(), true));
+        $this->assertSame(2, $legal->current($this->site->fresh(), 'kvkk')?->version);
+        $this->assertSame(3, LegalDocumentVersion::query()->count());
+        $this->assertTrue(AuditLog::query()->where('action', 'legal.version_published')->count() >= 3);
+        $lead = app(LeadService::class)->capture(['kind' => 'quote', 'name' => 'Rıza Test', 'email' => 'riza@example.com'], ['ip' => '203.0.113.7', 'user_agent' => 'phpunit']);
+        $consent = ConsentRecord::query()->where('subject_type', 'lead')->where('subject_id', $lead->id)->firstOrFail();
+        $this->assertSame(['kvkk', 2, hash('sha256', (string) $kvkk->fresh()->body), '203.0.113.7'], [$consent->kind, $consent->version?->version, $consent->content_hash, $consent->ip]);
+        $this->actingAs($admin)->get('/panel/ayarlar/footer')->assertOk()->assertSee('Yasal metin sürümleri')->assertSee('v2');
 
         foreach (['/', '/cozum/sanal-ofis', '/blog', '/lokasyonlar'] as $path) {
             $html = $this->get('http://localhost'.$path)->assertOk()->getContent();

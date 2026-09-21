@@ -22,7 +22,7 @@ class EventService
 {
     public const TABS = ['upcoming' => 'Yaklaşan', 'past' => 'Geçmiş', 'draft' => 'Taslak', 'all' => 'Tümü'];
 
-    public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache, private readonly NotificationService $notifications) {}
+    public function __construct(private readonly AuditService $audit, private readonly ContentCache $cache, private readonly NotificationService $notifications, private readonly LegalDocumentService $legal) {}
 
     // ---- Vitrin -----------------------------------------------------------------
 
@@ -87,6 +87,7 @@ class EventService
             'consent_ip' => $consent['ip'] ?? null,
         ]);
         $registration->save();
+        $this->legal->record('event_registration', $registration->id, $consent); // audit F-07
         $this->bump();
         $this->notifications->dispatch('event.registered', [
             'event' => $event->title,

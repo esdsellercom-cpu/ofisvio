@@ -150,6 +150,9 @@
                 <p class="small muted" style="grid-column:1/-1;margin:0">Hiç seçim yoksa yayındaki tüm sayfalar alt şeritte listelenir (eski davranış). Yasal metinler CMS'de sayfa olarak yönetilir.</p>
                 <label class="field"><span class="label">Copyright (boş = © yıl tüzel ad)</span><input class="control" type="text" name="c[copyright]" value="{{ $c['copyright'] }}" maxlength="120"></label>
                 <label class="field"><span class="label">Alt bilgi</span><input class="control" type="text" name="c[bottom_text]" value="{{ $c['bottom_text'] }}" maxlength="200"></label>
+                <label class="field" style="grid-column:1/-1"><span class="label">Çerez rıza bandı metni (GA4/GTM tanımlıysa gösterilir; boş = varsayılan)</span><input class="control" type="text" name="c[cookie_notice][text]" value="{{ $c['cookie_notice']['text'] ?? '' }}" maxlength="300"></label>
+                <label class="field"><span class="label">Kabul düğmesi</span><input class="control" type="text" name="c[cookie_notice][accept]" value="{{ $c['cookie_notice']['accept'] ?? '' }}" maxlength="40" placeholder="Kabul et"></label>
+                <label class="field"><span class="label">Ret düğmesi</span><input class="control" type="text" name="c[cookie_notice][decline]" value="{{ $c['cookie_notice']['decline'] ?? '' }}" maxlength="40" placeholder="Yalnız zorunlu"></label>
             </div>
         @endif
 
@@ -187,6 +190,20 @@
             </tbody></table>
         @endif
     </div>
+
+    @if ($area === 'footer')
+        <div class="panel" style="margin-top:18px">
+            <p class="eyebrow">Yasal metin sürümleri (KVKK kanıtı)</p>
+            <p class="small muted" style="margin:0 0 10px">Yukarıda seçilen yasal sayfalar her footer yayınında ve sayfa yeniden yayınlandığında denetlenir; gövde değiştiyse yeni, değiştirilemez sürüm açılır. Vitrin formlarındaki her KVKK onayı o anki sürüme bağlanır (rıza kaydı).</p>
+            @if ($legalVersions->isEmpty())<p class="body-muted small" style="margin:0">Henüz yasal metin sürümü yok — KVKK sayfasını seçip footer'ı yayınlayın. Üretimde <span class="mono">ofisvio:doctor</span> KVKK sürümü olmadan uyarır.</p>@else
+                <table class="data"><thead><tr><th>Metin</th><th>Sürüm</th><th>Sayfa</th><th>Özet</th><th>Yayın</th><th>Not</th></tr></thead><tbody>
+                    @foreach ($legalVersions as $lv)
+                        <tr><td>{{ \App\Models\LegalDocumentVersion::KINDS[$lv->kind] ?? $lv->kind }}</td><td class="mono">v{{ $lv->version }}</td><td class="small">{{ $lv->title }}</td><td class="mono small">{{ substr($lv->content_hash, 0, 12) }}…</td><td class="small">{{ $lv->published_at->format('d.m.Y H:i') }}</td><td class="small">{{ $lv->note ?? '—' }}</td></tr>
+                    @endforeach
+                </tbody></table>
+            @endif
+        </div>
+    @endif
 
     <template id="tpl-menu"><div class="panel" style="padding:10px;background:var(--surface-2)" data-row><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span data-handle title="Sürükle" style="cursor:grab;user-select:none">⋮⋮</span><input class="control" type="text" data-field="[label]" placeholder="Başlık" maxlength="60" style="flex:1 1 160px"><input class="control mono" type="text" data-field="[href]" placeholder="/cozumler ya da #cozumler ya da https://…" maxlength="300" style="flex:2 1 220px"><label class="checkbox-row small"><input type="checkbox" data-field="[mega]" value="1"><span>mega menü</span></label><label class="checkbox-row small"><input type="checkbox" data-field="[new_tab]" value="1"><span>yeni sekme</span></label><button type="button" class="btn btn--ghost btn--pill" data-add-child data-add="children">+ Alt öğe</button><button type="button" class="btn btn--ghost btn--pill" data-remove style="color:var(--danger)">Sil</button></div><div class="stack" style="gap:6px;margin:8px 0 0 28px" data-list data-child="[children]" data-child-list data-template="tpl-child"></div></div></template>
     <template id="tpl-child"><div style="display:flex;gap:6px;flex-wrap:wrap" data-row><span data-handle style="cursor:grab;user-select:none">⋮</span><input class="control" type="text" data-field="[label]" placeholder="Alt başlık" maxlength="60" style="flex:1 1 140px"><input class="control mono" type="text" data-field="[href]" placeholder="/cozum/sanal-ofis" maxlength="300" style="flex:2 1 200px"><input class="control" type="text" data-field="[description]" placeholder="Kısa açıklama (mega)" maxlength="120" style="flex:2 1 200px"><button type="button" class="btn btn--ghost btn--pill" data-remove>×</button></div></template>

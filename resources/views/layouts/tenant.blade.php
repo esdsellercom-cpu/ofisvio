@@ -58,6 +58,7 @@
         </div>
     </footer>
     @include('site.partials.whatsapp')
+    @if (! empty($cookieBannerNeeded))@include('site.partials.cookie-consent')@endif
     @include('site.partials.seo-body-end')
 </body>
 </html>

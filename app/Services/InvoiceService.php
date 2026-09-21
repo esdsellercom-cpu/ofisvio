@@ -36,6 +36,9 @@ use Illuminate\Support\Facades\DB;
  */
 class InvoiceService
 {
+    /** Referanssız çift kayıt penceresi (saniye): aynı tutar/yöntem/tarih/kayıt eden → çift tık (audit F-01). */
+    public const DUPLICATE_WINDOW_SECONDS = 60;
+
     public const TABS = ['open' => 'Tahsilat bekleyen', 'overdue' => 'Gecikmiş', 'paid' => 'Ödenen', 'draft' => 'Taslak', 'cancelled' => 'İptal', 'all' => 'Tümü'];
 
     public function __construct(
@@ -312,6 +315,12 @@ class InvoiceService
      * Tahsilat kaydı (payment_allocation.manage ya da sağlayıcı webhook'u). Fazla ödeme reddedilir;
      * bakiye sıfırlanınca fatura paid.
      *
+     * Bütünlük (audit F-01): bakiye ve durum kontrolü İŞLEM İÇİNDE, `lockForUpdate` ile yeniden okunan fatura
+     * satırında yapılır — eşzamanlı iki kayıt (çift tık, iki personel, webhook tekrarı) sırayla çalışır ve ikincisi
+     * bakiyeyi aşamaz. Idempotency: aynı faturada aynı `reference` ile iptal edilmemiş tahsilat varsa reddedilir;
+     * referanssız kayıtlarda aynı tutar+yöntem+tarih+kayıt eden ile DUPLICATE_WINDOW_SECONDS içinde ikinci kayıt
+     * çift tık sayılır. Dışarıdan verilen model örneği işlem sonunda kilitli satırla eşitlenir.
+     *
      * @param  array{amount: int|string, method: string, paid_on: string, reference?: string|null, note?: string|null, description?: string|null, currency?: string|null}  $data  amount büyük birim (₺); webhook kuruş gönderiyorsa önce Money::major ile geçirilir
      */
     public function recordPayment(?User $actor, Invoice $invoice, array $data): Payment
@@ -338,7 +347,33 @@ class InvoiceService
             throw new DomainException('Ödeme tarihi ileri bir tarih olamaz.');
         }
 
-        return DB::transaction(function () use ($actor, $invoice, $data, $amount) {
+        $payment = DB::transaction(function () use ($actor, $invoice, $data, $amount) {
+            /** @var Invoice $locked */
+            $locked = Invoice::withoutTenantScope()->lockForUpdate()->findOrFail($invoice->id); // kilitli, güncel satır
+            $invoice->setRawAttributes($locked->getAttributes(), true); // çağıranın örneği kilitli satırla eşit (ret durumunda da güncel)
+
+            if (! $locked->isOpen()) {
+                throw new DomainException('Yalnız yayınlanmış (tahsilat bekleyen) faturaya ödeme kaydedilir.');
+            }
+
+            if ($amount > $locked->outstanding()) {
+                throw new DomainException('Tutar kalan bakiyeyi ('.Money::format($locked->outstanding()).') aşamaz; bu arada başka bir tahsilat kaydedilmiş olabilir.');
+            }
+
+            $reference = $this->blank($data['reference'] ?? null);
+            $duplicate = Payment::withoutTenantScope()->where('invoice_id', $locked->id)->where('status', '!=', 'cancelled')
+                ->when($reference !== null, fn (Builder $q) => $q->where('reference', $reference))
+                ->when($reference === null, fn (Builder $q) => $q->whereNull('reference')->where('amount', $amount)->where('method', (string) $data['method'])
+                    ->whereDate('paid_on', Carbon::parse((string) $data['paid_on'])->toDateString())
+                    ->where('recorded_by', $actor?->id)->where('created_at', '>=', Carbon::now()->subSeconds(self::DUPLICATE_WINDOW_SECONDS)))
+                ->exists();
+
+            if ($duplicate) {
+                throw new DomainException($reference !== null
+                    ? 'Bu referansla ('.$reference.') bu faturada zaten tahsilat kayıtlı; aynı ödeme ikinci kez kaydedilmez.'
+                    : 'Aynı tutar ve yöntemle az önce bir tahsilat kaydedildi; çift kayıt engellendi. Gerçekten ikinci bir ödemeyse referans girin.');
+            }
+
             $payment = new Payment([
                 'invoice_id' => $invoice->id,
                 'company_id' => $invoice->company_id,
@@ -369,6 +404,8 @@ class InvoiceService
 
             return $payment;
         });
+
+        return $payment;
     }
 
     /**

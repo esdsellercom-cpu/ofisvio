@@ -27,7 +27,9 @@
     @foreach ($seo['meta'] ?? [] as $m)<meta name="{{ $m['name'] }}" content="{{ $m['content'] }}">@endforeach
     @foreach ($seo['links'] ?? [] as $l)<link rel="{{ $l['rel'] }}" href="{{ $l['href'] }}"@if ($l['as'] !== null) as="{{ $l['as'] }}"@if ($l['as'] === 'font') crossorigin @endif @endif>@endforeach
     @if (! empty($seo['json_ld']))<script type="application/ld+json">{!! json_encode($seo['json_ld'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) !!}</script>@endif
-    @if (($seo['gtm_id'] ?? '') !== '')
+    @if ((($seo['gtm_id'] ?? '') !== '' || ($seo['ga4_id'] ?? '') !== '') && ($cookieConsent ?? null) !== \App\Site\CookieConsent::ALL)
+    {{-- Analitik etiketleri rıza olmadan basılmaz (audit F-06, KVKK) --}}
+    @elseif (($seo['gtm_id'] ?? '') !== '')
     {{-- Google Tag Manager (faz 44, verify.gtm_id) --}}
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',@json($seo['gtm_id']));</script>
     @elseif (($seo['ga4_id'] ?? '') !== '')

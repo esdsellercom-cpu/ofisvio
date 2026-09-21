@@ -20,6 +20,7 @@ final class SettingsRegistry
         'whatsapp' => 'WhatsApp',
         'finance' => 'Finans',
         'security' => 'Güvenlik',
+        'privacy' => 'Gizlilik & saklama',
         'general' => 'Genel',
     ];
 
@@ -64,6 +65,13 @@ final class SettingsRegistry
 
             // --- Güvenlik (audit S-5) ---
             'security.require_customer_2fa' => ['group' => 'security', 'label' => 'Müşteri yöneticilerine 2FA zorunlu', 'type' => 'bool', 'default' => false, 'rules' => ['boolean'], 'scopes' => ['installation'], 'description' => 'Açıkken şirket sahibi ve şirket yöneticisi rolü taşıyan kullanıcılar da iki adımlı doğrulama kurmadan panele giremez (personel için her zaman zorunlu).'],
+
+            // --- Gizlilik & saklama (audit F-09, KVKK amaçla sınırlı saklama; 0 = kapalı) ---
+            'privacy.lead_retention_months' => ['group' => 'privacy', 'label' => 'Talep/form kayıtları (ay)', 'type' => 'int', 'default' => 24, 'rules' => ['integer', 'min:0', 'max:120'], 'scopes' => ['installation'], 'description' => 'Bu süreden eski vitrin talepleri (teklif, iletişim, bülten) anonimleştirilir: ad, e-posta, telefon, not silinir; kayıt ve rıza izi kalır.'],
+            'privacy.booking_retention_months' => ['group' => 'privacy', 'label' => 'Vitrin rezervasyonları (ay)', 'type' => 'int', 'default' => 36, 'rules' => ['integer', 'min:0', 'max:120'], 'scopes' => ['installation'], 'description' => 'Sonuçlanmış (tamamlanan/iptal/süresi dolan) şirketsiz rezervasyonların müşteri bilgileri bu süreden sonra anonimleştirilir.'],
+            'privacy.franchise_retention_months' => ['group' => 'privacy', 'label' => 'Franchise başvuruları (ay)', 'type' => 'int', 'default' => 24, 'rules' => ['integer', 'min:0', 'max:120'], 'scopes' => ['installation'], 'description' => 'Olumsuz/arşiv başvurular bu süreden sonra anonimleştirilir.'],
+            'privacy.event_registration_retention_months' => ['group' => 'privacy', 'label' => 'Etkinlik kayıtları (ay)', 'type' => 'int', 'default' => 12, 'rules' => ['integer', 'min:0', 'max:120'], 'scopes' => ['installation'], 'description' => 'Geçmiş etkinliklerin katılımcı bilgileri bu süreden sonra anonimleştirilir.'],
+            'privacy.kyc_superseded_retention_months' => ['group' => 'privacy', 'label' => 'Eski KYC dosyaları (ay)', 'type' => 'int', 'default' => 0, 'rules' => ['integer', 'min:0', 'max:120'], 'scopes' => ['installation'], 'description' => 'Yerine yenisi yüklenmiş, reddedilmiş ya da karantinadaki belge DOSYALARI bu süreden sonra diskten silinir (kayıt ve karar izi kalır). 0 = kapalı; MASAK/vergi saklama yükümlülüğünüze göre açın.'],
 
             // --- Genel ---
             'general.timezone' => ['group' => 'general', 'label' => 'Saat dilimi', 'type' => 'string', 'default' => 'Europe/Istanbul', 'rules' => ['string', 'timezone:all'], 'scopes' => ['installation'], 'description' => 'Rezervasyon saatleri bu dilimde yorumlanır.'],

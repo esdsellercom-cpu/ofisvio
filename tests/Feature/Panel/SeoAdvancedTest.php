@@ -13,6 +13,7 @@ use App\Services\ContentCache;
 use App\Services\ContentService;
 use App\Services\SeoService;
 use App\Services\SeoSettingsService;
+use App\Site\CookieConsent;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
@@ -145,6 +146,20 @@ class SeoAdvancedTest extends TestCase
         $this->assertStringContainsString('<meta name="p:domain_verify" content="pin-token">', $html);
         $this->assertStringContainsString('<meta name="theme-color" content="#112233">', $html);
         $this->assertStringContainsString('<link rel="preconnect" href="https://cdn.example.com">', $html);
+        // Audit F-06 (KVKK): GA4 tanımlı ama rıza yok → etiket BASILMAZ, rıza bandı görünür; "yalnız zorunlu" → etiket yok, bant yok;
+        // "kabul" → etiket basılır. Tercih sunucu çerezinde, düz form POST (tarayıcı depolaması / JS çağrısı yok).
+        $this->assertStringNotContainsString('googletagmanager.com/gtag/js', $html);
+        $this->assertStringContainsString('data-cookie-bar', $html);
+        $this->assertStringContainsString('Yalnız zorunlu', $html);
+        $this->assertStringContainsString('name="return" value="/blog/sanal-ofis"', $html);
+        $decline = $this->from('/blog/sanal-ofis')->post('/cerez-tercihi', ['choice' => 'essential', 'return' => '/blog/sanal-ofis'])->assertRedirect('/blog/sanal-ofis');
+        $decline->assertCookie(CookieConsent::COOKIE, 'essential');
+        $declined = $this->withCookie(CookieConsent::COOKIE, 'essential')->get('/blog/sanal-ofis')->assertOk()->getContent();
+        $this->assertStringNotContainsString('googletagmanager.com/gtag/js', $declined);
+        $this->assertStringNotContainsString('data-cookie-bar', $declined);
+        $this->post('/cerez-tercihi', ['choice' => 'all', 'return' => '//evil.example'])->assertRedirect('/'); // açık yönlendirme yok
+        $html = $this->withCookie(CookieConsent::COOKIE, 'all')->get('/blog/sanal-ofis')->assertOk()->getContent();
+        $this->assertStringNotContainsString('data-cookie-bar', $html);
         $this->assertStringContainsString('googletagmanager.com/gtag/js?id=G-ABC123', $html);
         $this->assertStringContainsString('<meta name="x-custom-head" content="1">', $html);
         $this->assertStringContainsString('<!-- body-start-marker -->', $html);

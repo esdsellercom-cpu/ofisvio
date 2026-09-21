@@ -32,6 +32,7 @@
     @include('site.partials.footer')
 
     @include('site.partials.whatsapp')
+    @if (! empty($cookieBannerNeeded))@include('site.partials.cookie-consent')@endif
     <script src="{{ asset_v('js/ofisvio.js') }}" defer></script>
     @include('site.partials.seo-body-end')
     @if (! empty($liveEdit['enabled']))@include('site.partials.live-edit')@endif

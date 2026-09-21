@@ -133,6 +133,57 @@ class CollectionCenterTest extends TestCase
     }
 
     #[Test]
+    public function tahsilat_kaydi_kilitli_satirda_dogrulanir_ve_cift_kayit_engellenir(): void
+    {
+        // Audit F-01: bakiye kontrolü işlem içinde kilitli/güncel satırda; idempotency (referans) ve çift tık penceresi.
+        [$co, $owner, $invoice] = $this->invoice(100000);
+        $finance = $this->staff('finance_admin');
+        $service = app(InvoiceService::class);
+
+        // 1) Bayat model örneğiyle fazla ödeme: A örneği bakiyeyi 1.000 sanırken B üzerinden 700 tahsil edildi → A'dan 500 reddedilir.
+        $stale = $invoice->fresh();
+        $service->recordPayment($finance, $invoice->fresh(), ['amount' => '700', 'method' => 'transfer', 'paid_on' => '2026-09-18', 'reference' => 'HAVALE-1']);
+        $this->assertSame(100000, $stale->outstanding()); // bayat örnek hâlâ eski bakiyeyi görüyor
+        try {
+            $service->recordPayment($finance, $stale, ['amount' => '500', 'method' => 'transfer', 'paid_on' => '2026-09-18', 'reference' => 'HAVALE-2']);
+            $this->fail('Bayat örnek üzerinden bakiye aşımı kabul edildi.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('kalan bakiyeyi', $e->getMessage());
+        }
+        $this->assertSame(30000, $invoice->fresh()->outstanding());
+        $this->assertSame(30000, $stale->outstanding()); // reddedilse de örnek kilitli satırla eşitlendi
+
+        // 2) Aynı referans ikinci kez → reddedilir (webhook tekrarı / çift gönderim); iptal edilen referans yeniden kullanılabilir.
+        try {
+            $service->recordPayment($finance, $invoice->fresh(), ['amount' => '100', 'method' => 'transfer', 'paid_on' => '2026-09-18', 'reference' => 'HAVALE-1']);
+            $this->fail('Aynı referansla ikinci tahsilat kabul edildi.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('HAVALE-1', $e->getMessage());
+        }
+        $this->assertSame(1, Payment::withoutTenantScope()->count());
+
+        // 3) Referanssız çift tık: aynı tutar/yöntem/tarih 60 sn içinde → reddedilir; pencere geçince ya da referansla → kabul.
+        $service->recordPayment($finance, $invoice->fresh(), ['amount' => '100', 'method' => 'cash', 'paid_on' => '2026-09-18']);
+        try {
+            $service->recordPayment($finance, $invoice->fresh(), ['amount' => '100', 'method' => 'cash', 'paid_on' => '2026-09-18']);
+            $this->fail('Çift tık kabul edildi.');
+        } catch (\DomainException $e) {
+            $this->assertStringContainsString('çift kayıt engellendi', $e->getMessage());
+        }
+        $this->assertSame(2, Payment::withoutTenantScope()->count());
+        $service->recordPayment($finance, $invoice->fresh(), ['amount' => '100', 'method' => 'cash', 'paid_on' => '2026-09-18', 'reference' => 'NAKIT-2']);
+        Carbon::setTestNow('2026-09-18 10:02:00');
+        $service->recordPayment($finance, $invoice->fresh(), ['amount' => '100', 'method' => 'cash', 'paid_on' => '2026-09-18']);
+        $this->assertSame(4, Payment::withoutTenantScope()->count());
+        $this->assertSame(0, $invoice->fresh()->outstanding());
+        $this->assertSame('paid', $invoice->fresh()->status);
+
+        // 4) Ödenmiş faturaya kayıt kilit altında da reddedilir; panel formu çift gönderimde hata mesajı alır (500 yok).
+        $this->actingAs($finance)->from('/panel/tahsilat')->post('/panel/tahsilat/tahsilat', ['invoice_id' => $invoice->id, 'amount' => '1', 'method' => 'cash', 'paid_on' => '2026-09-18'])->assertRedirect('/panel/tahsilat')->assertSessionHasErrors();
+        $this->assertSame(4, Payment::withoutTenantScope()->count());
+    }
+
+    #[Test]
     public function geciken_odemeler_sekmesi_belgesi_ve_sablon_duzenleme(): void
     {
         [$co, $owner, $invoice] = $this->invoice(120000, '2026-09-01');

@@ -9,6 +9,7 @@ use App\Models\Media;
 use App\Models\Website;
 use App\Security\MalwareScanner;
 use App\Security\ScanResult;
+use App\Services\LegalDocumentService;
 use Database\Seeders\WebsiteSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
@@ -71,8 +72,17 @@ class DoctorCommandTest extends TestCase
         config(['ofisvio.kyc.scanner' => 'clamav']);
         $this->artisan('content:publish-scheduled')->assertSuccessful(); // kalp atışı
 
+        // Audit F-07: üretimde KVKK metni sürümü zorunlu — yokken hata, yayınlanınca ok.
+        [$code, $out] = $this->doctor();
+        $this->assertSame(1, $code, $out);
+        $this->assertStringContainsString('KVKK metni sürümü', $out);
+        $site = Website::query()->default()->firstOrFail();
+        $kvkk = Content::create(['website_id' => $site->id, 'kind' => 'page', 'slug' => 'kvkk-aydinlatma', 'title' => 'KVKK aydınlatma metni', 'body' => str_repeat('Kişisel verileriniz. ', 30)]);
+        app(LegalDocumentService::class)->publishIfChanged(null, $site, 'kvkk', $kvkk, 'ilk sürüm');
+
         [$code, $out] = $this->doctor();
         $this->assertSame(0, $code, $out);
+        $this->assertStringContainsString('v1', $out);
         $this->assertStringContainsString('0 hata', $out);
         $this->assertStringContainsString('clamav canlı tarama temiz', $out);
         $this->assertStringContainsString('son çalışma 0 dk önce', $out);
@@ -93,6 +103,8 @@ class DoctorCommandTest extends TestCase
 
         $late = Content::create(['website_id' => Website::query()->default()->firstOrFail()->id, 'kind' => 'post', 'slug' => 'gec', 'title' => 'Geç', 'body' => 'x']);
         $late->forceFill(['status' => ContentStatus::SCHEDULED, 'scheduled_for' => now()->subHour()])->save();
+        $kvkk = Content::create(['website_id' => $late->website_id, 'kind' => 'page', 'slug' => 'kvkk', 'title' => 'KVKK', 'body' => str_repeat('Metin. ', 20)]);
+        app(LegalDocumentService::class)->publishIfChanged(null, Website::query()->default()->firstOrFail(), 'kvkk', $kvkk); // F-07: bu test tarayıcı/zamanlayıcı hatalarını ölçer
 
         [$code, $out] = $this->doctor();
         $this->assertSame(1, $code, $out);
