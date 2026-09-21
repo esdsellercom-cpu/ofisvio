@@ -75,6 +75,7 @@ final class SettingsRegistry
 
             // --- Genel ---
             'general.timezone' => ['group' => 'general', 'label' => 'Saat dilimi', 'type' => 'string', 'default' => 'Europe/Istanbul', 'rules' => ['string', 'timezone:all'], 'scopes' => ['installation'], 'description' => 'Rezervasyon saatleri bu dilimde yorumlanır.'],
+            'general.developer_credit' => ['group' => 'general', 'label' => 'Geliştirici / attribution', 'type' => 'string', 'default' => 'Turgut KARAKAYA', 'rules' => ['nullable', 'string', 'max:80'], 'scopes' => ['installation'], 'description' => 'Vitrin footer\'ı, giriş ekranı ve panel kenar çubuğunda "Geliştirme: …" olarak basılır; boş bırakılırsa varsayılana döner. Kodda sabit metin yoktur.'],
             'general.currency' => ['group' => 'general', 'label' => 'Para birimi', 'type' => 'select', 'default' => 'TRY', 'rules' => ['in:TRY,EUR,USD'], 'scopes' => ['installation'], 'description' => 'Tutar gösterimi.', 'options' => ['TRY' => '₺ Türk lirası', 'EUR' => '€ Euro', 'USD' => '$ ABD doları']],
         ];
     }

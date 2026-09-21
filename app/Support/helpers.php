@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\SettingsService;
 use App\Site\SectionStyle;
 use App\Support\Csp;
 use App\Support\Money;
@@ -10,6 +11,14 @@ if (! function_exists('money')) {
     function money(int|float|null $minor, ?string $currency = null): string
     {
         return Money::format($minor, $currency);
+    }
+}
+
+if (! function_exists('developer_credit')) {
+    /** Geliştirici/attribution metni — merkezi ayar `general.developer_credit` (panel › Ayarlar › Genel); boş = basılmaz. */
+    function developer_credit(): string
+    {
+        return trim(app(SettingsService::class)->string('general.developer_credit'));
     }
 }
 

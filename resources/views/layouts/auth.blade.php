@@ -27,6 +27,7 @@
         <p class="auth-foot">
             @yield('foot')
         </p>
+        @if (developer_credit() !== '')<p class="auth-foot small muted" style="margin-top:6px">Geliştirme: {{ developer_credit() }}</p>@endif
     </main>
 </body>
 </html>

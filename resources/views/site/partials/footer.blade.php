@@ -79,7 +79,7 @@
     </div>
 
     <div class="wrap" style="padding-block:22px 40px;border-top:1px solid var(--dark-line);display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;font-size:13px;color:var(--dark-ink-mute)">
-        <span>{{ $footer['copyright'] !== '' ? $footer['copyright'] : '© '.date('Y').' '.$brand['legal_name'] }}@if ($footer['bottom_text'] !== '') · {{ $footer['bottom_text'] }}@endif</span>
+        <span>{{ $footer['copyright'] !== '' ? $footer['copyright'] : '© '.date('Y').' '.$brand['legal_name'] }}@if ($footer['bottom_text'] !== '') · {{ $footer['bottom_text'] }}@endif{{ '' }}@if (developer_credit() !== '') · Geliştirme: {{ developer_credit() }}@endif</span>
         <span style="display:flex;gap:18px;flex-wrap:wrap">
             {{-- CMS: seçili yasal sayfalar ya da yayındaki sayfalar (SiteFooterComposer). Yayında sayfa yoksa bağlantı basılmaz. --}}
             @foreach ($legalPages ?? [] as $page)

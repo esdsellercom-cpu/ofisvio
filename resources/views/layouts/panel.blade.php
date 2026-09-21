@@ -45,6 +45,7 @@
                 @else
                     <span>{{ $isStaff ? 'Personel hesabı' : 'Müşteri hesabı' }}</span>
                 @endisset
+                @if (developer_credit() !== '')<span class="small muted" style="display:block;margin-top:6px">Geliştirme: {{ developer_credit() }}</span>@endif
             </div>
         </aside>
 

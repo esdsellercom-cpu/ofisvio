@@ -56,7 +56,7 @@
                     @foreach ($brand['hours'] as $line)<span>{{ $line }}</span>@endforeach
                 </span>
             @endif
-            <span class="label">Altyapı: {{ config('ofisvio.brand.name') }}</span>
+            <span class="label">Altyapı: {{ config('ofisvio.brand.name') }}{{ '' }}@if (developer_credit() !== '') · Geliştirme: {{ developer_credit() }}@endif</span>
         </div>
     </footer>
     @include('site.partials.whatsapp')
