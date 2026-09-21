@@ -209,23 +209,28 @@ jobs:
             "package_lock_sha256": "$(sha256sum package-lock.json | cut -d' ' -f1)"
           }
           JSON
-          tar --exclude='./.git' --exclude='./node_modules' --exclude='./tests' --exclude='./storage/logs/*' --exclude='./storage/framework/cache/*' \
-              --exclude='./storage/framework/sessions/*' --exclude='./storage/framework/views/*' --exclude='./.env' --exclude='./database/database.sqlite' \
-              -czf "${BUILD}.tar.gz" .
-          sha256sum "${BUILD}.tar.gz" > "${BUILD}.tar.gz.sha256"
+          # Arşiv ağaç DIŞINA yazılır (tar kendi çıktısını arşivlemeye çalışıp hata vermesin).
+          OUT="$RUNNER_TEMP/release"
+          mkdir -p "$OUT"
+          tar --exclude='./.git' --exclude='./node_modules' --exclude='./tests' --exclude='./storage/logs' --exclude='./storage/framework/cache' \
+              --exclude='./storage/framework/sessions' --exclude='./storage/framework/views' --exclude='./.env' --exclude='./database/database.sqlite' \
+              -czf "$OUT/${BUILD}.tar.gz" .
+          cp RELEASE.json "$OUT/RELEASE.json"
+          (cd "$OUT" && sha256sum "${BUILD}.tar.gz" > "${BUILD}.tar.gz.sha256" && cat "${BUILD}.tar.gz.sha256")
           echo "BUILD=${BUILD}" >> "$GITHUB_ENV"
+          echo "OUT=${OUT}" >> "$GITHUB_ENV"
           cat RELEASE.json
 
       - name: Provenance (SLSA attestation)
         uses: actions/attest-build-provenance@v2
         with:
-          subject-path: ${{ env.BUILD }}.tar.gz
+          subject-path: ${{ env.OUT }}/${{ env.BUILD }}.tar.gz
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.BUILD }}
           path: |
-            ${{ env.BUILD }}.tar.gz
-            ${{ env.BUILD }}.tar.gz.sha256
-            RELEASE.json
+            ${{ env.OUT }}/${{ env.BUILD }}.tar.gz
+            ${{ env.OUT }}/${{ env.BUILD }}.tar.gz.sha256
+            ${{ env.OUT }}/RELEASE.json
           retention-days: 90
