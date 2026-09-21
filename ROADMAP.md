@@ -1046,7 +1046,8 @@ değil DB'de (MockDataDetectionTest).
 - **P0B:** çerez rızası (F-06), yasal metin sürümü + rıza kaydı (F-07), TC kimlik şifreleme + PII audit maskesi (F-08), KVKK saklama/anonimleştirme (F-09); MASAK değerlendirmesi hukuki karar olarak açık (F-10).
 - **P1:** CSP nonce (F-11), TRUSTED_PROXIES (F-12), planlı entegrasyon durumu (F-13), anahtar rotasyonu `ofisvio:reencrypt` (F-14), append-only defter (F-15), CI bağımlılık denetimi (F-16), `ofisvio:install` (F-17), sistem alarmı `ofisvio:health-alert` (F-18), kılık değiştirmiş yükleme testleri + zorunlu yeniden kodlama (F-19), favicon (F-20).
 - Smoke'un bulduğu gerçek hata: gelen webhook CSRF istisnası L13'te çalışmıyordu (419) → `preventRequestForgery(except)`.
-- Testler +8 → **370/370**.
+- F-21 para simgesi ayardan, F-26 `ofisvio:offboard`; CI: junit → ek açıklama, release artefaktı (run 89 ✓).
+- Testler +9 → **371/371**.
 
 ---
 ## FRONTEND FAZLARI
