@@ -1,0 +1,20 @@
+# Ofisvio — belge kökü uygulama klasörünü gösterdiğinde köprü dosyası.
+#
+# Uygulamanın KÖKÜNE konur (artisan, public, vendor ile aynı klasör) ve gelen her isteği
+# public/ altına aktarır; Laravel'in public/.htaccess dosyası oradan devralır.
+# .env, storage ve vendor bu yönlendirme sayesinde dışarıdan erişilemez kalır.
+#
+# Panelde belge kökünü .../public yapabildiğinizde bu dosyayı SİLİN.
+
+DirectoryIndex public/index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Ana sayfa (boş yol) doğrudan giriş dosyasına.
+    RewriteRule ^$ public/index.php [L]
+
+    # Zaten public/ ile başlayan istekleri tekrar sarma (sonsuz döngü olmasın).
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

@@ -175,6 +175,19 @@ class InstallHardeningTest extends TestCase
         $this->assertSame('warn', $rows['KYC tarayıcı']['level']);
     }
 
+    #[Test]
+    public function kapi_reddettiginde_nedenini_kurulum_gunlugune_yazar(): void
+    {
+        // Operatör dışarıdan yalnız 404 görür; nedeni web'den erişilemeyen storage/logs/install.log'a yazılır.
+        $this->writeChallenge('cok-kisa-anahtar');
+
+        $this->get('/install')->assertNotFound();
+
+        $log = (string) file_get_contents(storage_path('logs/install.log'));
+        $this->assertStringContainsString('Anahtar çok kısa', $log);
+        $this->assertStringNotContainsString('cok-kisa-anahtar', $log); // anahtarın kendisi asla yazılmaz
+    }
+
     private function writeChallenge(string $token): void
     {
         File::ensureDirectoryExists(storage_path(InstallGate::DIRECTORY));

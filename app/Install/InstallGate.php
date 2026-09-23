@@ -36,13 +36,13 @@ final class InstallGate
     public const RUNNING = 'app/install/.running';
 
     /** Anahtar dosyası oluşturulduktan sonra kurulumun BAŞLATILABİLECEĞİ süre (saniye). */
-    public const TTL_SECONDS = 3600;
+    public const TTL_SECONDS = 86400;
 
     /**
      * Başlamış kurulumun penceresi. Yarıda bırakılan bir sihirbaz sonsuza dek açık kalmaz: durum dosyasına
      * dokunulmadan bu süre geçerse uç yeniden kapanır (her adım durum dosyasını tazeler).
      */
-    public const STARTED_TTL_SECONDS = 21600;
+    public const STARTED_TTL_SECONDS = 86400;
 
     public const MIN_TOKEN_LENGTH = 32;
 
@@ -72,11 +72,19 @@ final class InstallGate
     /** Kurulum ucu var mı: kilit yok + geçerli anahtar dosyası + (başlamadıysa) boş veritabanı. */
     public function open(): bool
     {
-        if ($this->installed() || ! $this->challengeValid()) {
-            return false;
+        if ($this->installed()) {
+            return $this->refuse('Kurulum kilidi var: '.$this->lockPath().' — kurulum tamamlanmış sayılıyor. Yeniden kurulacaksa bu dosyayı silin.');
         }
 
-        return $this->started() || ! $this->databaseInUse();
+        if (! $this->challengeValid()) {
+            return false; // nedeni challengeValid() günlüğe yazar
+        }
+
+        if (! $this->started() && $this->databaseInUse()) {
+            return $this->refuse('Veritabanında kullanıcı kaydı var: dolu sistem üstüne kurulum yapılmaz.');
+        }
+
+        return true;
     }
 
     /** Dosya var, ≥32 karakter ve (kurulum başlamadıysa) TTL içinde. */
@@ -85,18 +93,30 @@ final class InstallGate
         $path = $this->challengePath();
 
         if (! is_file($path)) {
-            return false;
+            return false; // dosya hiç yoksa günlüğe yazmayız: her tarayıcı botu günlüğü şişirirdi
         }
 
-        if (strlen($this->token()) < self::MIN_TOKEN_LENGTH) {
-            return false;
+        if (! is_readable($path)) {
+            return $this->refuse('Anahtar dosyası okunamıyor (dosya izinleri): '.$path);
+        }
+
+        $length = strlen($this->token());
+
+        if ($length < self::MIN_TOKEN_LENGTH) {
+            return $this->refuse('Anahtar çok kısa: '.$length.' karakter, en az '.self::MIN_TOKEN_LENGTH.' olmalı. Dosyayı açıp daha uzun bir metin yazıp kaydedin: '.$path);
         }
 
         if ($this->started()) {
             return true; // başlamış kurulum yarıda TTL'e takılıp operatörü dışarıda bırakmaz (kendi penceresi var)
         }
 
-        return (time() - (int) filemtime($path)) <= self::TTL_SECONDS;
+        $age = time() - (int) filemtime($path);
+
+        if ($age > self::TTL_SECONDS) {
+            return $this->refuse('Anahtar dosyası '.(int) round($age / 3600).' saat önce kaydedilmiş, süre '.(int) round(self::TTL_SECONDS / 3600).' saat. Dosyayı açıp yeniden kaydedin (içeriği değiştirmeseniz de olur).');
+        }
+
+        return true;
     }
 
     public function verify(string $input, string $ip): bool
@@ -221,6 +241,29 @@ final class InstallGate
         }
 
         return $leftovers;
+    }
+
+    /**
+     * Kapının reddetme nedenini OPERATÖRE bildirir: `storage/logs/install.log` (web'den erişilemez, dosya
+     * yöneticisinden okunur). Ekrana hiçbir şey yazılmaz — dışarıya sızan tek şey yine 404'tür. Anahtarın
+     * değeri değil, yalnız uzunluğu/yaşı yazılır. Aynı neden dakikada bir kez yazılır (günlük şişmesin).
+     */
+    private function refuse(string $reason): bool
+    {
+        $path = storage_path('logs/install.log');
+
+        try {
+            if (is_file($path) && (time() - (int) filemtime($path)) < 60 && str_contains((string) file_get_contents($path), $reason)) {
+                return false;
+            }
+
+            File::ensureDirectoryExists(dirname($path));
+            File::append($path, date('c').' KURULUM KAPISI REDDETTİ — '.$reason.PHP_EOL);
+        } catch (Throwable) {
+            // günlük yazılamıyorsa kapı kararı değişmez
+        }
+
+        return false;
     }
 
     private function token(): string
