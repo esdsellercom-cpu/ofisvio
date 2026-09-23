@@ -62,7 +62,18 @@ dediği sürece uygulama KYC yüklemesini reddeder (fail-closed — tasarım ger
 ## 3. Kurulum / güncelleme
 
 **Tercih edilen yol: CI artefaktı + `deploy/deploy.sh` (§7).** Elle kurulumda tek komut (audit F-17 — web tabanlı
-`/install` ucu bilinçli olarak YOKTUR; kurulum sunucu erişimi olan operatörün işidir):
+`/install` ucu bilinçli olarak YOKTUR; kurulum sunucu erişimi olan operatörün işidir).
+
+Sürüm paketini sunucuya açtıktan sonra ilk kurulum tek betikle yapılır — `deploy/install.sh` (pakette kökte `install.sh`):
+
+```bash
+./install.sh --check      # ortam + .env + dizinler; hiçbir şeyi değiştirmez
+./install.sh              # .env yoksa örnekten üretip durur → doldurun → APP_KEY, izinler, ofisvio:install, optimize, doctor
+./install.sh --upgrade    # kurulu sistem üstüne: bakım modu → migration → optimize → doctor → queue:restart → up
+```
+
+Fail-closed: doctor hata verirse betik 1 döner, `--upgrade` yolunda uygulama bakım modunda kalır. Betik yalnız
+aşağıdaki artisan komutlarını sarar:
 
 ```bash
 php artisan ofisvio:install --check          # PHP ≥ 8.3, uzantılar, yazılabilir dizinler, APP_KEY, DB (değiştirmez)
