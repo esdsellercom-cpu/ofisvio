@@ -80,6 +80,7 @@ class InstallWizardFlowTest extends TestCase
             'timezone' => 'Europe/Istanbul',
             'trusted_proxies' => '*',
             'installation_id' => 'ornek-kurulum',
+            'kyc_scanner' => 'disabled',
             'mail_mailer' => 'log',
         ])->assertRedirect(route('install.setup'));
 
@@ -89,6 +90,8 @@ class InstallWizardFlowTest extends TestCase
         $this->assertStringContainsString('APP_URL=https://ornek.test', $env);
         // Güvenli çerez bayrağı burada AÇILMAZ (istek http): açılsaydı operatörün oturumu bir sonraki adımda kopardı.
         $this->assertStringContainsString('SESSION_SECURE_COOKIE=false', $env);
+        // Paylaşımlı hostingde clamd yoktur: sistem açılır ama taranmamış belge kabul edilmez (üretimde 'none' yasak).
+        $this->assertStringContainsString('KYC_SCANNER=disabled', $env);
 
         // Ağır adımlar ayrı isteklerde.
         $this->post('/install/kurulum/tablolar')->assertRedirect(route('install.setup'));
@@ -138,7 +141,7 @@ class InstallWizardFlowTest extends TestCase
         $this->post('/install', ['token' => $token]);
 
         $this->post('/install/veritabani', ['connection' => 'sqlite', 'database' => $this->storage.'/x.sqlite']);
-        $this->post('/install/site', ['url' => 'https://ornek.test', 'timezone' => 'Europe/Istanbul', 'mail_mailer' => 'log']);
+        $this->post('/install/site', ['url' => 'https://ornek.test', 'timezone' => 'Europe/Istanbul', 'kyc_scanner' => 'disabled', 'mail_mailer' => 'log']);
         $this->post('/install/kurulum/tablolar');
         $this->post('/install/kurulum/veri');
 

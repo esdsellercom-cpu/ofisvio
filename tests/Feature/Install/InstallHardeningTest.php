@@ -6,10 +6,12 @@ use App\Install\EnvWriter;
 use App\Install\InstallGate;
 use App\Install\InstallWizardService;
 use App\Models\User;
+use App\Security\MalwareScanner;
 use Database\Seeders\RolePermissionSeeder;
 use DomainException;
 use Dotenv\Dotenv;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -154,6 +156,23 @@ class InstallHardeningTest extends TestCase
 
         $this->expectException(DomainException::class);
         app(InstallWizardService::class)->createAdmin(['name' => 'Operatör', 'email' => 'var@ornek.test', 'password' => 'Kurulum.Prova.2026!x']);
+    }
+
+    #[Test]
+    public function clamd_olmayan_uretimde_sistem_acilir_ama_belge_yuklenemez(): void
+    {
+        // Üretimde KYC_SCANNER=none kapta istisna atıp TÜM siteyi 500'e düşürüyordu (paylaşımlı hostingde clamd yok).
+        config(['app.env' => 'production', 'ofisvio.kyc.scanner' => 'disabled']);
+        $this->app->forgetInstance(MalwareScanner::class);
+
+        $result = app(MalwareScanner::class)->scan(__FILE__);
+
+        $this->assertFalse($result->available); // tarama yapılamadı → yükleme reddedilir (fail-closed)
+        $this->assertFalse($result->clean);
+
+        Artisan::call('ofisvio:doctor', ['--json' => true]);
+        $rows = collect((array) (json_decode(Artisan::output(), true)['rows'] ?? []))->keyBy('name');
+        $this->assertSame('warn', $rows['KYC tarayıcı']['level']);
     }
 
     private function writeChallenge(string $token): void

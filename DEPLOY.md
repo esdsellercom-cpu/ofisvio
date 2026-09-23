@@ -41,6 +41,10 @@ public değil). Kalıcı ve yedeklenen bir birim olmalı.
 
 ## 2. clamd
 
+clamd kurulamayan sunucularda (paylaşımlı hosting) `KYC_SCANNER=disabled`: sistem çalışır, belge yükleme
+reddedilir (taranmamış belge asla kabul edilmez), doctor bunu üretimde uyarı olarak raporlar. `KYC_SCANNER=none`
+üretimde YASAKTIR ve uygulamayı açılışta durdurur.
+
 Docker Compose örneği:
 
 ```yaml

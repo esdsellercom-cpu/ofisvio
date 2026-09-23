@@ -142,6 +142,10 @@ final class InstallWizardService
             'TRUSTED_PROXIES' => trim($form['trusted_proxies'] ?? ''),
             'OFISVIO_INSTALLATION_ID' => trim($form['installation_id'] ?? ''),
             'MAIL_MAILER' => $form['mail_mailer'] ?? 'log',
+            // Belge taraması: clamd yoksa "disabled" — uygulama açılır, KYC yüklemeleri reddedilir (taranmamış
+            // belge asla kabul edilmez). Üretimde 'none' yasaktır ve tüm siteyi 500'e düşürürdü.
+            'KYC_SCANNER' => ($form['kyc_scanner'] ?? 'disabled') === 'clamav' ? 'clamav' : 'disabled',
+            'CLAMAV_ADDRESS' => trim($form['clamav_address'] ?? '') !== '' ? trim($form['clamav_address']) : 'tcp://127.0.0.1:3310',
         ];
 
         if (($form['mail_mailer'] ?? 'log') === 'smtp') {

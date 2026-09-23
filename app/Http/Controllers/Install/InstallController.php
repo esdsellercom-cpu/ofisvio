@@ -83,6 +83,8 @@ class InstallController extends Controller
             'timezone' => ['required', 'timezone'],
             'trusted_proxies' => ['nullable', 'string', 'max:190', 'regex:/^[A-Za-z0-9.,:\/\*\-]+$/'],
             'installation_id' => ['nullable', 'string', 'max:60', 'regex:/^[A-Za-z0-9_-]+$/'],
+            'kyc_scanner' => ['required', 'in:clamav,disabled'],
+            'clamav_address' => ['nullable', 'string', 'max:120', 'regex:/^[A-Za-z0-9.:\/_-]+$/'],
             'mail_mailer' => ['required', 'in:log,smtp'],
             'mail_host' => ['required_if:mail_mailer,smtp', 'nullable', 'string', 'max:190'],
             'mail_port' => ['required_if:mail_mailer,smtp', 'nullable', 'digits_between:1,5'],

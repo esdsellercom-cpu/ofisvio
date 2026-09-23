@@ -20,6 +20,17 @@
         <label class="setup-field"><span>Kurulum kimliği (isteğe bağlı)</span><input type="text" name="installation_id" value="{{ old('installation_id') }}" maxlength="60" pattern="[A-Za-z0-9_-]+"></label>
 
         <label class="setup-field">
+            <span>Belge taraması (KYC)</span>
+            <select name="kyc_scanner">
+                <option value="disabled" @selected(old("kyc_scanner", "disabled") === "disabled")>Sunucumda ClamAV yok — belge yükleme kapalı kalsın</option>
+                <option value="clamav" @selected(old("kyc_scanner") === "clamav")>ClamAV kurulu (önerilir)</option>
+            </select>
+        </label>
+        <p class="setup-note" style="margin:-8px 0 14px">Kimlik/şirket belgeleri virüs taramasından geçmeden kabul edilmez.
+            ClamAV yoksa sistem çalışır, yalnız belge yükleme ekranı reddeder; sonradan kurunca bu ayarı değiştirebilirsiniz.</p>
+        <label class="setup-field"><span>ClamAV adresi</span><input type="text" name="clamav_address" value="{{ old("clamav_address", "tcp://127.0.0.1:3310") }}" maxlength="120"></label>
+
+        <label class="setup-field">
             <span>E-posta gönderimi</span>
             <select name="mail_mailer">
                 <option value="smtp" @selected(old('mail_mailer', 'smtp') === 'smtp')>SMTP (önerilir — davet ve şifre sıfırlama e-postaları)</option>

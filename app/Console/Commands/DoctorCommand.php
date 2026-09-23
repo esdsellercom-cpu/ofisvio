@@ -199,6 +199,12 @@ class DoctorCommand extends Command
 
     private function checkScanner(bool $production, MalwareScanner $scanner): void
     {
+        if ((string) config('ofisvio.kyc.scanner') === 'disabled') {
+            $this->add('KYC tarayıcı', 'warn', 'disabled — belge yükleme kapalı (taranmamış belge kabul edilmez). clamd kurulunca KYC_SCANNER=clamav yapın.');
+
+            return;
+        }
+
         $driver = (string) config('ofisvio.kyc.scanner');
 
         if ($driver !== 'clamav') {

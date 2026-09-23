@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Security\MalwareScanner;
 use App\Security\Scanners\ClamAvScanner;
+use App\Security\Scanners\DisabledScanner;
 use App\Security\Scanners\NullScanner;
 use Illuminate\Support\ServiceProvider;
 use RuntimeException;
@@ -29,6 +30,8 @@ class SecurityServiceProvider extends ServiceProvider
                     (int) config('ofisvio.kyc.clamav.timeout', 30),
                 ),
                 'none' => $this->nullScannerOrFail($app->environment()),
+                // Paylaşımlı hosting (clamd yok): uygulama açılır, belge yüklemeleri fail-closed reddedilir.
+                'disabled' => new DisabledScanner,
                 default => throw new RuntimeException("Bilinmeyen KYC_SCANNER sürücüsü: {$driver}"),
             };
         });
