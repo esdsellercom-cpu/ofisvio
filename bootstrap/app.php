@@ -19,6 +19,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Session\TokenMismatchException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -75,6 +76,16 @@ return Application::configure(basePath: dirname(__DIR__))
                     ->with('context_notice', 'Bu organizasyona erişiminiz sona erdi. Devam etmek için yeniden seçim yapın.'),
                 default => null,
             };
+        });
+
+        // Kurulum sihirbazında oturum düşerse (sekme uzun süre açık kaldı ya da APP_KEY kurulum sırasında üretildi)
+        // "Page Expired" yerine anlaşılır Türkçe yönlendirme: operatör baştan değil, anahtar ekranından devam eder.
+        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+            if (! $request->is('install', 'install/*') || $request->expectsJson()) {
+                return null;
+            }
+
+            return redirect('/install')->withErrors(['token' => 'Oturum yenilendi; kurulum anahtarını bir kez daha girin.']);
         });
 
         // Vitrin 404 (faz 54): URL geçmişi → benzerlik → üst kategori → ana sayfa karar zinciri; yönlendirme yoksa

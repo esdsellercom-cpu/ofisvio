@@ -93,10 +93,11 @@ class InstallEnvironment
      */
     private function restoring(callable $work): Response
     {
+        // session.driver BİLEREK geri alınmaz: oturum, middleware yığını döndükten sonra (terminate) kaydedilir;
+        // sürücü o anda "database"e geri çevrilirse kurulum oturumu kaydedilemez ve sonraki adım 419 alır.
         $original = [
             'app.debug' => Config::get('app.debug'),
             'session.secure' => Config::get('session.secure'),
-            'session.driver' => Config::get('session.driver'),
             'cache.default' => Config::get('cache.default'),
             'queue.default' => Config::get('queue.default'),
             'ofisvio.performance.enabled' => Config::get('ofisvio.performance.enabled'),
