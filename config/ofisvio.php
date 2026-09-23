@@ -126,6 +126,11 @@ return [
      * Güvenlik başlıkları (SecurityHeaders middleware). Dış kaynak listesi burada;
      * yeni bir CDN/gömme eklenirse önce buraya yazılır. HSTS yalnız HTTPS yanıtlarında.
      */
+    // Kurulum sihirbazı (faz 62): yazılacak .env dosyasının yolu. null = uygulama kökü; yalnız testte geçici dosyaya alınır.
+    'install' => [
+        'env_file' => null,
+    ],
+
     // İşletim denetimleri (audit F-04): NTP senkron denetimi yalnız CI/test konteynerinde kapatılır.
     'ops' => [
         'ntp_check' => (bool) env('OFISVIO_NTP_CHECK', true),

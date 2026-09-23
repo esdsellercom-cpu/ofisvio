@@ -31,7 +31,8 @@ class SmokeCommandTest extends TestCase
             ->expectsOutputToContain('GET /panel → 302')
             ->expectsOutputToContain('POST /webhooks/iyzico → 404')
             ->expectsOutputToContain('bağlamsız sorgu 0 satır')
-            ->expectsOutputToContain('14 kontrol · 0 hata')
+            ->expectsOutputToContain('GET /install → 404') // faz 62: kurulu sistemde kurulum sihirbazı yoktur
+            ->expectsOutputToContain('15 kontrol · 0 hata')
             ->assertSuccessful();
 
         // Kurulum ön kontrolü de koşar (--check yazmaz).

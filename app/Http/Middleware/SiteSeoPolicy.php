@@ -23,7 +23,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SiteSeoPolicy
 {
-    public const SKIP_PREFIXES = ['/panel', '/login', '/logout', '/register', '/forgot-password', '/reset-password', '/two-factor-challenge', '/user/', '/email/', '/webhooks/', '/up', '/onizleme/', '/build/', '/storage/', '/css/', '/js/', '/images/', '/fonts/'];
+    public const SKIP_PREFIXES = ['/install', '/panel', '/login', '/logout', '/register', '/forgot-password', '/reset-password', '/two-factor-challenge', '/user/', '/email/', '/webhooks/', '/up', '/onizleme/', '/build/', '/storage/', '/css/', '/js/', '/images/', '/fonts/'];
 
     private const PROTECTED_HEADERS = ['content-security-policy', 'strict-transport-security', 'x-frame-options', 'x-content-type-options', 'referrer-policy', 'permissions-policy', 'set-cookie', 'content-type', 'content-length', 'location', 'cache-control'];
 

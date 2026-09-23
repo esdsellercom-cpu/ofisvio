@@ -31,6 +31,8 @@ class RateLimitServiceProvider extends ServiceProvider
         'media-upload' => 30, // görsel yükleme (karantina zinciri maliyetli)
         'context-switch' => 30,
         'webhook' => 120, // sağlayıcı yeniden teslimleri; IP bazlı (oturum yok)
+        // Kurulum sihirbazının sınırı burada DEĞİL (faz 62): bu limiter'lar boot anında önbellek sürücüsüne
+        // bağlanır, taze kurulumda `cache` tablosu yoktur → App\Http\Middleware\ThrottleInstall (dosya önbelleği).
     ];
 
     public function boot(): void

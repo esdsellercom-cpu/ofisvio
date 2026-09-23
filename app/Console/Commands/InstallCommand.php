@@ -12,8 +12,10 @@ use Throwable;
  * Kurulum sihirbazı — CLI (audit F-17). Her domain/sunucuya bağımsız kurulum: ortam ön kontrolü (PHP, uzantılar,
  * yazılabilir dizinler, APP_KEY, veritabanı) → migration → referans veri → storage bağlantısı → env tabanlı hesaplar
  * → kilit dosyası (`storage/app/.installed`) → doctor. Kilit varken yeniden kurulum reddedilir (`--upgrade` yalnız
- * migration + referans veri + doctor koşar). Web tabanlı /install ucu YOKTUR: kurulum sunucuya erişimi olan
- * operatörün işidir; dışarıdan tetiklenecek bir yüzey açılmaz.
+ * migration + referans veri + doctor koşar). Web tabanlı /install sihirbazı (faz 62) AYNI adımları çalıştırır ama
+ * yalnız operatör `storage/app/install/challenge.txt` anahtar dosyasını oluşturduğunda açılır (App\Install\InstallGate);
+ * kurulum bitince kilit yazılır ve uç kalıcı olarak 404 döner. Kurulum yine sunucuya erişimi olan kişinin işidir —
+ * kanıt biçimi shell yerine dosya sistemine taşınmıştır (paylaşımlı hostingde shell yoktur).
  */
 class InstallCommand extends Command
 {

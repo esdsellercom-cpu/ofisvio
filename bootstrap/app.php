@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\EnsureStaffTwoFactor;
 use App\Http\Middleware\EnsureTenantContext;
+use App\Http\Middleware\InstallEnvironment;
 use App\Http\Middleware\NormalizeTotpCode;
 use App\Http\Middleware\PerRequestCaches;
 use App\Http\Middleware\PublicCacheHeaders;
@@ -34,6 +35,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [PerRequestCaches::class, SecurityHeaders::class, RequestProfiler::class]); // RequestProfiler (faz 60f): istek profili, terminate'te yazar
         // SiteSeoPolicy (faz 44): vitrin yönlendirme/başlık politikası — GLOBAL, rota eşleşmeden önce çalışır
         // (eski/olmayan adresler de yönlendirilir); panel ve kimlik yolları atlanır.
+        // Kurulum sihirbazı (faz 62): /install isteklerinde oturum/önbellek sürücülerini ve APP_DEBUG'ı güvenli
+        // değerlere çeker; DB henüz yokken oturum başlatılamazdı. SiteSeoPolicy'den ÖNCE eklenir.
+        $middleware->append(InstallEnvironment::class);
         $middleware->append(SiteSeoPolicy::class);
 
         $middleware->alias([
@@ -46,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Doğrulama/iş kuralı hatasında oturuma flash'lanmayacak alanlar: kurulum anahtarı ve şifreler düz metin
+        // olarak oturum dosyasına yazılırdı (faz 62 incelemesi).
+        $exceptions->dontFlash(['token', 'password', 'password_confirmation', 'current_password', 'mail_password', '_token']);
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
@@ -113,6 +121,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            return back()->withErrors(['domain' => $e->getMessage()])->withInput($request->except(['password', 'password_confirmation', '_token']));
+            return back()->withErrors(['domain' => $e->getMessage()])->withInput($request->except(['password', 'password_confirmation', 'current_password', 'mail_password', 'token', '_token']));
         });
     })->create();

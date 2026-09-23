@@ -61,6 +61,18 @@ dediği sürece uygulama KYC yüklemesini reddeder (fail-closed — tasarım ger
 
 ## 3. Kurulum / güncelleme
 
+**Shell'i olmayan sunucu (paylaşımlı hosting): web kurulum sihirbazı.** Paketi açtıktan ve alan adının kökünü
+`public/` klasörüne çevirdikten sonra:
+
+1. Sunucuda `storage/app/install/challenge.txt` dosyasını oluşturun, içine ≥32 karakterlik rastgele bir metin yazın
+   (dosya yöneticisi ya da FTP yeterlidir; bu dosya "sunucuya erişimim var" kanıtıdır — onsuz `/install` 404'tür).
+2. `https://alanadiniz.com/install` adresine girin, aynı metni yapıştırın ve ekranları izleyin: gereksinimler →
+   veritabanı → site/e-posta → tablolar → referans veri → yönetici hesabı → bitir.
+3. "Bitir" kilidi yazar, anahtar dosyasını siler ve ucu kalıcı olarak kapatır; ekranda `ofisvio:doctor` özeti çıkar.
+
+Sihirbaz `.env`'i kendisi yazar (yalnız allowlist'teki anahtarlar), `APP_KEY`'i yalnız boşsa üretir ve dolu bir
+veritabanının üstüne kurulum yapmaz. Güncelleme yolu web'de YOKTUR: `./install.sh --upgrade` (CLI).
+
 **Tercih edilen yol: CI artefaktı + `deploy/deploy.sh` (§7).** Elle kurulumda tek komut (audit F-17 — web tabanlı
 `/install` ucu bilinçli olarak YOKTUR; kurulum sunucu erişimi olan operatörün işidir).
 

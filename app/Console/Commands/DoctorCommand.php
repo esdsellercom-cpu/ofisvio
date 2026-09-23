@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Install\InstallGate;
 use App\Integrations\SecretStore;
 use App\Models\Content;
 use App\Models\Media;
@@ -62,6 +63,7 @@ class DoctorCommand extends Command
         $this->checkMailAndQueue($production);
         $this->checkScheduler($production);
         $this->checkSeedAndAdmin();
+        $this->checkInstallEndpoint($production);
         $this->checkLegal($production);
         $this->checkKeyRotation($production);
         $this->checkFailedJobs();
@@ -486,6 +488,23 @@ class DoctorCommand extends Command
         $current !== null
             ? $this->add('KVKK metni sürümü', 'ok', 'v'.$current->version.' · '.$current->published_at->format('d.m.Y'))
             : $this->strict($production, 'KVKK metni sürümü', 'Yok — Ayarlar › Footer ekranında KVKK sayfasını seçip yayınlayın; rızalar metne bağlanamıyor');
+    }
+
+    /**
+     * Web kurulum sihirbazı (faz 62) kapalı mı: anahtar dosyası duruyorsa uç yeniden açılabilir. Kurulum kendi
+     * kapanışında dosyayı siler; elle bırakılmış bir dosya üretimde hatadır.
+     */
+    private function checkInstallEndpoint(bool $production): void
+    {
+        $gate = app(InstallGate::class);
+
+        if (! $gate->challengeExists()) {
+            $this->add('Kurulum ucu', 'ok', 'kapalı');
+
+            return;
+        }
+
+        $this->strict($production, 'Kurulum ucu', 'AÇIK — '.$gate->challengePath().' duruyor; kurulum bittiyse bu dosyayı silin');
     }
 
     private function checkSeedAndAdmin(): void

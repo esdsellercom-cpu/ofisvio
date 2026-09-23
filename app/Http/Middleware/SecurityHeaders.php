@@ -31,7 +31,7 @@ class SecurityHeaders
         Csp::reset();
         $nonce = Csp::nonce(); // görünümler render edilmeden önce üretilir; yanıt başlığıyla aynı değer
         $response = $next($request);
-        $panel = $request->is('panel', 'panel/*', 'login', 'two-factor-challenge', 'user/*', 'forgot-password', 'reset-password/*');
+        $panel = $request->is('install', 'install/*', 'panel', 'panel/*', 'login', 'two-factor-challenge', 'user/*', 'forgot-password', 'reset-password/*');
         $cfg = (array) config('ofisvio.security');
         $analytics = ! $panel && $this->analyticsEnabled() ? ' '.implode(' ', self::ANALYTICS_ORIGINS) : '';
 

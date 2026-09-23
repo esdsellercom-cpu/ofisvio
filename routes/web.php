@@ -4,6 +4,7 @@ use App\Http\Controllers\WebhookController;
 
 // Sıra ÖNEMLİ: site.php sonunda /{slug} yakalayıcısı var; panel route'ları
 // ondan önce tanımlanmalı ki /panel bir "sayfa slug'ı" sanılmasın.
+require __DIR__.'/install.php'; // kurulum sihirbazı — kurulu sistemde 404 (faz 62)
 require __DIR__.'/panel.php';  // panel — auth -> staff.2fa -> tenant -> permission
 require __DIR__.'/site.php';   // vitrin — kimlik doğrulaması yok
 

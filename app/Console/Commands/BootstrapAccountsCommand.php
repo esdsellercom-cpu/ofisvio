@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Install\PasswordPolicy;
 use App\Models\Company;
 use App\Models\Organization;
 use App\Models\OrganizationMember;
@@ -144,10 +145,6 @@ class BootstrapAccountsCommand extends Command
 
     private function passwordOk(string $password): bool
     {
-        return strlen($password) >= 16
-            && preg_match('/[A-Z]/', $password) === 1
-            && preg_match('/[a-z]/', $password) === 1
-            && preg_match('/[0-9]/', $password) === 1
-            && preg_match('/[^A-Za-z0-9]/', $password) === 1;
+        return PasswordPolicy::ok($password); // tek kaynak: web kurulum sihirbazı da aynı eşiği uygular
     }
 }

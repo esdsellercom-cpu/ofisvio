@@ -40,6 +40,7 @@ class SmokeCommand extends Command
         $this->http($kernel, 'Panel yetkisiz → yönlendirme', 'GET', '/panel', [302]);
         $this->http($kernel, 'İmzasız webhook reddi', 'POST', '/webhooks/iyzico', [400, 401, 404, 413]);
         $this->http($kernel, 'robots.txt', 'GET', '/robots.txt', [200]);
+        $this->http($kernel, 'Kurulum ucu kapalı', 'GET', '/install', [404]); // faz 62: kurulu sistemde sihirbaz yoktur
         $this->http($kernel, 'Kritik akış: rezervasyon uygunluk', 'GET', '/rezervasyon', [200]);
 
         $this->probe('Veritabanı', function () {
