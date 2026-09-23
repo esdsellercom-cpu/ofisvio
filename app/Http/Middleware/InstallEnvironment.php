@@ -37,6 +37,12 @@ class InstallEnvironment
             return $next($request);
         }
 
+        return $this->restoring(fn () => $this->handleInstall($request, $next));
+    }
+
+    private function handleInstall(Request $request, Closure $next): Response
+    {
+
         Config::set([
             'app.debug' => false,
             'session.secure' => $request->isSecure(),
@@ -76,5 +82,36 @@ class InstallEnvironment
         }
 
         return $next($request);
+    }
+
+    /**
+     * Kurulum isteğini çalıştırır ve config değişikliklerini geri alır: aynı süreçte birden çok isteği işleyen
+     * akışlar (ofisvio:smoke kendi içinde HTTP çekirdeğini çağırır) kalıcı olarak dosya önbelleğine düşmemeli.
+     * Üretilen APP_KEY korunur — o .env'e yazıldı, artık ortamın gerçek değeridir.
+     *
+     * @param  callable(): Response  $work
+     */
+    private function restoring(callable $work): Response
+    {
+        $original = [
+            'app.debug' => Config::get('app.debug'),
+            'session.secure' => Config::get('session.secure'),
+            'session.driver' => Config::get('session.driver'),
+            'cache.default' => Config::get('cache.default'),
+            'queue.default' => Config::get('queue.default'),
+            'ofisvio.performance.enabled' => Config::get('ofisvio.performance.enabled'),
+            'app.key' => Config::get('app.key'),
+        ];
+
+        try {
+            return $work();
+        } finally {
+            $key = (string) Config::get('app.key');
+            Config::set($original);
+
+            if ((string) $original['app.key'] === '' && $key !== '') {
+                Config::set('app.key', $key);
+            }
+        }
     }
 }
