@@ -52,11 +52,17 @@ MSG
 fi
 
 envval() { sed -n "s/^${1}=//p" .env | head -1 | tr -d '"'"'"'\r'; }
-[[ -n "$(envval DB_DATABASE)" ]] || die ".env içinde DB_DATABASE boş"
 [[ -n "$(envval APP_URL)" ]] || die ".env içinde APP_URL boş"
+DB_CONN="$(envval DB_CONNECTION)"
+[[ -n "$DB_CONN" ]] || die ".env içinde DB_CONNECTION boş"
+if [[ "$DB_CONN" != "sqlite" ]]; then
+  [[ -n "$(envval DB_DATABASE)" ]] || die ".env içinde DB_DATABASE boş"
+  [[ -n "$(envval DB_USERNAME)" ]] || die ".env içinde DB_USERNAME boş"
+fi
 if [[ "$(envval APP_ENV)" == "production" ]]; then
   [[ "$(envval APP_DEBUG)" == "false" ]] || die "üretimde APP_DEBUG=false olmalı"
   case "$(envval APP_URL)" in https://*) ;; *) die "üretimde APP_URL https olmalı" ;; esac
+  [[ "$DB_CONN" != "sqlite" ]] || note "UYARI: üretimde sqlite — eşzamanlı yazma ve yedekleme için MySQL/PostgreSQL önerilir"
 fi
 if [[ -z "$(envval APP_KEY)" ]]; then
   note "APP_KEY üretiliyor"
@@ -101,7 +107,7 @@ if [[ "$MODE" == "--upgrade" ]]; then
   exit 0
 fi
 
-cat <<'MSG'
+cat <<MSG
 
 Kurulum tamam. Sırasıyla:
 
