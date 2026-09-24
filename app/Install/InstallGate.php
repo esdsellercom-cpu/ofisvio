@@ -35,8 +35,13 @@ final class InstallGate
 
     public const RUNNING = 'app/install/.running';
 
-    /** Anahtar dosyası oluşturulduktan sonra kurulumun BAŞLATILABİLECEĞİ süre (saniye). */
-    public const TTL_SECONDS = 86400;
+    /**
+     * Anahtar dosyası oluşturulduktan (ya da paketle birlikte geldiyse paketlendikten) sonra kurulumun
+     * BAŞLATILABİLECEĞİ süre. Pencere, unutulmuş bir anahtar dosyasının süresiz açık kalmasını engeller;
+     * asıl güvenlik anahtarın gizliliğindedir. Bir hafta, dosya yöneticisiyle çalışan operatör için gerçekçi
+     * (bir saat değildi); kurulum bitince dosya zaten silinir, kalırsa doctor üretimde hata verir.
+     */
+    public const TTL_SECONDS = 604800;
 
     /**
      * Başlamış kurulumun penceresi. Yarıda bırakılan bir sihirbaz sonsuza dek açık kalmaz: durum dosyasına
