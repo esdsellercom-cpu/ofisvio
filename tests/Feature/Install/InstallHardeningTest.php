@@ -192,6 +192,28 @@ class InstallHardeningTest extends TestCase
     }
 
     #[Test]
+    public function yarida_kalmis_kurulum_surdurulur_dolu_sistem_reddedilir(): void
+    {
+        $this->writeChallenge(str_repeat('N', 40));
+        $wizard = app(InstallWizardService::class);
+        $sqlite = $this->storage.'/yarim.sqlite';
+
+        // Yarıda kalmış kurulum: tablolar var, hesap yok → devam edilebilir.
+        $pdo = new \PDO('sqlite:'.$sqlite);
+        $pdo->exec('create table users (id integer primary key)');
+        $pdo->exec('create table migrations (id integer primary key)');
+
+        $wizard->saveDatabase(['connection' => 'sqlite', 'database' => $sqlite]);
+        $this->assertStringContainsString('DB_DATABASE='.$sqlite, (string) file_get_contents($this->envFile));
+
+        // Yaşayan sistem: hesap var → reddedilir.
+        $pdo->exec('insert into users (id) values (1)');
+
+        $this->expectException(DomainException::class);
+        $wizard->saveDatabase(['connection' => 'sqlite', 'database' => $sqlite]);
+    }
+
+    #[Test]
     public function kapi_reddettiginde_nedenini_kurulum_gunlugune_yazar(): void
     {
         // Operatör dışarıdan yalnız 404 görür; nedeni web'den erişilemeyen storage/logs/install.log'a yazılır.

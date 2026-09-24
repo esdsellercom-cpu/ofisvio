@@ -217,7 +217,17 @@ final class InstallWizardService
                     break;
                 }
 
-                $migrator->runPending([array_shift($pending)], ['pretend' => false]);
+                $file = (string) array_shift($pending);
+
+                try {
+                    $migrator->runPending([$file], ['pretend' => false]);
+                } catch (Throwable $e) {
+                    // Ham veritabanı hatası 500 olarak çıkıyordu; operatör hangi adımda takıldığını göremiyordu.
+                    $step = basename($file, '.php');
+                    $this->log('Migration başarısız ('.$step.'): '.$e->getMessage());
+
+                    throw new DomainException('Veritabanı adımı "'.$step.'" tamamlanamadı: '.$this->dbErrorSummary($e).' Ayrıntı: storage/logs/install.log');
+                }
             } while (time() < $deadline);
 
             $ran = $migrator->getRepository()->getRan();
@@ -361,6 +371,30 @@ final class InstallWizardService
     }
 
     /**
+     * Veritabanı hatasının operatöre gösterilebilir özeti: sürücü mesajının ilk cümlesi, SQL gövdesi ve bağlantı
+     * bilgisi olmadan (sorgu metni tablo/sütun adlarını ve bazen değerleri taşır).
+     */
+    private function dbErrorSummary(Throwable $e): string
+    {
+        $message = $e->getMessage();
+
+        // Kesilen bir adımdan kalan yarım tablo: adım baştan çalışınca "zaten var" der ve kurulum kilitlenir.
+        // Operatörün yapması gereken tek şey o tabloyu silmek olduğu için adını söylüyoruz.
+        if (preg_match("/Table '([^']+)' already exists|table \"?([A-Za-z0-9_]+)\"? already exists/i", $message, $found) === 1) {
+            $table = $found[1] !== '' ? $found[1] : $found[2];
+            $table = str_contains($table, '.') ? substr((string) strrchr($table, '.'), 1) : $table;
+
+            return 'yarıda kalan bir adımdan kalan "'.$table.'" tablosu zaten var. phpMyAdmin\'den bu tabloyu silip adımı yeniden çalıştırın (içinde veri yoktur).';
+        }
+
+        if (preg_match('/SQLSTATE\[[^\]]+\](?:\s*\[\d+\])?\s*([^(]+)/', $message, $matches) === 1) {
+            return rtrim(trim($matches[1]), '.').'.';
+        }
+
+        return 'veritabanı sürücüsü hata verdi.';
+    }
+
+    /**
      * Bekleyen migration dosyaları (Migrator::pendingMigrations korumalıdır, aynı hesap burada yapılır).
      *
      * @param  array<string, string>  $files  migration adı => dosya yolu
@@ -490,9 +524,29 @@ final class InstallWizardService
             throw new DomainException('Veritabanının boş olduğu doğrulanamadı (kullanıcının tablo listesini okuma yetkisi yok). Kullanıcıya bu veritabanında tüm yetkileri verin.');
         }
 
-        if ($tables > 0) {
-            throw new DomainException('Bu veritabanında zaten tablolar var. Veri kaybını önlemek için kurulum durduruldu: boş bir veritabanı kullanın; var olan kurulumun güncellemesi sunucuda "./install.sh --upgrade" ile yapılır.');
+        if ($tables === 0) {
+            return;
         }
+
+        // Tablolar var: YAŞAYAN bir sistem mi, yoksa yarıda kalmış kendi kurulumumuz mu? Ölçüt hesap kaydıdır.
+        // (Zaman aşımına düşen bir "tablolar" adımından sonra operatör buraya geri dönebiliyor; migration'lar
+        // idempotent olduğu için boş bir şemanın üstünden devam etmek güvenli.)
+        try {
+            $statement = $pdo->query('select count(*) from users');
+            $users = $statement === false ? null : (int) $statement->fetchColumn();
+        } catch (PDOException) {
+            $users = null; // users tablosu yok → bu şema bize ait değil
+        }
+
+        if ($users === null) {
+            throw new DomainException('Bu veritabanında başka bir uygulamanın tabloları var. Veri kaybını önlemek için kurulum durduruldu; boş bir veritabanı kullanın.');
+        }
+
+        if ($users > 0) {
+            throw new DomainException('Bu veritabanında zaten kurulu bir Ofisvio var (kullanıcı hesapları mevcut). Kurulum durduruldu; güncelleme sunucuda "./install.sh --upgrade" ile yapılır.');
+        }
+
+        $this->log('Yarıda kalmış kurulum sürdürülüyor: '.$tables.' tablo var, hesap yok.');
     }
 
     /** @param  array<string, string>  $context */
