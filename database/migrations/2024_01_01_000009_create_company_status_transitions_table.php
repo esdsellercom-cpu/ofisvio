@@ -24,7 +24,7 @@ return new class extends Migration
             // geçişlerde (ödeme webhook'u vb.) null kalır ve reason bunu yazar.
             $table->foreignId('performed_by')->nullable()->constrained('users')->nullOnDelete();
             $table->text('reason')->nullable();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
 
             $table->index(['company_id', 'created_at']);
         });

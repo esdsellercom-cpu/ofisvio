@@ -54,7 +54,7 @@ return new class extends Migration
             $table->string('excerpt', 500)->nullable();
             $table->longText('body')->nullable();
             $table->foreignId('edited_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
 
             $table->unique(['content_id', 'number']);
         });

@@ -54,8 +54,8 @@ return new class extends Migration
             $table->foreignId('website_id')->constrained()->cascadeOnDelete();
             $table->string('path', 300);
             $table->unsignedInteger('hits')->default(1);
-            $table->timestamp('first_seen_at');
-            $table->timestamp('last_seen_at');
+            $table->dateTime('first_seen_at');
+            $table->dateTime('last_seen_at');
             $table->string('referer', 500)->nullable();
             $table->string('suggested_path', 500)->nullable();
             $table->unsignedTinyInteger('suggested_score')->nullable();

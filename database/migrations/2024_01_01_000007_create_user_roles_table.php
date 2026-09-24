@@ -38,8 +38,8 @@ return new class extends Migration
             $table->string('resource_type'); // ör. 'kyc_document'
             $table->unsignedBigInteger('resource_id');
             $table->text('reason');
-            $table->timestamp('granted_at');
-            $table->timestamp('expires_at');
+            $table->dateTime('granted_at');
+            $table->dateTime('expires_at');
             $table->timestamp('revoked_at')->nullable();
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete(); // ikinci onay gerekiyorsa
             $table->timestamps();

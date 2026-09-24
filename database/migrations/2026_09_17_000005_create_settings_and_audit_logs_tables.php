@@ -38,7 +38,7 @@ return new class extends Migration
             $table->json('after')->nullable();
             $table->string('ip', 45)->nullable();
             $table->string('user_agent', 255)->nullable();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
 
             $table->index(['entity_type', 'entity_id']);
             $table->index(['action', 'created_at']);

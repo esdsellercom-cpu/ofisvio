@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('event', 24); // login | failed | logout | lockout | password_reset | two_factor
             $table->string('ip', 45)->nullable();
             $table->string('user_agent', 255)->nullable();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
 
             $table->index(['user_id', 'created_at']);
             $table->index(['email', 'created_at']);

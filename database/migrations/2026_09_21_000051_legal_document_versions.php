@@ -22,7 +22,7 @@ return new class extends Migration
             $table->foreignId('content_id')->nullable()->constrained('contents')->nullOnDelete();
             $table->string('title', 200);
             $table->string('content_hash', 64); // sha256(gövde)
-            $table->timestamp('published_at');
+            $table->dateTime('published_at');
             $table->foreignId('published_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('note', 200)->nullable();
             $table->timestamps();
@@ -40,7 +40,7 @@ return new class extends Migration
             $table->string('content_hash', 64)->nullable(); // sürüm yoksa null (doctor üretimde uyarır)
             $table->string('ip', 45)->nullable();
             $table->string('user_agent', 255)->nullable();
-            $table->timestamp('accepted_at');
+            $table->dateTime('accepted_at');
             $table->timestamps();
 
             $table->index(['subject_type', 'subject_id']);

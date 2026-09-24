@@ -27,7 +27,7 @@ return new class extends Migration
             $table->unsignedInteger('response_bytes')->default(0);
             $table->boolean('cache_hit')->default(false); // 304 ya da uygulama önbelleğinden
             $table->boolean('authenticated')->default(false);
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
             $table->index(['kind', 'created_at']);
             $table->index(['route', 'created_at']);
         });
@@ -39,7 +39,7 @@ return new class extends Migration
             $table->text('sql');                  // bağlamsız (bindings ? olarak); kişisel veri taşımaz
             $table->unsignedInteger('duration_ms');
             $table->string('connection', 32)->nullable();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
             $table->index(['sql_hash', 'created_at']);
             $table->index('created_at');
         });
@@ -52,7 +52,7 @@ return new class extends Migration
             $table->unsignedBigInteger('entity_id')->nullable();
             $table->json('steps');                // kaskad adımları
             $table->unsignedInteger('version_after')->default(0);
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
             $table->index(['website_id', 'created_at']);
         });
     }

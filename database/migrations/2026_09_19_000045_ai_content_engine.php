@@ -65,7 +65,7 @@ return new class extends Migration
             $table->string('status', 12)->default('open'); // open | planned | done | ignored
             $table->foreignId('ai_job_id')->nullable()->constrained('ai_jobs')->nullOnDelete();
             $table->foreignId('decided_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('detected_at');
+            $table->dateTime('detected_at');
             $table->timestamps();
             $table->unique(['website_id', 'content_id']);
         });

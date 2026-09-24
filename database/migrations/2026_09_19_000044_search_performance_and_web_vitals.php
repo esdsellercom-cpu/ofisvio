@@ -61,7 +61,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('score')->nullable();
             $table->json('lab')->nullable();
             $table->json('field')->nullable();
-            $table->timestamp('measured_at');
+            $table->dateTime('measured_at');
             $table->timestamps();
             $table->index(['website_id', 'path', 'strategy', 'measured_at']);
         });

@@ -24,7 +24,7 @@ return new class extends Migration
             $table->bigInteger('balance_after')->nullable();
             $table->string('memo', 200)->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
 
             $table->index(['company_id', 'created_at']);
             $table->index(['invoice_id', 'created_at']);

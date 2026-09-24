@@ -40,7 +40,7 @@ return new class extends Migration
             $table->json('snapshot');
             $table->string('note', 200)->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('published_at');
+            $table->dateTime('published_at');
             $table->timestamps();
 
             $table->unique(['website_id', 'number']);

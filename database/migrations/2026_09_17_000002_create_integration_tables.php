@@ -34,7 +34,7 @@ return new class extends Migration
             $table->json('payload');
             $table->string('status', 16)->default('received'); // received | processed | failed
             $table->string('source_ip', 45)->nullable();
-            $table->timestamp('received_at');
+            $table->dateTime('received_at');
             $table->timestamp('processed_at')->nullable();
             $table->text('error')->nullable();
             $table->timestamps();

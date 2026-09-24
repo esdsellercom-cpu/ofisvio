@@ -39,7 +39,7 @@ return new class extends Migration
             $table->text('note')->nullable();
 
             // KVKK açık rıza kanıtı
-            $table->timestamp('consented_at');
+            $table->dateTime('consented_at');
             $table->string('consent_ip', 45)->nullable();
             $table->string('consent_user_agent')->nullable();
 

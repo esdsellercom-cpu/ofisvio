@@ -53,7 +53,7 @@ return new class extends Migration
             $table->string('to_status', 20);
             $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
             $table->string('reason', 300)->nullable();
-            $table->timestamp('created_at');
+            $table->dateTime('created_at');
 
             $table->index(['booking_id', 'created_at']);
         });

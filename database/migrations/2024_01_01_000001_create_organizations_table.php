@@ -38,7 +38,7 @@ return new class extends Migration
             $table->foreignId('from_organization_id')->nullable()->constrained('organizations')->nullOnDelete();
             $table->foreignId('to_organization_id')->constrained('organizations')->cascadeOnDelete();
             $table->string('ip_address', 45)->nullable();
-            $table->timestamp('switched_at');
+            $table->dateTime('switched_at');
         });
     }
 
