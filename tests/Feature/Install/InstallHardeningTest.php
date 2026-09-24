@@ -10,9 +10,12 @@ use App\Security\MalwareScanner;
 use Database\Seeders\RolePermissionSeeder;
 use DomainException;
 use Dotenv\Dotenv;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -211,6 +214,25 @@ class InstallHardeningTest extends TestCase
 
         $this->expectException(DomainException::class);
         $wizard->saveDatabase(['connection' => 'sqlite', 'database' => $sqlite]);
+    }
+
+    #[Test]
+    public function yarim_kalan_adimdan_kalan_bos_tablo_temizlenir_dolu_tablo_korunur(): void
+    {
+        // Kesilen bir migration tablolarının bir kısmını oluşturur; adım kayda geçmediği için yeniden çalışınca
+        // "zaten var" der ve kurulum kilitlenirdi. Boş artık tablo temizlenir; içinde satır varsa ASLA silinmez.
+        $this->writeChallenge(str_repeat('O', 40));
+        $wizard = app(InstallWizardService::class);
+
+        Schema::dropIfExists('user_roles');
+        Schema::create('user_roles', fn (Blueprint $table) => $table->id()); // kesilen adımdan kalan boş tablo
+        DB::table('migrations')->where('migration', '2024_01_01_000007_create_user_roles_table')->delete();
+
+        $result = $wizard->migrate();
+
+        $this->assertSame(0, $result['remaining']);
+        $this->assertContains('user_roles', $result['cleaned']);
+        $this->assertTrue(Schema::hasColumn('user_roles', 'role_id')); // gerçek şema yeniden kuruldu
     }
 
     #[Test]

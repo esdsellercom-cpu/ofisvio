@@ -118,6 +118,10 @@ class InstallController extends Controller
             ? 'Veritabanı tabloları oluşturuldu ('.$result['done'].' adım).'
             : $result['done'].'/'.$result['total'].' adım tamamlandı, '.$result['remaining'].' adım kaldı — "Tabloları oluştur" düğmesine yeniden basın.';
 
+        if ($result['cleaned'] !== []) {
+            $notice .= ' Yarım kalan adımdan kalan boş tablolar temizlendi: '.implode(', ', $result['cleaned']).'.';
+        }
+
         return redirect()->route('install.setup')->with('install_notice', $notice);
     }
 

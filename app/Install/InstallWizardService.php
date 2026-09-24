@@ -11,7 +11,9 @@ use DomainException;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use PDO;
 use PDOException;
@@ -29,6 +31,9 @@ final class InstallWizardService
 {
     /** Ağır adımın kilidi bu süre sonra bayat sayılır (saniye) — kesilen istek operatörü uzun süre bekletmesin. */
     public const STALE_LOCK_SECONDS = 180;
+
+    /** Bir migration adımı için izin verilen artık-tablo temizliği sayısı (sonsuz döngü olmasın). */
+    public const MAX_RECOVERIES = 5;
 
     /** Tek istekte ağır adıma ayrılan süre; sunucunun istek zaman aşımından kısa olmalı. */
     public const STEP_BUDGET_SECONDS = 10;
@@ -194,7 +199,7 @@ final class InstallWizardService
      * kalıyor ve adım "bekliyor" görünüyordu. Artık her istek bütçe dolana kadar migration uygular, kalanı bir
      * sonraki tıklamaya bırakır; adım ancak hepsi bitince "tamam" işaretlenir.
      *
-     * @return array{done: int, total: int, remaining: int}
+     * @return array{done: int, total: int, remaining: int, cleaned: array<int, string>}
      */
     public function migrate(): array
     {
@@ -210,6 +215,11 @@ final class InstallWizardService
             $total = count($files);
             $deadline = time() + self::STEP_BUDGET_SECONDS;
 
+            /** @var array<string, int> $recovered */
+            $recovered = [];
+            /** @var array<int, string> $cleaned */
+            $cleaned = [];
+
             do {
                 $pending = $this->pending($files, $migrator->getRepository()->getRan());
 
@@ -218,12 +228,24 @@ final class InstallWizardService
                 }
 
                 $file = (string) array_shift($pending);
+                $step = basename($file, '.php');
 
                 try {
                     $migrator->runPending([$file], ['pretend' => false]);
                 } catch (Throwable $e) {
-                    // Ham veritabanı hatası 500 olarak çıkıyordu; operatör hangi adımda takıldığını göremiyordu.
-                    $step = basename($file, '.php');
+                    // Kesilen bir adım, tablolarının bir kısmını oluşturmuş olabilir; adım kayda geçmediği için
+                    // yeniden çalışınca "zaten var" der ve kurulum kilitlenir. BOŞ olan artık tabloyu temizleyip
+                    // adımı bir kez daha deniyoruz — içinde satır varsa asla dokunmayız.
+                    $orphan = $this->orphanTable($e);
+
+                    if ($orphan !== null && ($recovered[$step] ?? 0) < self::MAX_RECOVERIES && $this->dropEmptyTable($orphan)) {
+                        $recovered[$step] = ($recovered[$step] ?? 0) + 1;
+                        $cleaned[] = $orphan;
+                        $this->log('Yarım kalan "'.$step.'" adımından kalan boş tablo silindi: '.$orphan);
+
+                        continue;
+                    }
+
                     $this->log('Migration başarısız ('.$step.'): '.$e->getMessage());
 
                     throw new DomainException('Veritabanı adımı "'.$step.'" tamamlanamadı: '.$this->dbErrorSummary($e).' Ayrıntı: storage/logs/install.log');
@@ -236,6 +258,7 @@ final class InstallWizardService
                 'done' => count($ran),
                 'total' => $total,
                 'remaining' => count($this->pending($files, $ran)),
+                'cleaned' => array_values(array_unique($cleaned)),
             ];
         }, fn (array $result): bool => $result['remaining'] === 0);
     }
@@ -406,6 +429,43 @@ final class InstallWizardService
         }
 
         return $output;
+    }
+
+    /** Hatadan "zaten var" denen tablonun adını çıkarır (yoksa null). */
+    private function orphanTable(Throwable $e): ?string
+    {
+        if (preg_match("/Table '([^']+)' already exists|table \"?([A-Za-z0-9_]+)\"? already exists/i", $e->getMessage(), $found) !== 1) {
+            return null;
+        }
+
+        $table = $found[1] !== '' ? $found[1] : $found[2];
+
+        return str_contains($table, '.') ? substr((string) strrchr($table, '.'), 1) : $table;
+    }
+
+    /**
+     * Yarım kalan adımdan kalan tabloyu siler — YALNIZ içi boşsa. Satır varsa dokunulmaz: o tablo bu kurulumun
+     * değil, var olan bir sistemin olabilir. Her silme kurulum günlüğüne yazılır.
+     */
+    private function dropEmptyTable(string $table): bool
+    {
+        if (preg_match('/^[A-Za-z0-9_]+$/', $table) !== 1) {
+            return false;
+        }
+
+        try {
+            if (! Schema::hasTable($table) || DB::table($table)->limit(1)->count() > 0) {
+                return false;
+            }
+
+            Schema::drop($table);
+
+            return true;
+        } catch (Throwable $e) {
+            $this->log('Artık tablo silinemedi ('.$table.'): '.$e->getMessage());
+
+            return false;
+        }
     }
 
     /**
