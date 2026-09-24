@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\UserRole;
 use App\Services\AuditService;
 use DomainException;
+use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
@@ -26,8 +27,11 @@ use Throwable;
  */
 final class InstallWizardService
 {
-    /** Ağır adımın kilidi bu süre sonra bayat sayılır (saniye). */
-    public const STALE_LOCK_SECONDS = 900;
+    /** Ağır adımın kilidi bu süre sonra bayat sayılır (saniye) — kesilen istek operatörü uzun süre bekletmesin. */
+    public const STALE_LOCK_SECONDS = 180;
+
+    /** Tek istekte ağır adıma ayrılan süre; sunucunun istek zaman aşımından kısa olmalı. */
+    public const STEP_BUDGET_SECONDS = 20;
 
     public function __construct(
         private readonly InstallGate $gate,
@@ -183,10 +187,47 @@ final class InstallWizardService
         ];
     }
 
-    /** Veritabanı tabloları — kendi isteğinde, tek uçuş kilidiyle. */
-    public function migrate(): string
+    /**
+     * Veritabanı tabloları — kendi isteğinde, tek uçuş kilidiyle ve ZAMAN BÜTÇELİ parçalar hâlinde.
+     *
+     * Paylaşımlı hostingde istek 30-60 saniyede kesiliyor; 86 migration tek isteğe sığmadığı için şema yarım
+     * kalıyor ve adım "bekliyor" görünüyordu. Artık her istek bütçe dolana kadar migration uygular, kalanı bir
+     * sonraki tıklamaya bırakır; adım ancak hepsi bitince "tamam" işaretlenir.
+     *
+     * @return array{done: int, total: int, remaining: int}
+     */
+    public function migrate(): array
     {
-        return $this->heavy('migrate', fn () => $this->artisan('migrate', ['--force' => true]));
+        return $this->heavy('migrate', function (): array {
+            /** @var Migrator $migrator */
+            $migrator = app('migrator');
+
+            if (! $migrator->repositoryExists()) {
+                $migrator->getRepository()->createRepository();
+            }
+
+            $files = $migrator->getMigrationFiles([database_path('migrations')]);
+            $total = count($files);
+            $deadline = time() + self::STEP_BUDGET_SECONDS;
+
+            do {
+                $pending = $this->pending($files, $migrator->getRepository()->getRan());
+
+                if ($pending === []) {
+                    break;
+                }
+
+                $migrator->runPending([array_shift($pending)], ['pretend' => false]);
+            } while (time() < $deadline);
+
+            $ran = $migrator->getRepository()->getRan();
+
+            return [
+                'done' => count($ran),
+                'total' => $total,
+                'remaining' => count($this->pending($files, $ran)),
+            ];
+        }, fn (array $result): bool => $result['remaining'] === 0);
     }
 
     /** Referans veri (roller, izin matrisi, hizmet kataloğu, varsayılan site). */
@@ -319,8 +360,26 @@ final class InstallWizardService
         return $output;
     }
 
-    /** @param  callable(): string  $work */
-    private function heavy(string $step, callable $work): string
+    /**
+     * Bekleyen migration dosyaları (Migrator::pendingMigrations korumalıdır, aynı hesap burada yapılır).
+     *
+     * @param  array<string, string>  $files  migration adı => dosya yolu
+     * @param  array<int, string>  $ran  uygulanmış migration adları
+     * @return array<int, string>
+     */
+    private function pending(array $files, array $ran): array
+    {
+        return array_values(array_intersect_key($files, array_flip(array_diff(array_keys($files), $ran))));
+    }
+
+    /**
+     * @template TResult
+     *
+     * @param  callable(): TResult  $work
+     * @param  null|callable(TResult): bool  $completed  adım tamamlandı mı (null = her zaman tamam)
+     * @return TResult
+     */
+    private function heavy(string $step, callable $work, ?callable $completed = null)
     {
         $path = storage_path(InstallGate::RUNNING);
         File::ensureDirectoryExists(dirname($path));
@@ -345,7 +404,10 @@ final class InstallWizardService
 
         try {
             $output = $work();
-            $this->gate->markStep($step);
+
+            if ($completed === null || $completed($output)) {
+                $this->gate->markStep($step);
+            }
 
             return $output;
         } finally {

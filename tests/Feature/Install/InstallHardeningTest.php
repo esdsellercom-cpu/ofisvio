@@ -176,6 +176,22 @@ class InstallHardeningTest extends TestCase
     }
 
     #[Test]
+    public function migration_adimi_parca_parca_ilerler_ve_yarim_kalirsa_tamam_isaretlenmez(): void
+    {
+        // Paylaşımlı hostingde istek 30-60 sn'de kesiliyor: adım zaman bütçesiyle çalışır, kalan sayısını döndürür
+        // ve ancak hepsi bitince "tamam" olur (yarım şemayla yönetici adımına geçilmez).
+        $this->writeChallenge(str_repeat('M', 40));
+        $gate = app(InstallGate::class);
+
+        $result = app(InstallWizardService::class)->migrate();
+
+        $this->assertSame(0, $result['remaining']);
+        $this->assertGreaterThan(0, $result['done']);
+        $this->assertSame($result['total'], $result['done']);
+        $this->assertTrue($gate->stepDone('migrate'));
+    }
+
+    #[Test]
     public function kapi_reddettiginde_nedenini_kurulum_gunlugune_yazar(): void
     {
         // Operatör dışarıdan yalnız 404 görür; nedeni web'den erişilemeyen storage/logs/install.log'a yazılır.

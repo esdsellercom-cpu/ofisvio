@@ -108,9 +108,14 @@ class InstallController extends Controller
 
     public function runMigrate(): RedirectResponse
     {
-        $this->wizard->migrate();
+        $result = $this->wizard->migrate();
 
-        return redirect()->route('install.setup')->with('install_notice', 'Veritabanı tabloları oluşturuldu.');
+        // Paylaşımlı hostingde tek istek tüm migration'lara yetmez: kalan varsa operatör aynı düğmeyle devam eder.
+        $notice = $result['remaining'] === 0
+            ? 'Veritabanı tabloları oluşturuldu ('.$result['done'].' adım).'
+            : $result['done'].'/'.$result['total'].' adım tamamlandı, '.$result['remaining'].' adım kaldı — "Tabloları oluştur" düğmesine yeniden basın.';
+
+        return redirect()->route('install.setup')->with('install_notice', $notice);
     }
 
     public function runSeed(): RedirectResponse
