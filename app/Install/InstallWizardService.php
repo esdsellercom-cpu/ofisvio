@@ -31,7 +31,7 @@ final class InstallWizardService
     public const STALE_LOCK_SECONDS = 180;
 
     /** Tek istekte ağır adıma ayrılan süre; sunucunun istek zaman aşımından kısa olmalı. */
-    public const STEP_BUDGET_SECONDS = 20;
+    public const STEP_BUDGET_SECONDS = 10;
 
     public function __construct(
         private readonly InstallGate $gate,
@@ -238,6 +238,44 @@ final class InstallWizardService
                 'remaining' => count($this->pending($files, $ran)),
             ];
         }, fn (array $result): bool => $result['remaining'] === 0);
+    }
+
+    /**
+     * Migration ilerlemesi — ekranda gösterilir (kilit almaz, hiçbir şey çalıştırmaz).
+     *
+     * @return array{done: int, total: int, remaining: int}
+     */
+    public function migrationProgress(): array
+    {
+        /** @var Migrator $migrator */
+        $migrator = app('migrator');
+
+        try {
+            $files = $migrator->getMigrationFiles([database_path('migrations')]);
+            $ran = $migrator->repositoryExists() ? $migrator->getRepository()->getRan() : [];
+
+            return ['done' => count($ran), 'total' => count($files), 'remaining' => count($this->pending($files, $ran))];
+        } catch (Throwable) {
+            return ['done' => 0, 'total' => 0, 'remaining' => 0]; // veritabanı henüz erişilebilir değil
+        }
+    }
+
+    /**
+     * Kurulum günlüğünün son satırları — ekranda gösterilir, operatör dosya aramak zorunda kalmasın.
+     *
+     * @return array<int, string>
+     */
+    public function recentLog(int $lines = 3): array
+    {
+        $path = storage_path('logs/install.log');
+
+        if (! is_file($path) || ! is_readable($path)) {
+            return [];
+        }
+
+        $all = array_values(array_filter(array_map('trim', explode("\n", (string) file_get_contents($path)))));
+
+        return array_slice($all, -$lines);
     }
 
     /** Referans veri (roller, izin matrisi, hizmet kataloğu, varsayılan site). */

@@ -11,6 +11,7 @@
 
     <div class="setup-row">
         <span>1. Veritabanı tabloları</span>
+        <span class="setup-note">{{ $progress["done"] }}/{{ $progress["total"] }} adım uygulandı@if ($progress["remaining"] > 0) · {{ $progress["remaining"] }} kaldı @endif</span>
         <span class="{{ $migrated ? 'setup-ok' : 'setup-warn' }}">{{ $migrated ? 'tamam' : 'bekliyor' }}</span>
     </div>
     <form method="POST" action="{{ route('install.setup.migrate') }}" class="setup-actions">
@@ -30,6 +31,14 @@
     @if ($migrated && $seeded)
         <div class="setup-actions" style="margin-top:22px">
             <a href="{{ route('install.admin') }}" class="btn btn--brand btn--pill">Yönetici hesabına geç</a>
+        </div>
+    @endif
+    @if ($log !== [])
+        <div class="setup-note" style="margin-top:18px;padding:10px 12px;background:rgba(0,0,0,.05);border-radius:8px">
+            <strong>Kurulum günlüğü (son satırlar):</strong>
+            @foreach ($log as $line)
+                <div class="mono" style="font-size:12px;margin-top:4px">{{ $line }}</div>
+            @endforeach
         </div>
     @endif
 @endsection

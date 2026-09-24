@@ -100,9 +100,12 @@ class InstallController extends Controller
 
     public function setup(): View
     {
+        // İlerleme ve son günlük satırları ekranda: operatör dosya sistemine bakmadan nerede kaldığını görür.
         return view('install.setup', [
             'migrated' => $this->gate->stepDone('migrate'),
             'seeded' => $this->gate->stepDone('seed'),
+            'progress' => $this->wizard->migrationProgress(),
+            'log' => $this->wizard->recentLog(),
         ]);
     }
 
